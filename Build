@@ -1,0 +1,8 @@
+package "trimps-tools"
+{
+	program "spire"
+	{
+		source "spire.cpp";
+		require "mspcore";
+	};
+};
