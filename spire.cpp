@@ -236,6 +236,8 @@ Spire::Spire(int argc, char **argv):
 		lightning_damage *= 10;
 		++shock_dur;
 	}
+	if(lightning_level>=3)
+		lightning_damage *= 10;
 
 	if(!start_layout.data.empty())
 	{
@@ -410,7 +412,8 @@ uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool deb
 	unsigned chilled = 0;
 	unsigned frozen = 0;
 	unsigned shocked = 0;
-	unsigned multiplier = 1;
+	unsigned damage_multi = 1;
+	unsigned special_multi = 1;
 	uint64_t poison = 0;
 	uint64_t damage = 0;
 	uint64_t last_fire = 0;
@@ -421,14 +424,14 @@ uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool deb
 		bool antifreeze = false;
 		if(t=='Z')
 		{
-			damage += frost_damage*multiplier;
-			chilled = chill_dur*multiplier+1;
+			damage += frost_damage*damage_multi;
+			chilled = chill_dur*special_multi+1;
 			frozen = 0;
 			antifreeze = true;
 		}
 		else if(t=='F')
 		{
-			uint64_t d = fire_damage*multiplier;
+			unsigned d = fire_damage*damage_multi;
 			if(floor_flags[i/5]&0x08)
 				d *= 2;
 			if(chilled && frost_level>=3)
@@ -438,7 +441,7 @@ uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool deb
 		}
 		else if(t=='P')
 		{
-			unsigned p = poison_damage*multiplier;
+			unsigned p = poison_damage*damage_multi;
 			if(frost_level>=4 && i+1<slots && layout[i+1]=='Z')
 				p *= 4;
 			if(poison_level>=3)
@@ -454,13 +457,16 @@ uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool deb
 		}
 		else if(t=='L')
 		{
-			damage += lightning_damage*multiplier;
+			damage += lightning_damage*damage_multi;
 			shocked = shock_dur+1;
-			multiplier = 2;
+			damage_multi = 2;
+			if(lightning_level>=3)
+				damage_multi *= 2;
+			special_multi = 2;
 		}
 		else if(t=='S')
 		{
-			uint64_t d = fire_damage*(floor_flags[i/5]&0x07)*2*multiplier;
+			uint64_t d = fire_damage*(floor_flags[i/5]&0x07)*2*damage_multi;
 			if(chilled && frost_level>=3)
 				d = d*5/4;
 			damage += d;
@@ -470,12 +476,12 @@ uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool deb
 			if(chilled)
 			{
 				chilled = 0;
-				frozen = 5*multiplier+1;
+				frozen = 5*special_multi+1;
 			}
 			antifreeze = true;
 		}
 		else if(t=='C')
-			poison = poison*(4+multiplier)/4;
+			poison = poison*(4+special_multi)/4;
 
 		damage += poison;
 
@@ -501,7 +507,10 @@ uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool deb
 		if(shocked)
 		{
 			if(!--shocked)
-				multiplier = 1;
+			{
+				damage_multi = 1;
+				special_multi = 1;
+			}
 		}
 		if(!antifreeze)
 		{
