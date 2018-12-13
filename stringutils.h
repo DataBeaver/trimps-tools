@@ -1,6 +1,7 @@
 #ifndef STRINGUTILS_H_
 #define STRINGUTILS_H_
 
+#include <stdexcept>
 #include <string>
 #include <sstream>
 
@@ -19,7 +20,7 @@ inline T parse_string(const std::string &str)
 	T value;
 	ss >> value;
 	if(ss.fail() || !ss.eof())
-		throw std::invalid_argument("parse_string");
+		throw std::logic_error("bad conversion");
 	return value;
 }
 
