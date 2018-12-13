@@ -545,9 +545,9 @@ void Spire::mutate(std::string &data, unsigned count, Random &random) const
 		else if(op==2 || op==3)  // rotate, rotate and replace
 		{
 			unsigned pos = random()%slots;
-			unsigned end = pos;
+			unsigned end = random()%(slots-1);
 			while(end==pos)
-				end = random()%slots;
+				++end;
 
 			if(op==2)
 				trap = data[end];
@@ -562,9 +562,9 @@ void Spire::mutate(std::string &data, unsigned count, Random &random) const
 		{
 			unsigned floors = slots/5;
 			unsigned pos = random()%floors;
-			unsigned end = pos;
+			unsigned end = random()%(floors-1);
 			while(end==pos)
-				end = random()%floors;
+				++end;
 
 			pos *= 5;
 			end *= 5;
@@ -585,9 +585,9 @@ void Spire::mutate(std::string &data, unsigned count, Random &random) const
 		{
 			unsigned floors = slots/5;
 			unsigned pos = random()%floors;
-			unsigned target = pos;
+			unsigned target = random()%(floors-1);
 			while(target==pos)	
-				target = random()%floors;
+				++target;
 
 			pos *= 5;
 			target *= 5;
