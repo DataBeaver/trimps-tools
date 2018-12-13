@@ -236,6 +236,7 @@ Spire::Spire(int argc, char **argv):
 		++shock_dur;
 	}
 
+	slots = floors*5;
 	if(!start_data.empty())
 	{
 		Layout layout;
@@ -246,9 +247,13 @@ Spire::Spire(int argc, char **argv):
 			else if(c!=' ')
 				layout.data += c;
 		}
+
 		if(!floors)
+		{
 			floors = max<unsigned>((layout.data.size()+4)/5, 1U);
-		slots = floors*5;
+			slots = floors*5;
+		}
+
 		layout.data.resize(slots, '_');
 		layout.damage = simulate(layout.data);
 		layout.cost = calculate_cost(layout.data);
@@ -257,12 +262,8 @@ Spire::Spire(int argc, char **argv):
 		if(!budget)
 			budget = layout.cost;
 	}
-	else
-	{
-		if(!budget)
-			budget = 1000000;
-		slots = floors*5;
-	}
+	else if(!budget)
+		budget = 1000000;
 
 	Layout empty;
 	empty.data = string(slots, '_');
