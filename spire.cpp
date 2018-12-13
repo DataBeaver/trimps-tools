@@ -68,6 +68,7 @@ private:
 	std::list<Worker *> workers;
 	bool debug_layout;
 	bool numeric_format;
+	bool show_pools;
 	bool intr_flag;
 
 	unsigned slots;
@@ -129,6 +130,7 @@ Spire::Spire(int argc, char **argv):
 	n_workers(4),
 	debug_layout(false),
 	numeric_format(false),
+	show_pools(false),
 	intr_flag(false),
 	fire_level(1),
 	fire_damage(50),
@@ -165,6 +167,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("lightning", lightning_level, GetOpt::REQUIRED_ARG);
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG);
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG);
+	getopt.add_option("show-pools", show_pools, GetOpt::NO_ARG);
 	getopt.add_argument("layout", start_data, GetOpt::OPTIONAL_ARG);
 	getopt(argc, argv);
 
@@ -284,11 +287,14 @@ int Spire::main()
 
 	signal(SIGINT, sighandler);
 
+	Layout best_layout = pools.front()->get_best_layout();
+
 	Random random;
 	for(unsigned i=0; i<n_workers; ++i)
 		workers.push_back(new Worker(*this, random()));
 
-	cout << "\033[1;1H\033[2J";
+	if(show_pools)
+		cout << "\033[1;1H\033[2J";
 
 	string print_buf;
 	unsigned upgrades_pos = 0;
@@ -312,12 +318,32 @@ int Spire::main()
 	while(!intr_flag)
 	{
 		std::this_thread::sleep_for(chrono::milliseconds(500));
-		cout << "\033[1;1H";
-		for(auto *p: pools)
+		if(show_pools)
 		{
-			unsigned count = n_print;
-			p->visit_layouts(bind(&Spire::print, this, _1, ref(count), ref(print_buf)));
-			cout << endl;
+			cout << "\033[1;1H";
+			for(auto *p: pools)
+			{
+				unsigned count = n_print;
+				p->visit_layouts(bind(&Spire::print, this, _1, ref(count), ref(print_buf)));
+				cout << endl;
+			}
+		}
+		else
+		{
+			unsigned best_damage = best_layout.damage;
+			for(auto *p: pools)
+			{
+				Layout pbl = p->get_best_layout();
+				if(pbl.damage>best_layout.damage)
+					best_layout = pbl;
+			}
+
+			if(best_layout.damage>best_damage)
+			{
+				cout << "New best layout found (" << best_layout.damage << " damage, " << best_layout.cost << " Rs):" << endl;
+				unsigned count = 1;
+				print(best_layout, count, print_buf);
+			}
 		}
 	}
 
@@ -633,7 +659,10 @@ bool Spire::print(const Layout &layout, unsigned &count, string &buf)
 		for(unsigned i=0; i<slots; ++i)
 			buf[5+i+i/5] = layout.data[i];
 	}
-	cout << "\033[K" << buf << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.generation << endl;
+	if(show_pools)
+		cout << "\033[K" << buf << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.generation << endl;
+	else
+		cout << buf << endl;
 
 	return (count && --count);
 }
