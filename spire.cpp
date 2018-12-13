@@ -136,7 +136,7 @@ Spire::Spire(int argc, char **argv):
 	lightning_level(1),
 	lightning_damage(50),
 	shock_dur(1),
-	budget(1000)
+	budget(0)
 {
 	instance = this;
 
@@ -246,9 +246,16 @@ Spire::Spire(int argc, char **argv):
 		layout.damage = simulate(layout.data);
 		layout.cost = calculate_cost(layout.data);
 		pools.front()->add_layout(layout);
+
+		if(!budget)
+			budget = layout.cost;
 	}
 	else
+	{
+		if(!budget)
+			budget = 1000000;
 		slots = floors*5;
+	}
 
 	Layout empty;
 	empty.data = string(slots, '_');
