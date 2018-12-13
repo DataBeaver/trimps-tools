@@ -114,9 +114,9 @@ int main(int argc, char **argv)
 	}
 	catch(const usage_error &e)
 	{
-		cout << e.what() << '\n';
+		cout << e.what() << endl;
 		if(const char *help = e.help())
-			cout << help << '\n';
+			cout << help << endl;
 		return 1;
 	}
 }
@@ -281,7 +281,7 @@ int Spire::main()
 	if(debug_layout)
 	{
 		uint64_t damage = simulate(pools.front()->get_best_layout().data, true);
-		cout << "Total damage: " << damage << '\n';
+		cout << "Total damage: " << damage << endl;
 		return 0;
 	}
 
