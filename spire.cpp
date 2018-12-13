@@ -83,6 +83,7 @@ private:
 	unsigned lightning_damage;
 	unsigned shock_dur;
 	std::uint64_t budget;
+	Layout start_layout;
 
 	static Spire *instance;
 	static const char traps[];
@@ -149,7 +150,6 @@ Spire::Spire(int argc, char **argv):
 	unsigned pool_size = 100;
 	unsigned n_pools = 10;
 	unsigned floors = 0;
-	string start_data;
 	string upgrades;
 
 	GetOpt getopt;
@@ -168,20 +168,20 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
 	getopt.add_option("show-pools", show_pools, GetOpt::NO_ARG).set_help("Show population pool contents while running");
-	getopt.add_argument("layout", start_data, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
+	getopt.add_argument("layout", start_layout.data, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
 	getopt(argc, argv);
 
 	pools.reserve(n_pools);
 	for(unsigned i=0; i<n_pools; ++i)
 		pools.push_back(new Pool(pool_size));
 
-	if(!start_data.empty())
+	if(!start_layout.data.empty())
 	{
-		string::size_type plus = start_data.find('+');
+		string::size_type plus = start_layout.data.find('+');
 		if(plus!=string::npos)
 		{
-			upgrades = start_data.substr(plus+1);
-			start_data.erase(plus);
+			upgrades = start_layout.data.substr(plus+1);
+			start_layout.data.erase(plus);
 			plus = upgrades.find('+');
 			if(plus!=string::npos)
 				upgrades.erase(plus);
@@ -236,36 +236,39 @@ Spire::Spire(int argc, char **argv):
 		++shock_dur;
 	}
 
-	if(!start_data.empty())
+	if(!start_layout.data.empty())
 	{
-		Layout layout;
-		for(char c: start_data)
+		string clean_data;
+		clean_data.reserve(start_layout.data.size());
+		for(char c: start_layout.data)
 		{
 			if(c>='0' && c<='7')
-				layout.data += traps[c-'0'];
+				clean_data += traps[c-'0'];
 			else if(c!=' ')
-				layout.data += c;
+				clean_data += c;
 		}
+		start_layout.data = clean_data;
 
 		if(!floors)
-			floors = max<unsigned>((layout.data.size()+4)/5, 1U);
-
-		layout.data.resize(floors*5, '_');
-		layout.damage = simulate(layout.data);
-		layout.cost = calculate_cost(layout.data);
-		pools.front()->add_layout(layout);
-
-		if(!budget)
-			budget = layout.cost;
+			floors = max<unsigned>((start_layout.data.size()+4)/5, 1U);
 	}
-	else
-	{
-		if(!floors)
-			floors = 7;
-		if(!budget)
-			budget = 1000000;
-	}
+	else if(!floors)
+		floors = 7;
+
 	slots = floors*5;
+
+	if(!start_layout.data.empty())
+	{
+		start_layout.data.resize(slots, '_');
+		start_layout.damage = simulate(start_layout.data);
+		start_layout.cost = calculate_cost(start_layout.data);
+		pools.front()->add_layout(start_layout);
+
+		if(!budget)
+			budget = start_layout.cost;
+	}
+	else if(!budget)
+		budget = 1000000;
 
 	Layout empty;
 	empty.data = string(slots, '_');
@@ -283,7 +286,7 @@ int Spire::main()
 {
 	if(debug_layout)
 	{
-		uint64_t damage = simulate(pools.front()->get_best_layout().data, true);
+		uint64_t damage = simulate(start_layout.data, true);
 		cout << "Total damage: " << damage << endl;
 		return 0;
 	}
