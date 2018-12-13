@@ -67,6 +67,7 @@ private:
 	unsigned n_workers;
 	std::list<Worker *> workers;
 	bool debug_layout;
+	bool numeric_format;
 	bool intr_flag;
 
 	unsigned slots;
@@ -83,6 +84,7 @@ private:
 	std::uint64_t budget;
 
 	static Spire *instance;
+	static const char traps[];
 
 public:
 	Spire(int, char **);
@@ -119,12 +121,14 @@ int main(int argc, char **argv)
 }
 
 Spire *Spire::instance;
+const char Spire::traps[] = "_FZPLSCK";
 
 Spire::Spire(int argc, char **argv):
 	cross_rate(500),
 	foreign_rate(500),
 	n_workers(4),
 	debug_layout(false),
+	numeric_format(false),
 	intr_flag(false),
 	fire_level(1),
 	fire_damage(50),
@@ -160,6 +164,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("poison", poison_level, GetOpt::REQUIRED_ARG);
 	getopt.add_option("lightning", lightning_level, GetOpt::REQUIRED_ARG);
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG);
+	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG);
 	getopt.add_argument("layout", start_data, GetOpt::OPTIONAL_ARG);
 	getopt(argc, argv);
 
@@ -231,7 +236,6 @@ Spire::Spire(int argc, char **argv):
 	if(!start_data.empty())
 	{
 		Layout layout;
-		static const char traps[] = "_FZPLSCK";
 		for(char c: start_data)
 		{
 			if(c>='0' && c<='7')
@@ -286,7 +290,22 @@ int Spire::main()
 
 	cout << "\033[1;1H\033[2J";
 
-	string print_buf(slots+slots/5-1, ' ');
+	string print_buf;
+	if(numeric_format)
+	{
+		print_buf.reserve(slots+8);
+		print_buf.resize(slots, ' ');
+		print_buf += '+';
+		print_buf += '0'+fire_level;
+		print_buf += '0'+frost_level;
+		print_buf += '0'+poison_level;
+		print_buf += '0'+lightning_level;
+		print_buf += '+';
+		print_buf += stringify(slots/5);
+	}
+	else
+		print_buf.resize(slots+slots/5-1, ' ');
+
 	unsigned n_print = 100/pools.size()-1;
 	while(!intr_flag)
 	{
@@ -505,12 +524,14 @@ void Spire::cross(std::string &data1, const std::string &data2, Random &random) 
 
 void Spire::mutate(std::string &data, unsigned count, Random &random) const
 {
-	static const char traps[7] = { 'F', 'Z', 'P', 'S', 'C', 'L', 'K' };
 	unsigned traps_count = (lightning_level>0 ? 7 : 5);
 	for(unsigned i=0; i<count; ++i)
 	{
 		unsigned op = random()%6;
-		char trap = traps[random()%traps_count];
+		unsigned t = 1+random()%traps_count;
+		if(!lightning_level && t>=4)
+			++t;
+		char trap = traps[t];
 
 		if(op==0)  // replace
 			data[random()%slots] = trap;
@@ -598,8 +619,18 @@ bool Spire::is_valid(const std::string &data) const
 
 bool Spire::print(const Layout &layout, unsigned &count, string &buf)
 {
-	for(unsigned i=0; i<slots; ++i)
-		buf[i+i/5] = layout.data[i];
+	if(numeric_format)
+	{
+		for(unsigned i=0; i<slots; ++i)
+			for(unsigned j=0; j<sizeof(traps); ++j)
+				if(layout.data[i]==traps[j])
+					buf[i] = '0'+j;
+	}
+	else
+	{
+		for(unsigned i=0; i<slots; ++i)
+			buf[i+i/5] = layout.data[i];
+	}
 	cout << "\033[K" << buf << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.generation << endl;
 
 	return (count && --count);
