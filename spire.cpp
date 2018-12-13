@@ -167,6 +167,19 @@ Spire::Spire(int argc, char **argv):
 	for(unsigned i=0; i<n_pools; ++i)
 		pools.push_back(new Pool(pool_size));
 
+	if(!start_data.empty())
+	{
+		string::size_type plus = start_data.find('+');
+		if(plus!=string::npos)
+		{
+			upgrades = start_data.substr(plus+1);
+			start_data.erase(plus);
+			plus = upgrades.find('+');
+			if(plus!=string::npos)
+				upgrades.erase(plus);
+		}
+	}
+
 	if(!upgrades.empty())
 	{
 		bool valid = (upgrades.size()==4);
