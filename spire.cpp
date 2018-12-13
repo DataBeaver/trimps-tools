@@ -291,20 +291,22 @@ int Spire::main()
 	cout << "\033[1;1H\033[2J";
 
 	string print_buf;
+	unsigned upgrades_pos = 0;
 	if(numeric_format)
 	{
 		print_buf.reserve(slots+8);
 		print_buf.resize(slots, ' ');
-		print_buf += '+';
-		print_buf += '0'+fire_level;
-		print_buf += '0'+frost_level;
-		print_buf += '0'+poison_level;
-		print_buf += '0'+lightning_level;
-		print_buf += '+';
+		print_buf += "+    +";
 		print_buf += stringify(slots/5);
+		upgrades_pos = slots+1;
 	}
 	else
-		print_buf.resize(slots+slots/5-1, ' ');
+		print_buf.resize(5+slots+slots/5-1, ' ');
+
+	print_buf[upgrades_pos] = '0'+fire_level;
+	print_buf[upgrades_pos+1] = '0'+frost_level;
+	print_buf[upgrades_pos+2] = '0'+poison_level;
+	print_buf[upgrades_pos+3] = '0'+lightning_level;
 
 	unsigned n_print = 100/pools.size()-1;
 	while(!intr_flag)
@@ -629,7 +631,7 @@ bool Spire::print(const Layout &layout, unsigned &count, string &buf)
 	else
 	{
 		for(unsigned i=0; i<slots; ++i)
-			buf[i+i/5] = layout.data[i];
+			buf[5+i+i/5] = layout.data[i];
 	}
 	cout << "\033[K" << buf << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.generation << endl;
 
