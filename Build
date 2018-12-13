@@ -4,5 +4,9 @@ package "trimps-tools"
 	{
 		source "spire.cpp";
 		require "mspcore";
+		build_info
+		{
+			threads true;
+		};
 	};
 };

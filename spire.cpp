@@ -1,10 +1,11 @@
 #include <signal.h>
+#include <chrono>
+#include <cstdint>
+#include <mutex>
 #include <random>
-#include <msp/core/application.h>
+#include <thread>
 #include <msp/core/getopt.h>
-#include <msp/core/thread.h>
 #include <msp/io/print.h>
-#include <msp/time/utils.h>
 
 typedef std::minstd_rand Random;
 
@@ -12,8 +13,8 @@ struct Layout
 {
 	unsigned generation;
 	std::string data;
-	Msp::UInt64 damage;
-	Msp::UInt64 cost;
+	std::uint64_t damage;
+	std::uint64_t cost;
 
 	Layout();
 };
@@ -23,35 +24,37 @@ class Pool
 private:
 	unsigned max_size;
 	std::list<Layout> layouts;
-	mutable Msp::Mutex mutex;
+	mutable std::mutex mutex;
 
 public:
 	Pool(unsigned);
 
 	void add_layout(const Layout &);
 	Layout get_random_layout(Random &) const;
-	Msp::UInt64 get_lowest_damage() const;
+	std::uint64_t get_lowest_damage() const;
 
 	void print(std::string &, unsigned) const;
 };
 
-class Spire: public Msp::RegisteredApplication<Spire>
+class Spire
 {
 private:
-	class Worker: public Msp::Thread
+	class Worker
 	{
 	private:
 		Spire &spire;
 		Random random;
 		bool intr_flag;
+		std::thread thread;
 
 	public:
 		Worker(Spire &, unsigned);
 
 		void interrupt();
+		void join();
 
 	private:
-		virtual void main();
+		void main();
 	};
 
 	std::vector<Pool *> pools;
@@ -73,24 +76,44 @@ private:
 	unsigned lightning_level;
 	unsigned lightning_damage;
 	unsigned shock_dur;
-	Msp::UInt64 budget;
+	std::uint64_t budget;
+
+	static Spire *instance;
 
 public:
 	Spire(int, char **);
 	~Spire();
 
-	virtual int main();
+	int main();
 private:
-	Msp::UInt64 simulate(const std::string &, bool = false) const;
-	Msp::UInt64 calculate_cost(const std::string &) const;
+	std::uint64_t simulate(const std::string &, bool = false) const;
+	std::uint64_t calculate_cost(const std::string &) const;
 	void cross(std::string &, const std::string &, Random &) const;
 	void mutate(std::string &, unsigned, Random &) const;
 	bool is_valid(const std::string &) const;
-	virtual void sighandler(int);
+	static void sighandler(int);
 };
 
 using namespace std;
 using namespace Msp;
+
+int main(int argc, char **argv)
+{
+	try
+	{
+		Spire spire(argc, argv);
+		return spire.main();
+	}
+	catch(const usage_error &e)
+	{
+		cout << e.what() << '\n';
+		if(const char *help = e.help())
+			cout << help << '\n';
+		return 1;
+	}
+}
+
+Spire *Spire::instance;
 
 Spire::Spire(int argc, char **argv):
 	cross_rate(500),
@@ -110,6 +133,8 @@ Spire::Spire(int argc, char **argv):
 	shock_dur(1),
 	budget(1000)
 {
+	instance = this;
+
 	unsigned pool_size = 100;
 	unsigned n_pools = 10;
 	unsigned floors = 0;
@@ -207,7 +232,7 @@ int Spire::main()
 		return 0;
 	}
 
-	catch_signal(SIGINT);
+	signal(SIGINT, sighandler);
 
 	Random random;
 	for(unsigned i=0; i<n_workers; ++i)
@@ -219,7 +244,7 @@ int Spire::main()
 	unsigned n_print = 100/pools.size()-1;
 	while(!intr_flag)
 	{
-		Time::sleep(500*Time::msec);
+		std::this_thread::sleep_for(chrono::milliseconds(500));
 		IO::print("\033[1;1H");
 		for(auto *p: pools)
 		{
@@ -239,9 +264,9 @@ int Spire::main()
 	return 0;
 }
 
-UInt64 Spire::simulate(const string &layout, bool debug) const
+uint64_t Spire::simulate(const string &layout, bool debug) const
 {
-	std::vector<Msp::UInt8> floor_flags(slots/5, 0);
+	std::vector<uint8_t> floor_flags(slots/5, 0);
 	for(unsigned i=0; i<slots; ++i)
 	{
 		unsigned j = i/5;
@@ -256,9 +281,9 @@ UInt64 Spire::simulate(const string &layout, bool debug) const
 	unsigned frozen = 0;
 	unsigned shocked = 0;
 	unsigned multiplier = 1;
-	UInt64 poison = 0;
-	UInt64 damage = 0;
-	UInt64 last_fire = 0;
+	uint64_t poison = 0;
+	uint64_t damage = 0;
+	uint64_t last_fire = 0;
 	unsigned step = 0;
 	for(unsigned i=0; i<slots; )
 	{
@@ -273,7 +298,7 @@ UInt64 Spire::simulate(const string &layout, bool debug) const
 		}
 		else if(t=='F')
 		{
-			UInt64 d = fire_damage*multiplier;
+			uint64_t d = fire_damage*multiplier;
 			if(floor_flags[i/5]&0x08)
 				d *= 2;
 			if(chilled && frost_level>=3)
@@ -303,7 +328,7 @@ UInt64 Spire::simulate(const string &layout, bool debug) const
 		}
 		else if(t=='S')
 		{
-			UInt64 d = fire_damage*(floor_flags[i/5]&0x07)*2*multiplier;
+			uint64_t d = fire_damage*(floor_flags[i/5]&0x07)*2*multiplier;
 			if(chilled && frost_level>=3)
 				d = d*5/4;
 			damage += d;
@@ -353,19 +378,19 @@ UInt64 Spire::simulate(const string &layout, bool debug) const
 		return damage;
 }
 
-UInt64 Spire::calculate_cost(const std::string &data) const
+uint64_t Spire::calculate_cost(const std::string &data) const
 {
-	UInt64 fire_cost = 100;
-	UInt64 frost_cost = 100;
-	UInt64 poison_cost = 500;
-	UInt64 lightning_cost = 1000;
-	UInt64 strength_cost = 3000;
-	UInt64 condenser_cost = 6000;
-	UInt64 knowledge_cost = 9000;
-	UInt64 cost = 0;
+	uint64_t fire_cost = 100;
+	uint64_t frost_cost = 100;
+	uint64_t poison_cost = 500;
+	uint64_t lightning_cost = 1000;
+	uint64_t strength_cost = 3000;
+	uint64_t condenser_cost = 6000;
+	uint64_t knowledge_cost = 9000;
+	uint64_t cost = 0;
 	for(char t: data)
 	{
-		UInt64 prev_cost = cost;
+		uint64_t prev_cost = cost;
 		if(t=='F')
 		{
 			cost += fire_cost;
@@ -403,7 +428,7 @@ UInt64 Spire::calculate_cost(const std::string &data) const
 		}
 
 		if(cost<prev_cost)
-			return numeric_limits<UInt64>::max();
+			return numeric_limits<uint64_t>::max();
 	}
 
 	return cost;
@@ -510,7 +535,7 @@ bool Spire::is_valid(const std::string &data) const
 
 void Spire::sighandler(int)
 {
-	intr_flag = true;
+	instance->intr_flag = true;
 }
 
 
@@ -527,7 +552,7 @@ Pool::Pool(unsigned s):
 
 void Pool::add_layout(const Layout &layout)
 {
-	MutexLock lock(mutex);
+	lock_guard<std::mutex> lock(mutex);
 
 	if(layouts.size()>=max_size && layout.damage<layouts.back().damage)
 		return;
@@ -545,7 +570,7 @@ void Pool::add_layout(const Layout &layout)
 
 Layout Pool::get_random_layout(Random &random) const
 {
-	MutexLock lock(mutex);
+	lock_guard<std::mutex> lock(mutex);
 
 	unsigned total = 0;
 	for(const auto &l: layouts)
@@ -569,15 +594,15 @@ Layout Pool::get_random_layout(Random &random) const
 	throw logic_error("Spire::get_random_layout");
 }
 
-UInt64 Pool::get_lowest_damage() const
+uint64_t Pool::get_lowest_damage() const
 {
-	MutexLock lock(mutex);
+	lock_guard<std::mutex> lock(mutex);
 	return layouts.back().damage;
 }
 
 void Pool::print(string &buf, unsigned max_count) const
 {
-	MutexLock lock(mutex);
+	lock_guard<std::mutex> lock(mutex);
 
 	unsigned slots = layouts.front().data.size();
 	unsigned n = 0;
@@ -596,14 +621,19 @@ void Pool::print(string &buf, unsigned max_count) const
 Spire::Worker::Worker(Spire &s, unsigned e):
 	spire(s),
 	random(e),
-	intr_flag(false)
+	intr_flag(false),
+	thread(&Worker::main, this)
 {
-	launch();
 }
 
 void Spire::Worker::interrupt()
 {
 	intr_flag = true;
+}
+
+void Spire::Worker::join()
+{
+	thread.join();
 }
 
 void Spire::Worker::main()
@@ -621,7 +651,7 @@ void Spire::Worker::main()
 				cross_pool = spire.pools[random()%spire.pools.size()];
 			cross_layout = cross_pool->get_random_layout(random);
 		}
-		UInt64 lowest_damage = pool.get_lowest_damage();
+		uint64_t lowest_damage = pool.get_lowest_damage();
 		for(unsigned i=0; i<1000; ++i)
 		{
 			Layout mutated = base_layout;
