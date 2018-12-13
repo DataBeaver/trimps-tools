@@ -184,6 +184,8 @@ Spire::Spire(int argc, char **argv):
 		fire_damage *= 2;
 	if(fire_level>=5)
 		fire_damage *= 2;
+	if(fire_level>=6)
+		fire_damage *= 10;
 
 	if(frost_level>=2)
 	{
@@ -198,6 +200,8 @@ Spire::Spire(int argc, char **argv):
 		frost_damage *= 2;
 
 	if(poison_level>=2)
+		poison_damage *= 2;
+	if(poison_level>=4)
 		poison_damage *= 2;
 
 	if(lightning_level>=2)
