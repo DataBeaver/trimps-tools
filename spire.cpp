@@ -1,6 +1,7 @@
 #include <signal.h>
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <mutex>
@@ -35,7 +36,8 @@ public:
 	Layout get_random_layout(Random &) const;
 	std::uint64_t get_lowest_damage() const;
 
-	void print(std::string &, unsigned) const;
+	template<typename F>
+	void visit_layouts(const F &) const;
 };
 
 class Spire
@@ -93,10 +95,12 @@ private:
 	void cross(std::string &, const std::string &, Random &) const;
 	void mutate(std::string &, unsigned, Random &) const;
 	bool is_valid(const std::string &) const;
+	bool print(const Layout &, unsigned &, std::string &);
 	static void sighandler(int);
 };
 
 using namespace std;
+using namespace std::placeholders;
 
 int main(int argc, char **argv)
 {
@@ -262,7 +266,7 @@ int Spire::main()
 
 	cout << "\033[1;1H\033[2J";
 
-	string descr(slots+slots/5-1, ' ');
+	string print_buf(slots+slots/5-1, ' ');
 	unsigned n_print = 100/pools.size()-1;
 	while(!intr_flag)
 	{
@@ -270,7 +274,8 @@ int Spire::main()
 		cout << "\033[1;1H";
 		for(auto *p: pools)
 		{
-			p->print(descr, n_print);
+			unsigned count = n_print;
+			p->visit_layouts(bind(&Spire::print, this, _1, ref(count), ref(print_buf)));
 			cout << endl;
 		}
 	}
@@ -571,6 +576,15 @@ bool Spire::is_valid(const std::string &data) const
 	return true;
 }
 
+bool Spire::print(const Layout &layout, unsigned &count, string &buf)
+{
+	for(unsigned i=0; i<slots; ++i)
+		buf[i+i/5] = layout.data[i];
+	cout << "\033[K" << buf << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.generation << endl;
+
+	return (count && --count);
+}
+
 void Spire::sighandler(int)
 {
 	instance->intr_flag = true;
@@ -644,21 +658,13 @@ uint64_t Pool::get_lowest_damage() const
 	return layouts.back().damage;
 }
 
-void Pool::print(string &buf, unsigned max_count) const
+template<typename F>
+void Pool::visit_layouts(const F &func) const
 {
 	lock_guard<std::mutex> lock(mutex);
-
-	unsigned slots = layouts.front().data.size();
-	unsigned n = 0;
 	for(const auto &layout: layouts)
-	{
-		for(unsigned i=0; i<slots; ++i)
-			buf[i+i/5] = layout.data[i];
-		cout << "\033[K" << buf << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.generation << endl;
-
-		if(++n>=max_count)
-			break;
-	}
+		if(!func(layout))
+			return;
 }
 
 
