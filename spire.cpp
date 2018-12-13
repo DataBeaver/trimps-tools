@@ -117,7 +117,7 @@ Spire *Spire::instance;
 
 Spire::Spire(int argc, char **argv):
 	cross_rate(500),
-	foreign_rate(100),
+	foreign_rate(500),
 	n_workers(4),
 	run_once(false),
 	intr_flag(false),
@@ -659,7 +659,9 @@ void Spire::Worker::main()
 				spire.cross(mutated.data, cross_layout.data, random);
 
 			++mutated.generation;
-			spire.mutate(mutated.data, 2+random()%(spire.slots-2), random);
+			unsigned mut_count = 1+random()%spire.slots;
+			mut_count = max((mut_count*mut_count)/spire.slots, 1U);
+			spire.mutate(mutated.data, mut_count, random);
 			if(!spire.is_valid(mutated.data))
 				continue;
 			
