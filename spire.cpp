@@ -249,7 +249,8 @@ int Spire::main()
 {
 	if(debug_layout)
 	{
-		simulate(pools.front()->get_best_layout().data, true);
+		uint64_t damage = simulate(pools.front()->get_best_layout().data, true);
+		cout << "Total damage: " << damage << '\n';
 		return 0;
 	}
 
@@ -369,7 +370,22 @@ uint64_t Spire::simulate(const string &layout, bool debug) const
 		damage += poison;
 
 		if(debug)
-			cout << setw(2) << i << ':' << step << ": " << t << ' ' << damage << " (P" << poison << " S" << shocked << ')' << endl;
+		{
+			cout << setw(2) << i << ':' << step << ": " << t << ' ' << setw(9) << damage;
+			if(poison)
+				cout << " P" << setw(6) << poison;
+			else
+				cout << "        ";
+			if(frozen)
+				cout << " F" << setw(2) << frozen;
+			else if(chilled)
+				cout << " C" << setw(2) << chilled;
+			else
+				cout << "    ";
+			if(shocked)
+				cout << " S" << shocked;
+			cout << endl;
+		}
 
 		++step;
 		if(shocked)
