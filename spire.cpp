@@ -153,22 +153,22 @@ Spire::Spire(int argc, char **argv):
 	string upgrades;
 
 	GetOpt getopt;
-	getopt.add_option('b', "budget", budget, GetOpt::REQUIRED_ARG);
-	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG);
-	getopt.add_option('g', "debug-layout", debug_layout, GetOpt::NO_ARG);
-	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG);
-	getopt.add_option('p', "pools", n_pools, GetOpt::REQUIRED_ARG);
-	getopt.add_option('s', "pool-size", pool_size, GetOpt::REQUIRED_ARG);
-	getopt.add_option('c', "cross-rate", cross_rate, GetOpt::REQUIRED_ARG);
-	getopt.add_option('o', "foreign-rate", foreign_rate, GetOpt::REQUIRED_ARG);
-	getopt.add_option("fire", fire_level, GetOpt::REQUIRED_ARG);
-	getopt.add_option("frost", frost_level, GetOpt::REQUIRED_ARG);
-	getopt.add_option("poison", poison_level, GetOpt::REQUIRED_ARG);
-	getopt.add_option("lightning", lightning_level, GetOpt::REQUIRED_ARG);
-	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG);
-	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG);
-	getopt.add_option("show-pools", show_pools, GetOpt::NO_ARG);
-	getopt.add_argument("layout", start_data, GetOpt::OPTIONAL_ARG);
+	getopt.add_option('b', "budget", budget, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM");
+	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG).set_help("Number of floors in the spire", "NUM");
+	getopt.add_option('g', "debug-layout", debug_layout, GetOpt::NO_ARG).set_help("Print detailed information about the layout");
+	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
+	getopt.add_option('p', "pools", n_pools, GetOpt::REQUIRED_ARG).set_help("Number of population pools", "NUM");
+	getopt.add_option('s', "pool-size", pool_size, GetOpt::REQUIRED_ARG).set_help("Size of each population pool", "NUM");
+	getopt.add_option('c', "cross-rate", cross_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing two layouts (out of 1000)", "NUM");
+	getopt.add_option('o', "foreign-rate", foreign_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing from another pool (out of 1000)", "NUM");
+	getopt.add_option("fire", fire_level, GetOpt::REQUIRED_ARG).set_help("Set fire trap upgrade level", "LEVEL");
+	getopt.add_option("frost", frost_level, GetOpt::REQUIRED_ARG).set_help("Set frost trap upgrade level", "LEVEL");
+	getopt.add_option("poison", poison_level, GetOpt::REQUIRED_ARG).set_help("Set poison trap upgrade level", "LEVEL");
+	getopt.add_option("lightning", lightning_level, GetOpt::REQUIRED_ARG).set_help("Set lightning trap upgrade level", "LEVEL");
+	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
+	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
+	getopt.add_option("show-pools", show_pools, GetOpt::NO_ARG).set_help("Show population pool contents while running");
+	getopt.add_argument("layout", start_data, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
 	getopt(argc, argv);
 
 	pools.reserve(n_pools);
