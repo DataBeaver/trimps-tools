@@ -1,11 +1,12 @@
 #include <signal.h>
 #include <chrono>
 #include <cstdint>
+#include <iomanip>
+#include <iostream>
 #include <mutex>
 #include <random>
 #include <thread>
 #include <msp/core/getopt.h>
-#include <msp/io/print.h>
 
 typedef std::minstd_rand Random;
 
@@ -238,18 +239,18 @@ int Spire::main()
 	for(unsigned i=0; i<n_workers; ++i)
 		workers.push_back(new Worker(*this, random()));
 
-	IO::print("\033[1;1H\033[2J");
+	cout << "\033[1;1H\033[2J";
 
 	string descr(slots+slots/5-1, ' ');
 	unsigned n_print = 100/pools.size()-1;
 	while(!intr_flag)
 	{
 		std::this_thread::sleep_for(chrono::milliseconds(500));
-		IO::print("\033[1;1H");
+		cout << "\033[1;1H";
 		for(auto *p: pools)
 		{
 			p->print(descr, n_print);
-			IO::print("\n");
+			cout << endl;
 		}
 	}
 
@@ -348,7 +349,7 @@ uint64_t Spire::simulate(const string &layout, bool debug) const
 		damage += poison;
 
 		if(debug)
-			IO::print("%2d:%d: %c %d (P%d S%d)\n", i, step, t, damage, poison, shocked);
+			cout << setw(2) << i << ':' << step << ": " << t << ' ' << damage << " (P" << poison << " S" << shocked << ')' << endl;
 
 		++step;
 		if(shocked)
@@ -610,7 +611,7 @@ void Pool::print(string &buf, unsigned max_count) const
 	{
 		for(unsigned i=0; i<slots; ++i)
 			buf[i+i/5] = layout.data[i];
-		IO::print("\033[K%s %d %d %d\n", buf, layout.damage, layout.cost, layout.generation);
+		cout << "\033[K" << buf << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.generation << endl;
 
 		if(++n>=max_count)
 			break;
