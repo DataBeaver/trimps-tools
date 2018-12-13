@@ -459,11 +459,12 @@ void Spire::cross(std::string &data1, const std::string &data2, Random &random) 
 
 void Spire::mutate(std::string &data, unsigned count, Random &random) const
 {
-	static const char traps[] = { 'F', 'Z', 'P', 'L', 'S', 'C', 'K' };
+	static const char traps[7] = { 'F', 'Z', 'P', 'S', 'C', 'L', 'K' };
+	unsigned traps_count = (lightning_level>0 ? 7 : 5);
 	for(unsigned i=0; i<count; ++i)
 	{
 		unsigned op = random()%6;
-		char trap = traps[random()%sizeof(traps)];
+		char trap = traps[random()%traps_count];
 
 		if(op==0)  // replace
 			data[random()%slots] = trap;
