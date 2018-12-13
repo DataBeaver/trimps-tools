@@ -139,6 +139,7 @@ Spire::Spire(int argc, char **argv):
 	unsigned n_pools = 10;
 	unsigned floors = 0;
 	string start_data;
+	string upgrades;
 
 	GetOpt getopt;
 	getopt.add_option('b', "budget", budget, GetOpt::REQUIRED_ARG);
@@ -153,12 +154,27 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("frost", frost_level, GetOpt::REQUIRED_ARG);
 	getopt.add_option("poison", poison_level, GetOpt::REQUIRED_ARG);
 	getopt.add_option("lightning", lightning_level, GetOpt::REQUIRED_ARG);
+	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG);
 	getopt.add_argument("layout", start_data, GetOpt::OPTIONAL_ARG);
 	getopt(argc, argv);
 
 	pools.reserve(n_pools);
 	for(unsigned i=0; i<n_pools; ++i)
 		pools.push_back(new Pool(pool_size));
+
+	if(!upgrades.empty())
+	{
+		bool valid = (upgrades.size()==4);
+		for(auto i=upgrades.begin(); (valid && i!=upgrades.end()); ++i)
+			valid = (*i>='0' && *i<='8');
+		if(!valid)
+			throw usage_error("Upgrades string must consist of four numbers");
+
+		fire_level = upgrades[0]-'0';
+		frost_level = upgrades[1]-'0';
+		poison_level = upgrades[2]-'0';
+		lightning_level = upgrades[3]-'0';
+	}
 
 	if(fire_level>=2)
 		fire_damage *= 10;
