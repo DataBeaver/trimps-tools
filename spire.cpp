@@ -6,7 +6,7 @@
 #include <mutex>
 #include <random>
 #include <thread>
-#include <msp/core/getopt.h>
+#include "getopt.h"
 
 typedef std::minstd_rand Random;
 
@@ -96,7 +96,6 @@ private:
 };
 
 using namespace std;
-using namespace Msp;
 
 int main(int argc, char **argv)
 {

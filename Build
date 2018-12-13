@@ -3,7 +3,7 @@ package "trimps-tools"
 	program "spire"
 	{
 		source "spire.cpp";
-		require "mspcore";
+		source "getopt.cpp";
 		build_info
 		{
 			threads true;
