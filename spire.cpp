@@ -31,6 +31,7 @@ public:
 	Pool(unsigned);
 
 	void add_layout(const Layout &);
+	Layout get_best_layout() const;
 	Layout get_random_layout(Random &) const;
 	std::uint64_t get_lowest_damage() const;
 
@@ -63,7 +64,7 @@ private:
 	unsigned foreign_rate;
 	unsigned n_workers;
 	std::list<Worker *> workers;
-	bool run_once;
+	bool debug_layout;
 	bool intr_flag;
 
 	unsigned slots;
@@ -119,7 +120,7 @@ Spire::Spire(int argc, char **argv):
 	cross_rate(500),
 	foreign_rate(500),
 	n_workers(4),
-	run_once(false),
+	debug_layout(false),
 	intr_flag(false),
 	fire_level(1),
 	fire_damage(50),
@@ -144,7 +145,7 @@ Spire::Spire(int argc, char **argv):
 	GetOpt getopt;
 	getopt.add_option('b', "budget", budget, GetOpt::REQUIRED_ARG);
 	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG);
-	getopt.add_option('r', "run-once", run_once, GetOpt::NO_ARG);
+	getopt.add_option('g', "debug-layout", debug_layout, GetOpt::NO_ARG);
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG);
 	getopt.add_option('p', "pools", n_pools, GetOpt::REQUIRED_ARG);
 	getopt.add_option('s', "pool-size", pool_size, GetOpt::REQUIRED_ARG);
@@ -246,9 +247,9 @@ Spire::~Spire()
 
 int Spire::main()
 {
-	if(run_once)
+	if(debug_layout)
 	{
-		//simulate(layouts.front().data, true);
+		simulate(pools.front()->get_best_layout().data, true);
 		return 0;
 	}
 
@@ -587,6 +588,12 @@ void Pool::add_layout(const Layout &layout)
 
 	if(layouts.size()>max_size)
 		layouts.pop_back();
+}
+
+Layout Pool::get_best_layout() const
+{
+	lock_guard<std::mutex> lock(mutex);
+	return layouts.front();
 }
 
 Layout Pool::get_random_layout(Random &random) const
