@@ -95,6 +95,7 @@ public:
 	int main();
 private:
 	std::uint64_t simulate(const std::string &, bool = false) const;
+	std::uint64_t simulate_with_hp(const std::string &, uint64_t, bool = false) const;
 	std::uint64_t calculate_cost(const std::string &) const;
 	void cross(std::string &, const std::string &, Random &) const;
 	void mutate(std::string &, unsigned, Random &) const;
@@ -366,6 +367,35 @@ int Spire::main()
 
 uint64_t Spire::simulate(const string &layout, bool debug) const
 {
+	uint64_t damage = simulate_with_hp(layout, 0, (debug && poison_level<5));
+	if(poison_level>=5)
+	{
+		uint64_t low = damage;
+		uint64_t high = simulate_with_hp(layout, low, false);
+		if(debug)
+		{
+			cout << "Initial damage: " << low << endl;
+			cout << "Maximum damage: " << high << endl;
+		}
+		for(unsigned i=0; i<3; ++i)
+		{
+			uint64_t mid = (low+high)/2;
+			if(debug)
+				cout << "Trying max HP: " << mid << endl;
+			damage = simulate_with_hp(layout, mid, debug);
+			if(damage>mid)
+				low = mid;
+			else
+				high = mid;
+		}
+		return low;
+	}
+	else
+		return damage;
+}
+
+uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool debug) const
+{
 	std::vector<uint8_t> floor_flags(slots/5, 0);
 	for(unsigned i=0; i<slots; ++i)
 	{
@@ -418,6 +448,8 @@ uint64_t Spire::simulate(const string &layout, bool debug) const
 				if(i+1<slots && layout[i+1]=='P')
 					p *= 3;
 			}
+			if(poison_level>=5 && max_hp && damage*4>=max_hp)
+				p *= 5;
 			poison += p;
 		}
 		else if(t=='L')
