@@ -144,6 +144,7 @@ Spire::Spire(int argc, char **argv):
 	cross_rate(500),
 	foreign_rate(500),
 	n_workers(4),
+	loops_per_cycle(1000),
 	cycle(1),
 	debug_layout(false),
 	numeric_format(false),
