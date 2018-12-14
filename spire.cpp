@@ -16,10 +16,10 @@ struct Layout
 {
 	struct
 	{
-		uint8_t fire;
-		uint8_t frost;
-		uint8_t poison;
-		uint8_t lightning;
+		uint16_t fire;
+		uint16_t frost;
+		uint16_t poison;
+		uint16_t lightning;
 	} upgrades;
 	std::string data;
 	std::uint64_t damage;
