@@ -17,7 +17,8 @@ of the more important options are:
   Set upgrade levels of each trap type
 
 -u, --upgrades
-  Set upgrade levels of all trap types at once
+  Set upgrade levels of all trap types at once.  The argument should be four
+  numbers, one for each trap type.
 
 -n, --numeric-format
   Output layouts in numeric format compatible with swaq's TD calculator
