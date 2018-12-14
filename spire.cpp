@@ -522,6 +522,17 @@ uint64_t Spire::simulate_with_hp(const Layout &layout, uint64_t max_hp, bool deb
 		if(debug)
 		{
 			cout << setw(2) << i << ':' << step << ": " << t << ' ' << setw(9) << damage;
+			if(max_hp)
+			{
+				if(damage>max_hp)
+					cout << "  0%";
+				else if(damage)
+					cout << ' ' << setw(2) << (max_hp-damage)*100/max_hp << '%';
+				else
+					cout << " **%";
+			}
+			else
+				cout << "    ";
 			if(poison)
 				cout << " P" << setw(6) << poison;
 			else
