@@ -53,6 +53,10 @@ the genetic algorithm:
   Sets the probability of picking the second layout for a cross from a random
   pool instead of the same as the first.  Expressed as a number out of 1000.
 
+--heterogeneous
+  Use a heterogeneous pool configuration.  This can help if the properties of
+  the upgrade configuration cause evolution to get stuck at a local optimum.
+
 Finally, a few options are mostly for debugging purposes:
 
 -g, --debug-layout

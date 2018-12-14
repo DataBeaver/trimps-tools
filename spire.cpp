@@ -84,6 +84,7 @@ private:
 	std::vector<Pool *> pools;
 	unsigned cross_rate;
 	unsigned foreign_rate;
+	bool heterogeneous;
 	unsigned n_workers;
 	std::list<Worker *> workers;
 	unsigned loops_per_cycle;
@@ -143,6 +144,7 @@ const char Spire::traps[] = "_FZPLSCK";
 Spire::Spire(int argc, char **argv):
 	cross_rate(500),
 	foreign_rate(500),
+	heterogeneous(false),
 	n_workers(4),
 	loops_per_cycle(1000),
 	cycle(1),
@@ -155,7 +157,7 @@ Spire::Spire(int argc, char **argv):
 	instance = this;
 
 	unsigned pool_size = 100;
-	unsigned n_pools = 10;
+	unsigned n_pools = 0;
 	unsigned floors = 0;
 	string upgrades;
 
@@ -166,6 +168,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
 	getopt.add_option('l', "loops", loops_per_cycle, GetOpt::REQUIRED_ARG).set_help("Number of loops per cycle", "NUM");
 	getopt.add_option('p', "pools", n_pools, GetOpt::REQUIRED_ARG).set_help("Number of population pools", "NUM");
+	getopt.add_option("heterogeneous", heterogeneous, GetOpt::NO_ARG).set_help("Use heterogeneous pool configurations");
 	getopt.add_option('s', "pool-size", pool_size, GetOpt::REQUIRED_ARG).set_help("Size of each population pool", "NUM");
 	getopt.add_option('c', "cross-rate", cross_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing two layouts (out of 1000)", "NUM");
 	getopt.add_option('o', "foreign-rate", foreign_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing from another pool (out of 1000)", "NUM");
@@ -179,6 +182,8 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_argument("layout", start_layout.data, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
 	getopt(argc, argv);
 
+	if(!n_pools)
+		n_pools = (heterogeneous ? 21 : 10);
 	pools.reserve(n_pools);
 	for(unsigned i=0; i<n_pools; ++i)
 		pools.push_back(new Pool(pool_size));
@@ -242,11 +247,33 @@ Spire::Spire(int argc, char **argv):
 	else if(!budget)
 		budget = 1000000;
 
-	Layout empty;
-	empty.upgrades = start_layout.upgrades;
-	empty.data = string(floors*5, '_');
-	for(auto p: pools)
-		p->add_layout(empty);
+	unsigned downgrade = 0;
+	for(unsigned i=0; i<pools.size(); ++i)
+	{
+		Layout empty;
+		empty.upgrades = start_layout.upgrades;
+		unsigned reduce = 0;
+		if(downgrade>0)
+		{
+			for(unsigned dg=downgrade; dg; dg/=4)
+			{
+				unsigned t = --dg%4;
+				if(t==0 && empty.upgrades.fire>1)
+					--empty.upgrades.fire;
+				if(t==1 && empty.upgrades.frost>1)
+					--empty.upgrades.frost;
+				if(t==2 && empty.upgrades.poison>1)
+					--empty.upgrades.poison;
+				if(t==3 && empty.upgrades.lightning>1)
+					--empty.upgrades.lightning;
+				++reduce;
+			}
+		}
+		empty.data = string((floors-reduce)*5, '_');
+		pools[i]->add_layout(empty);
+		if(heterogeneous)
+			++downgrade;
+	}
 }
 
 Spire::~Spire()
@@ -301,6 +328,8 @@ int Spire::main()
 				Layout pbl = p->get_best_layout();
 				if(pbl.damage>best_layout.damage)
 					best_layout = pbl;
+				if(heterogeneous)
+					break;
 			}
 
 			if(best_layout.damage>best_damage)
@@ -926,10 +955,11 @@ void Spire::Worker::main()
 
 		Layout cross_layout;
 		bool do_cross = (random()%1000<spire.cross_rate);
-		if(do_cross)
+		if(do_cross || spire.heterogeneous)
 		{
 			Pool *cross_pool = &pool;
-			if(random()%1000<spire.foreign_rate)
+			bool do_foreign = (random()%1000<spire.foreign_rate);
+			if(do_foreign)
 			{
 				unsigned cross_index = random()%(spire.pools.size()-1);
 				if(cross_index==pool_index)
@@ -937,8 +967,18 @@ void Spire::Worker::main()
 				cross_pool = spire.pools[cross_index];
 			}
 
-			cross_layout = cross_pool->get_random_layout(random);
+			if(do_cross || do_foreign)
+			{
+				cross_layout = cross_pool->get_random_layout(random);
+				if(!do_cross)
+				{
+					unsigned slots = base_layout.data.size();
+					base_layout.data = cross_layout.data;
+					base_layout.data.resize(slots, '_');
+				}
+			}
 		}
+
 		uint64_t lowest_damage = pool.get_lowest_damage();
 		for(unsigned i=0; i<spire.loops_per_cycle; ++i)
 		{
