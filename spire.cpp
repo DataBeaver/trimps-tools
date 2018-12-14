@@ -86,6 +86,7 @@ private:
 	unsigned foreign_rate;
 	unsigned n_workers;
 	std::list<Worker *> workers;
+	unsigned loops_per_cycle;
 	std::atomic<unsigned> cycle;
 	bool debug_layout;
 	bool numeric_format;
@@ -162,6 +163,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG).set_help("Number of floors in the spire", "NUM");
 	getopt.add_option('g', "debug-layout", debug_layout, GetOpt::NO_ARG).set_help("Print detailed information about the layout");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
+	getopt.add_option('l', "loops", loops_per_cycle, GetOpt::REQUIRED_ARG).set_help("Number of loops per cycle", "NUM");
 	getopt.add_option('p', "pools", n_pools, GetOpt::REQUIRED_ARG).set_help("Number of population pools", "NUM");
 	getopt.add_option('s', "pool-size", pool_size, GetOpt::REQUIRED_ARG).set_help("Size of each population pool", "NUM");
 	getopt.add_option('c', "cross-rate", cross_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing two layouts (out of 1000)", "NUM");
@@ -928,7 +930,7 @@ void Spire::Worker::main()
 			cross_layout = cross_pool->get_random_layout(random);
 		}
 		uint64_t lowest_damage = pool.get_lowest_damage();
-		for(unsigned i=0; i<1000; ++i)
+		for(unsigned i=0; i<spire.loops_per_cycle; ++i)
 		{
 			Layout mutated = base_layout;
 			mutated.cycle = cycle;
