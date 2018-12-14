@@ -1,4 +1,5 @@
 #include <signal.h>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -13,7 +14,6 @@ typedef std::minstd_rand Random;
 
 struct Layout
 {
-	unsigned generation;
 	struct
 	{
 		uint8_t fire;
@@ -24,6 +24,7 @@ struct Layout
 	std::string data;
 	std::uint64_t damage;
 	std::uint64_t cost;
+	unsigned cycle;
 
 	Layout();
 };
@@ -85,6 +86,7 @@ private:
 	unsigned foreign_rate;
 	unsigned n_workers;
 	std::list<Worker *> workers;
+	std::atomic<unsigned> cycle;
 	bool debug_layout;
 	bool numeric_format;
 	bool show_pools;
@@ -102,6 +104,7 @@ public:
 
 	int main();
 private:
+	unsigned get_next_cycle();
 	void calculate_effects(const Layout &, TrapEffects &) const;
 	std::uint64_t simulate(const Layout &, bool = false) const;
 	std::uint64_t simulate_with_hp(const Layout &, uint64_t, bool = false) const;
@@ -140,6 +143,7 @@ Spire::Spire(int argc, char **argv):
 	cross_rate(500),
 	foreign_rate(500),
 	n_workers(4),
+	cycle(1),
 	debug_layout(false),
 	numeric_format(false),
 	show_pools(false),
@@ -310,6 +314,11 @@ int Spire::main()
 	}
 
 	return 0;
+}
+
+unsigned Spire::get_next_cycle()
+{
+	return cycle.fetch_add(1U, memory_order_relaxed);
 }
 
 void Spire::calculate_effects(const Layout &layout, TrapEffects &effects) const
@@ -742,7 +751,7 @@ bool Spire::is_valid(const std::string &data) const
 
 void Spire::report(const Layout &layout, const string &message)
 {
-	cout << message << " (" << layout.damage << " damage, " << layout.cost << " Rs):" << endl;
+	cout << message << " (" << layout.damage << " damage, " << layout.cost << " Rs, cycle " << layout.cycle << "):" << endl;
 	unsigned count = 1;
 	print(layout, count);
 }
@@ -780,7 +789,7 @@ bool Spire::print(const Layout &layout, unsigned &count)
 	descr[upgrades_pos+3] = '0'+layout.upgrades.lightning;
 
 	if(show_pools)
-		cout << "\033[K" << descr << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.generation << endl;
+		cout << "\033[K" << descr << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.cycle << endl;
 	else
 		cout << descr << endl;
 
@@ -794,10 +803,10 @@ void Spire::sighandler(int)
 
 
 Layout::Layout():
-	generation(0),
 	upgrades({ 1, 1, 1, 1 }),
 	damage(0),
-	cost(0)
+	cost(0),
+	cycle(0)
 { }
 
 
@@ -906,6 +915,7 @@ void Spire::Worker::main()
 {
 	while(!intr_flag)
 	{
+		unsigned cycle = spire.get_next_cycle();
 		Pool &pool = *spire.pools[random()%spire.pools.size()];
 		Layout base_layout = pool.get_random_layout(random);
 		Layout cross_layout;
@@ -921,10 +931,10 @@ void Spire::Worker::main()
 		for(unsigned i=0; i<1000; ++i)
 		{
 			Layout mutated = base_layout;
+			mutated.cycle = cycle;
 			if(do_cross)
 				spire.cross(mutated.data, cross_layout.data, random);
 
-			++mutated.generation;
 			unsigned slots = mutated.data.size();
 			unsigned mut_count = 1+random()%slots;
 			mut_count = max((mut_count*mut_count)/slots, 1U);
