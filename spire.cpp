@@ -240,6 +240,8 @@ Spire::Spire(int argc, char **argv):
 		poison_damage *= 2;
 	if(poison_level>=4)
 		poison_damage *= 2;
+	if(poison_level>=5)
+		poison_damage *= 2;
 	if(poison_level>=6)
 		poison_damage *= 2;
 	if(poison_level>=7)
