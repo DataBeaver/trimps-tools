@@ -100,6 +100,7 @@ private:
 	void cross(std::string &, const std::string &, Random &) const;
 	void mutate(std::string &, unsigned, Random &) const;
 	bool is_valid(const std::string &) const;
+	void report(const Layout &, const std::string &, std::string &);
 	bool print(const Layout &, unsigned &, std::string &);
 	static void sighandler(int);
 };
@@ -332,6 +333,9 @@ int Spire::main()
 	print_buf[upgrades_pos+2] = '0'+poison_level;
 	print_buf[upgrades_pos+3] = '0'+lightning_level;
 
+	if(best_layout.damage && !show_pools)
+		report(best_layout, "Initial layout", print_buf);
+
 	unsigned n_print = 100/pools.size()-1;
 	while(!intr_flag)
 	{
@@ -357,11 +361,7 @@ int Spire::main()
 			}
 
 			if(best_layout.damage>best_damage)
-			{
-				cout << "New best layout found (" << best_layout.damage << " damage, " << best_layout.cost << " Rs):" << endl;
-				unsigned count = 1;
-				print(best_layout, count, print_buf);
-			}
+				report(best_layout, "New best layout found", print_buf);
 		}
 	}
 
@@ -699,6 +699,13 @@ bool Spire::is_valid(const std::string &data) const
 	}
 
 	return true;
+}
+
+void Spire::report(const Layout &layout, const string &message, string &print_buf)
+{
+	cout << message << " (" << layout.damage << " damage, " << layout.cost << " Rs):" << endl;
+	unsigned count = 1;
+	print(layout, count, print_buf);
 }
 
 bool Spire::print(const Layout &layout, unsigned &count, string &buf)
