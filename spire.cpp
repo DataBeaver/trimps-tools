@@ -408,6 +408,7 @@ uint64_t Spire::simulate(const string &layout, bool debug) const
 uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool debug) const
 {
 	std::vector<uint8_t> floor_flags(slots/5, 0);
+	uint8_t column_flags[5] = { };
 	for(unsigned i=0; i<slots; ++i)
 	{
 		unsigned j = i/5;
@@ -416,6 +417,8 @@ uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool deb
 			++floor_flags[j];
 		else if(t=='S')
 			floor_flags[j] |= 0x08;
+		else if(t=='L')
+			++column_flags[j%5];
 	}
 
 	unsigned chilled = 0;
@@ -445,6 +448,8 @@ uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool deb
 				d *= 2;
 			if(chilled && frost_level>=3)
 				d = d*5/4;
+			if(lightning_level>=4)
+				d = d*(10+column_flags[i%5])/10;
 			damage += d;
 			last_fire = damage;
 		}
@@ -462,6 +467,8 @@ uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool deb
 			}
 			if(poison_level>=5 && max_hp && damage*4>=max_hp)
 				p *= 5;
+			if(lightning_level>=4)
+				p = p*(10+column_flags[i%5])/10;
 			poison += p;
 		}
 		else if(t=='L')
