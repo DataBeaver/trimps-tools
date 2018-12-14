@@ -919,15 +919,24 @@ void Spire::Worker::main()
 	while(!intr_flag)
 	{
 		unsigned cycle = spire.get_next_cycle();
-		Pool &pool = *spire.pools[random()%spire.pools.size()];
+
+		unsigned pool_index = random()%spire.pools.size();
+		Pool &pool = *spire.pools[pool_index];
 		Layout base_layout = pool.get_random_layout(random);
+
 		Layout cross_layout;
 		bool do_cross = (random()%1000<spire.cross_rate);
 		if(do_cross)
 		{
 			Pool *cross_pool = &pool;
 			if(random()%1000<spire.foreign_rate)
-				cross_pool = spire.pools[random()%spire.pools.size()];
+			{
+				unsigned cross_index = random()%(spire.pools.size()-1);
+				if(cross_index==pool_index)
+					++cross_index;
+				cross_pool = spire.pools[cross_index];
+			}
+
 			cross_layout = cross_pool->get_random_layout(random);
 		}
 		uint64_t lowest_damage = pool.get_lowest_damage();
