@@ -240,6 +240,10 @@ Spire::Spire(int argc, char **argv):
 		poison_damage *= 2;
 	if(poison_level>=4)
 		poison_damage *= 2;
+	if(poison_level>=6)
+		poison_damage *= 2;
+	if(poison_level>=7)
+		poison_damage *= 2;
 
 	if(lightning_level>=2)
 	{
@@ -247,6 +251,13 @@ Spire::Spire(int argc, char **argv):
 		++shock_dur;
 	}
 	if(lightning_level>=3)
+		lightning_damage *= 10;
+	if(lightning_level>=5)
+	{
+		lightning_damage *= 10;
+		++shock_dur;
+	}
+	if(lightning_level>=6)
 		lightning_damage *= 10;
 
 	if(!start_layout.data.empty())
@@ -477,6 +488,8 @@ uint64_t Spire::simulate_with_hp(const string &layout, uint64_t max_hp, bool deb
 			shocked = shock_dur+1;
 			damage_multi = 2;
 			if(lightning_level>=3)
+				damage_multi *= 2;
+			if(lightning_level>=6)
 				damage_multi *= 2;
 			special_multi = 2;
 		}
