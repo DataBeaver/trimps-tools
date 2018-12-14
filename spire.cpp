@@ -649,7 +649,7 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 	unsigned traps_count = (layout.upgrades.lightning>0 ? 7 : 5);
 	for(unsigned i=0; i<count; ++i)
 	{
-		unsigned op = random()%6;
+		unsigned op = random()%7;
 		unsigned t = 1+random()%traps_count;
 		if(!layout.upgrades.lightning && t>=4)
 			++t;
@@ -662,7 +662,7 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 			unsigned pos = random()%(slots-1);
 			swap(layout.data[pos], layout.data[pos+1]);
 		}
-		else if(op==2 || op==3)  // rotate, rotate and replace
+		else if(op==2 || op==3)  // rotate or insert
 		{
 			unsigned pos = random()%slots;
 			unsigned end = random()%(slots-1);
@@ -678,7 +678,7 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 				layout.data[j] = layout.data[j+1];
 			layout.data[pos] = trap;
 		}
-		else if(op==4)  // rotate floors
+		else if(op==4 || op==5)  // rotate or duplicate floors
 		{
 			unsigned floors = slots/5;
 			unsigned pos = random()%floors;
@@ -698,10 +698,13 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 			for(unsigned j=end; j<pos; ++j)
 				layout.data[j] = layout.data[j+5];
 
-			for(unsigned j=0; j<5; ++j)
-				layout.data[pos+j] = floor[j];
+			if(op==4)
+			{
+				for(unsigned j=0; j<5; ++j)
+					layout.data[pos+j] = floor[j];
+			}
 		}
-		else if(op==5)  // copy floor
+		else if(op==6)  // copy floor
 		{
 			unsigned floors = slots/5;
 			unsigned pos = random()%floors;
