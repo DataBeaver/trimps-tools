@@ -775,11 +775,24 @@ void Pool::add_layout(const Layout &layout)
 		return;
 
 	auto i = layouts.begin();
-	for(; (i!=layouts.end() && i->damage>layout.damage); ++i) ;
+	for(; (i!=layouts.end() && i->damage>layout.damage); ++i)
+		if(i->cost<=layout.cost)
+			return;
 	if(i!=layouts.end() && i->damage==layout.damage)
+	{
 		*i = layout;
+		++i;
+	}
 	else
 		layouts.insert(i, layout);
+
+	while(i!=layouts.end())
+	{
+		if(i->cost>=layout.cost)
+			i = layouts.erase(i);
+		else
+			++i;
+	}
 
 	if(layouts.size()>max_size)
 		layouts.pop_back();
