@@ -1,8 +1,11 @@
+CXXFLAGS := -pthread -O2 -std=c++11
+LDFLAGS := -pthread
+
 spire: spire.o getopt.o
-	$(CXX) -pthread $^ -o $@
+	$(CXX) $(LDFLAGS) $^ -o $@
 
 .cpp.o:
-	$(CXX) -pthread -O2 -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 getopt.o: getopt.h stringutils.h
 spire.o: getopt.h
