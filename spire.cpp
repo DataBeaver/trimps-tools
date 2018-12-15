@@ -805,7 +805,7 @@ void Spire::cross(std::string &data1, const std::string &data2, Random &random) 
 void Spire::mutate(Layout &layout, unsigned mode, unsigned count, Random &random) const
 {
 	unsigned slots = layout.data.size();
-	unsigned locality = random()%(slots*2/15);
+	unsigned locality = (slots>=10 ? random()%(slots*2/15) : 0);
 	unsigned base = 0;
 	if(locality)
 	{
