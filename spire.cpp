@@ -82,7 +82,12 @@ private:
 		unsigned special_multi;
 	};
 
+	unsigned n_pools;
 	std::vector<Pool *> pools;
+	std::mutex pools_mutex;
+	unsigned prune_interval;
+	unsigned next_prune;
+	unsigned prune_limit;
 	unsigned cross_rate;
 	unsigned foreign_rate;
 	bool heterogeneous;
@@ -108,6 +113,7 @@ public:
 	int main();
 private:
 	unsigned get_next_cycle();
+	void prune_pools();
 	void calculate_effects(const Layout &, TrapEffects &) const;
 	std::uint64_t simulate(const Layout &, bool = false) const;
 	std::uint64_t simulate_with_hp(const Layout &, uint64_t, bool = false) const;
@@ -143,6 +149,10 @@ Spire *Spire::instance;
 const char Spire::traps[] = "_FZPLSCK";
 
 Spire::Spire(int argc, char **argv):
+	n_pools(10),
+	prune_interval(0),
+	next_prune(0),
+	prune_limit(3),
 	cross_rate(500),
 	foreign_rate(500),
 	heterogeneous(false),
@@ -158,7 +168,6 @@ Spire::Spire(int argc, char **argv):
 	instance = this;
 
 	unsigned pool_size = 100;
-	unsigned n_pools = 0;
 	unsigned n_pools_seen = 0;
 	unsigned floors = 7;
 	unsigned floors_seen = 0;
@@ -176,6 +185,8 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('s', "pool-size", pool_size, GetOpt::REQUIRED_ARG).set_help("Size of each population pool", "NUM");
 	getopt.add_option('c', "cross-rate", cross_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing two layouts (out of 1000)", "NUM");
 	getopt.add_option('o', "foreign-rate", foreign_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing from another pool (out of 1000)", "NUM");
+	getopt.add_option("prune-interval", prune_interval, GetOpt::REQUIRED_ARG).set_help("Interval for pruning pools, in cycles", "NUM");
+	getopt.add_option("prune-limit", prune_limit, GetOpt::REQUIRED_ARG).set_help("Minimum number of pools to keep", "NUM");
 	getopt.add_option("fire", start_layout.upgrades.fire, GetOpt::REQUIRED_ARG).set_help("Set fire trap upgrade level", "LEVEL");
 	getopt.add_option("frost", start_layout.upgrades.frost, GetOpt::REQUIRED_ARG).set_help("Set frost trap upgrade level", "LEVEL");
 	getopt.add_option("poison", start_layout.upgrades.poison, GetOpt::REQUIRED_ARG).set_help("Set poison trap upgrade level", "LEVEL");
@@ -192,7 +203,14 @@ Spire::Spire(int argc, char **argv):
 	for(unsigned i=0; i<n_pools; ++i)
 		pools.push_back(new Pool(pool_size));
 	if(n_pools==1)
+	{
 		foreign_rate = 0;
+		prune_interval = 0;
+	}
+	if(prune_interval)
+		next_prune = prune_interval;
+	if(prune_limit<1)
+		prune_limit = 1;
 
 	if(!start_layout.data.empty())
 	{
@@ -304,17 +322,17 @@ int Spire::main()
 	if(best_layout.damage && !show_pools)
 		report(best_layout, "Initial layout");
 
-	unsigned n_print = 100/pools.size()-1;
+	unsigned n_print = 100/n_pools-1;
 	while(!intr_flag)
 	{
 		std::this_thread::sleep_for(chrono::milliseconds(500));
 		if(show_pools)
 		{
 			cout << "\033[1;1H";
-			for(auto *p: pools)
+			for(unsigned i=0; i<n_pools; ++i)
 			{
 				unsigned count = n_print;
-				p->visit_layouts(bind(&Spire::print, this, _1, ref(count)));
+				pools[i]->visit_layouts(bind(&Spire::print, this, _1, ref(count)));
 				if(n_print>1)
 				{
 					for(++count; count>0; --count)
@@ -336,6 +354,12 @@ int Spire::main()
 			if(best_layout.damage>best_damage)
 				report(best_layout, "New best layout found");
 		}
+
+		if(next_prune && cycle>=next_prune)
+		{
+			prune_pools();
+			n_print = 100/n_pools-1;
+		}
 	}
 
 	for(auto w: workers)
@@ -352,6 +376,40 @@ int Spire::main()
 unsigned Spire::get_next_cycle()
 {
 	return cycle.fetch_add(1U, memory_order_relaxed);
+}
+
+void Spire::prune_pools()
+{
+	if(n_pools<=1)
+		return;
+
+	lock_guard<std::mutex> lock(pools_mutex);
+	unsigned lowest = 0;
+	if(heterogeneous)
+		++lowest;
+	uint64_t damage = pools[lowest]->get_highest_damage();
+	for(unsigned i=0; i<n_pools; ++i)
+	{
+		uint64_t d = pools[i]->get_highest_damage();
+		if(d<damage)
+		{
+			lowest = i;
+			damage = d;
+		}
+	}
+
+	if(lowest+1<n_pools)
+		swap(pools[lowest], pools[n_pools-1]);
+	--n_pools;
+
+	if(n_pools>prune_limit)
+		next_prune += prune_interval;
+	else
+	{
+		if(n_pools==1)
+			foreign_rate = 0;
+		next_prune = 0;
+	}
 }
 
 void Spire::calculate_effects(const Layout &layout, TrapEffects &effects) const
@@ -958,11 +1016,13 @@ void Spire::Worker::join()
 
 void Spire::Worker::main()
 {
+	unique_lock<std::mutex> pools_lock(spire.pools_mutex, defer_lock);
 	while(!intr_flag)
 	{
 		unsigned cycle = spire.get_next_cycle();
 
-		unsigned pool_index = random()%spire.pools.size();
+		pools_lock.lock();
+		unsigned pool_index = random()%spire.n_pools;
 		Pool &pool = *spire.pools[pool_index];
 		Layout base_layout = pool.get_random_layout(random);
 
@@ -974,11 +1034,12 @@ void Spire::Worker::main()
 			bool do_foreign = (random()%1000<spire.foreign_rate);
 			if(do_foreign)
 			{
-				unsigned cross_index = random()%(spire.pools.size()-1);
+				unsigned cross_index = random()%(spire.n_pools-1);
 				if(cross_index==pool_index)
 					++cross_index;
 				cross_pool = spire.pools[cross_index];
 			}
+			pools_lock.unlock();
 
 			if(do_cross || do_foreign)
 			{
@@ -991,6 +1052,8 @@ void Spire::Worker::main()
 				}
 			}
 		}
+		else
+			pools_lock.unlock();
 
 		uint64_t lowest_damage = pool.get_lowest_damage();
 		for(unsigned i=0; i<spire.loops_per_cycle; ++i)
