@@ -465,18 +465,20 @@ uint64_t Spire::simulate_with_hp(const Layout &layout, uint64_t max_hp, bool deb
 {
 	unsigned slots = layout.data.size();
 
-	std::vector<uint8_t> floor_flags(slots/5, 0);
 	uint8_t column_flags[5] = { };
+	for(unsigned i=0; i<slots; ++i)
+		if(layout.data[i]=='L')
+			++column_flags[i%5];
+
+	std::vector<uint16_t> floor_flags(slots/5, 0);
 	for(unsigned i=0; i<slots; ++i)
 	{
 		unsigned j = i/5;
 		char t = layout.data[i];
 		if(t=='F')
-			++floor_flags[j];
+			floor_flags[j] += 1+0x10*column_flags[i%5];
 		else if(t=='S')
 			floor_flags[j] |= 0x08;
-		else if(t=='L')
-			++column_flags[i%5];
 	}
 
 	TrapEffects effects;
@@ -541,7 +543,11 @@ uint64_t Spire::simulate_with_hp(const Layout &layout, uint64_t max_hp, bool deb
 		}
 		else if(t=='S')
 		{
-			uint64_t d = effects.fire_damage*(floor_flags[i/5]&0x07)*2*damage_multi;
+			uint16_t flags = floor_flags[i/5];
+			uint64_t d = effects.fire_damage*(flags&0x07);
+			if(layout.upgrades.lightning>=4)
+				d += effects.fire_damage*(flags>>4)/10;
+			d *= 2*damage_multi;
 			if(chilled && layout.upgrades.frost>=3)
 				d = d*5/4;
 			damage += d;
