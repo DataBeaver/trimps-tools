@@ -785,7 +785,7 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 	unsigned traps_count = (layout.upgrades.lightning>0 ? 7 : 5);
 	for(unsigned i=0; i<count; ++i)
 	{
-		unsigned op = random()%7;
+		unsigned op = random()%8;
 		unsigned t = 1+random()%traps_count;
 		if(!layout.upgrades.lightning && t>=4)
 			++t;
@@ -846,6 +846,11 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 			{
 				for(unsigned j=0; j<5; ++j)
 					layout.data[end+j] = layout.data[pos+j];
+			}
+			else if(op==7)  // swap
+			{
+				for(unsigned j=0; j<5; ++j)
+					swap(layout.data[pos+j], layout.data[end+j]);
 			}
 		}
 	}
