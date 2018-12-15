@@ -42,6 +42,7 @@ public:
 	void add_layout(const Layout &);
 	Layout get_best_layout() const;
 	Layout get_random_layout(Random &) const;
+	std::uint64_t get_highest_damage() const;
 	std::uint64_t get_lowest_damage() const;
 
 	template<typename F>
@@ -330,9 +331,8 @@ int Spire::main()
 			unsigned best_damage = best_layout.damage;
 			for(auto *p: pools)
 			{
-				Layout pbl = p->get_best_layout();
-				if(pbl.damage>best_layout.damage)
-					best_layout = pbl;
+				if(p->get_highest_damage()>best_layout.damage)
+					best_layout = p->get_best_layout();
 				if(heterogeneous)
 					break;
 			}
@@ -918,6 +918,12 @@ Layout Pool::get_random_layout(Random &random) const
 	}
 
 	throw logic_error("Spire::get_random_layout");
+}
+
+uint64_t Pool::get_highest_damage() const
+{
+	lock_guard<std::mutex> lock(mutex);
+	return layouts.front().damage;
 }
 
 uint64_t Pool::get_lowest_damage() const
