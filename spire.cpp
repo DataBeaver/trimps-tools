@@ -782,6 +782,14 @@ void Spire::cross(std::string &data1, const std::string &data2, Random &random) 
 void Spire::mutate(Layout &layout, unsigned mode, unsigned count, Random &random) const
 {
 	unsigned slots = layout.data.size();
+	unsigned locality = random()%(slots*2/15);
+	unsigned base = 0;
+	if(locality)
+	{
+		slots -= locality*5;
+		base = (random()%locality)*5;
+	}
+
 	unsigned traps_count = (layout.upgrades.lightning>0 ? 7 : 5);
 	for(unsigned i=0; i<count; ++i)
 	{
@@ -797,11 +805,11 @@ void Spire::mutate(Layout &layout, unsigned mode, unsigned count, Random &random
 		char trap = traps[t];
 
 		if(op==0)  // replace
-			layout.data[random()%slots] = trap;
+			layout.data[base+random()%slots] = trap;
 		else if(op==1 || op==2 || op==5)  // swap, rotate, insert
 		{
-			unsigned pos = random()%slots;
-			unsigned end = random()%(slots-1);
+			unsigned pos = base+random()%slots;
+			unsigned end = base+random()%(slots-1);
 			while(end==pos)
 				++end;
 
@@ -827,8 +835,8 @@ void Spire::mutate(Layout &layout, unsigned mode, unsigned count, Random &random
 			while(end==pos)
 				++end;
 
-			pos *= 5;
-			end *= 5;
+			pos = base+pos*5;
+			end = base+end*5;
 
 			if(op==3 || op==6)  // rotate, duplicate
 			{
