@@ -793,26 +793,26 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 
 		if(op==0)  // replace
 			layout.data[random()%slots] = trap;
-		else if(op==1)  // swap
-		{
-			unsigned pos = random()%(slots-1);
-			swap(layout.data[pos], layout.data[pos+1]);
-		}
-		else if(op==2 || op==3)  // rotate or insert
+		else if(op==1 || op==2 || op==3)  // swap, rotate, insert
 		{
 			unsigned pos = random()%slots;
 			unsigned end = random()%(slots-1);
 			while(end==pos)
 				++end;
 
-			if(op==2)
-				trap = layout.data[end];
+			if(op==1)
+				swap(layout.data[pos], layout.data[end]);
+			else
+			{
+				if(op==2)
+					trap = layout.data[end];
 
-			for(unsigned j=end; j>pos; --j)
-				layout.data[j] = layout.data[j-1];
-			for(unsigned j=end; j<pos; ++j)
-				layout.data[j] = layout.data[j+1];
-			layout.data[pos] = trap;
+				for(unsigned j=end; j>pos; --j)
+					layout.data[j] = layout.data[j-1];
+				for(unsigned j=end; j<pos; ++j)
+					layout.data[j] = layout.data[j+1];
+				layout.data[pos] = trap;
+			}
 		}
 		else  // floor operations
 		{
