@@ -169,12 +169,17 @@ Spire::Spire(int argc, char **argv):
 
 	unsigned pool_size = 100;
 	unsigned n_pools_seen = 0;
+	unsigned prune_interval_seen = 0;
+	unsigned prune_limit_seen = 0;
+	unsigned foreign_rate_seen = 0;
 	unsigned floors = 7;
 	unsigned floors_seen = 0;
 	unsigned budget_seen = 0;
 	string upgrades;
+	string preset;
 
 	GetOpt getopt;
+	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on");
 	getopt.add_option('b', "budget", budget, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM").bind_seen_count(budget_seen);
 	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG).set_help("Number of floors in the spire", "NUM").bind_seen_count(floors_seen);
 	getopt.add_option('g', "debug-layout", debug_layout, GetOpt::NO_ARG).set_help("Print detailed information about the layout");
@@ -184,9 +189,9 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("heterogeneous", heterogeneous, GetOpt::NO_ARG).set_help("Use heterogeneous pool configurations");
 	getopt.add_option('s', "pool-size", pool_size, GetOpt::REQUIRED_ARG).set_help("Size of each population pool", "NUM");
 	getopt.add_option('c', "cross-rate", cross_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing two layouts (out of 1000)", "NUM");
-	getopt.add_option('o', "foreign-rate", foreign_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing from another pool (out of 1000)", "NUM");
-	getopt.add_option("prune-interval", prune_interval, GetOpt::REQUIRED_ARG).set_help("Interval for pruning pools, in cycles", "NUM");
-	getopt.add_option("prune-limit", prune_limit, GetOpt::REQUIRED_ARG).set_help("Minimum number of pools to keep", "NUM");
+	getopt.add_option('o', "foreign-rate", foreign_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing from another pool (out of 1000)", "NUM").bind_seen_count(foreign_rate_seen);
+	getopt.add_option("prune-interval", prune_interval, GetOpt::REQUIRED_ARG).set_help("Interval for pruning pools, in cycles", "NUM").bind_seen_count(prune_interval_seen);
+	getopt.add_option("prune-limit", prune_limit, GetOpt::REQUIRED_ARG).set_help("Minimum number of pools to keep", "NUM").bind_seen_count(prune_limit_seen);
 	getopt.add_option("fire", start_layout.upgrades.fire, GetOpt::REQUIRED_ARG).set_help("Set fire trap upgrade level", "LEVEL");
 	getopt.add_option("frost", start_layout.upgrades.frost, GetOpt::REQUIRED_ARG).set_help("Set frost trap upgrade level", "LEVEL");
 	getopt.add_option("poison", start_layout.upgrades.poison, GetOpt::REQUIRED_ARG).set_help("Set poison trap upgrade level", "LEVEL");
@@ -196,6 +201,31 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("show-pools", show_pools, GetOpt::NO_ARG).set_help("Show population pool contents while running");
 	getopt.add_argument("layout", start_layout.data, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
 	getopt(argc, argv);
+
+	if(preset=="single")
+	{
+		if(!n_pools_seen)
+			n_pools = 1;
+	}
+	else if(preset=="diverse")
+	{
+		if(!n_pools_seen)
+			n_pools = 50;
+		if(!prune_interval_seen)
+			prune_interval = 50000;
+		if(!prune_limit_seen)
+			prune_limit = 10;
+	}
+	else if(preset=="advanced")
+	{
+		if(!prune_interval_seen)
+			prune_interval = 100000;
+		heterogeneous = true;
+		if(!foreign_rate_seen)
+			foreign_rate = 1000;
+	}
+	else if(!preset.empty() && preset!="basic")
+		throw usage_error("Invalid preset");
 
 	if(!n_pools_seen && heterogeneous)
 		n_pools = 21;
