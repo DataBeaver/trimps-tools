@@ -318,8 +318,11 @@ int Spire::main()
 			{
 				unsigned count = n_print;
 				p->visit_layouts(bind(&Spire::print, this, _1, ref(count)));
-				for(++count; count>0; --count)
-					cout << "\033[K" << endl;
+				if(n_print>1)
+				{
+					for(++count; count>0; --count)
+						cout << "\033[K" << endl;
+				}
 			}
 		}
 		else
