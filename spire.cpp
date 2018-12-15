@@ -814,7 +814,7 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 				layout.data[j] = layout.data[j+1];
 			layout.data[pos] = trap;
 		}
-		else if(op==4 || op==5)  // rotate or duplicate floors
+		else  // floor operations
 		{
 			unsigned floors = slots/5;
 			unsigned pos = random()%floors;
@@ -825,34 +825,28 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 			pos *= 5;
 			end *= 5;
 
-			char floor[5];
-			for(unsigned j=0; j<5; ++j)
-				floor[j] = layout.data[end+j];
+			if(op==4 || op==5)  // rotate, duplicate
+			{
+				char floor[5];
+				for(unsigned j=0; j<5; ++j)
+					floor[j] = layout.data[end+j];
 
-			for(unsigned j=end; j>pos; --j)
-				layout.data[j+4] = layout.data[j-1];
-			for(unsigned j=end; j<pos; ++j)
-				layout.data[j] = layout.data[j+5];
+				for(unsigned j=end; j>pos; --j)
+					layout.data[j+4] = layout.data[j-1];
+				for(unsigned j=end; j<pos; ++j)
+					layout.data[j] = layout.data[j+5];
 
-			if(op==4)
+				if(op==4)
+				{
+					for(unsigned j=0; j<5; ++j)
+						layout.data[pos+j] = floor[j];
+				}
+			}
+			else if(op==6)  // copy
 			{
 				for(unsigned j=0; j<5; ++j)
-					layout.data[pos+j] = floor[j];
+					layout.data[end+j] = layout.data[pos+j];
 			}
-		}
-		else if(op==6)  // copy floor
-		{
-			unsigned floors = slots/5;
-			unsigned pos = random()%floors;
-			unsigned target = random()%(floors-1);
-			while(target==pos)	
-				++target;
-
-			pos *= 5;
-			target *= 5;
-
-			for(unsigned j=0; j<5; ++j)
-				layout.data[target+j] = layout.data[pos+j];
 		}
 	}
 }
