@@ -446,9 +446,7 @@ uint64_t Spire::simulate(const Layout &layout, bool debug) const
 		for(unsigned i=0; (i<10 && low*101<high*100); ++i)
 		{
 			uint64_t mid = (low+high*3)/4;
-			if(debug)
-				cout << "Trying max HP: " << mid << endl;
-			damage = simulate_with_hp(layout, mid, debug);
+			damage = simulate_with_hp(layout, mid, false);
 			if(damage>mid)
 				low = mid;
 			else
@@ -457,6 +455,8 @@ uint64_t Spire::simulate(const Layout &layout, bool debug) const
 				low = damage;
 			}
 		}
+		if(debug)
+			simulate_with_hp(layout, low, true);
 		return low;
 	}
 	else
