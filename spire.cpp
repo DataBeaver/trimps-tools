@@ -153,22 +153,25 @@ Spire::Spire(int argc, char **argv):
 	numeric_format(false),
 	show_pools(false),
 	intr_flag(false),
-	budget(0)
+	budget(1000000)
 {
 	instance = this;
 
 	unsigned pool_size = 100;
 	unsigned n_pools = 0;
-	unsigned floors = 0;
+	unsigned n_pools_seen = 0;
+	unsigned floors = 7;
+	unsigned floors_seen = 0;
+	unsigned budget_seen = 0;
 	string upgrades;
 
 	GetOpt getopt;
-	getopt.add_option('b', "budget", budget, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM");
-	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG).set_help("Number of floors in the spire", "NUM");
+	getopt.add_option('b', "budget", budget, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM").bind_seen_count(budget_seen);
+	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG).set_help("Number of floors in the spire", "NUM").bind_seen_count(floors_seen);
 	getopt.add_option('g', "debug-layout", debug_layout, GetOpt::NO_ARG).set_help("Print detailed information about the layout");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
 	getopt.add_option('l', "loops", loops_per_cycle, GetOpt::REQUIRED_ARG).set_help("Number of loops per cycle", "NUM");
-	getopt.add_option('p', "pools", n_pools, GetOpt::REQUIRED_ARG).set_help("Number of population pools", "NUM");
+	getopt.add_option('p', "pools", n_pools, GetOpt::REQUIRED_ARG).set_help("Number of population pools", "NUM").bind_seen_count(n_pools_seen);
 	getopt.add_option("heterogeneous", heterogeneous, GetOpt::NO_ARG).set_help("Use heterogeneous pool configurations");
 	getopt.add_option('s', "pool-size", pool_size, GetOpt::REQUIRED_ARG).set_help("Size of each population pool", "NUM");
 	getopt.add_option('c', "cross-rate", cross_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing two layouts (out of 1000)", "NUM");
@@ -183,8 +186,8 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_argument("layout", start_layout.data, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
 	getopt(argc, argv);
 
-	if(!n_pools)
-		n_pools = (heterogeneous ? 21 : 10);
+	if(!n_pools_seen && heterogeneous)
+		n_pools = 21;
 	pools.reserve(n_pools);
 	for(unsigned i=0; i<n_pools; ++i)
 		pools.push_back(new Pool(pool_size));
@@ -231,24 +234,17 @@ Spire::Spire(int argc, char **argv):
 		}
 		start_layout.data = clean_data;
 
-		if(!floors)
+		if(!floors_seen)
 			floors = max<unsigned>((start_layout.data.size()+4)/5, 1U);
-	}
-	else if(!floors)
-		floors = 7;
 
-	if(!start_layout.data.empty())
-	{
 		start_layout.data.resize(floors*5, '_');
 		start_layout.damage = simulate(start_layout);
 		start_layout.cost = calculate_cost(start_layout.data);
 		pools.front()->add_layout(start_layout);
 
-		if(!budget)
+		if(!budget_seen)
 			budget = start_layout.cost;
 	}
-	else if(!budget)
-		budget = 1000000;
 
 	unsigned downgrade = 0;
 	for(unsigned i=0; i<pools.size(); ++i)
