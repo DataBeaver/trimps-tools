@@ -476,7 +476,7 @@ uint64_t Spire::simulate_with_hp(const Layout &layout, uint64_t max_hp, bool deb
 		else if(t=='S')
 			floor_flags[j] |= 0x08;
 		else if(t=='L')
-			++column_flags[j%5];
+			++column_flags[i%5];
 	}
 
 	TrapEffects effects;
