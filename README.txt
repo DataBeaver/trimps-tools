@@ -30,6 +30,11 @@ and upgrades are deduced from the layout if not explicitly specified.
 More advanced options can be used to tweak the performance of the program or
 the genetic algorithm:
 
+-t, --preset
+  Choose a predefined set of options.  Available presets are single, basic,
+  diverse and advanced.  This option is relatively safe to use even if you
+  have no clue what the following ones are for.
+
 -w, --workers
   Set the number of worker threads to use
 
@@ -56,6 +61,12 @@ the genetic algorithm:
 --heterogeneous
   Use a heterogeneous pool configuration.  This can help if the properties of
   the upgrade configuration cause evolution to get stuck at a local optimum.
+
+--prune-interval
+  Set the number of iterations before pruning the worst performing pool
+
+--prune-limit
+  Stop pruning when only this many pools are left
 
 Finally, a few options are mostly for debugging purposes:
 
