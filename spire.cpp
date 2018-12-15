@@ -139,7 +139,8 @@ int main(int argc, char **argv)
 	catch(const usage_error &e)
 	{
 		cout << e.what() << endl;
-		if(const char *help = e.help())
+		const char *help = e.help();
+		if(help[0])
 			cout << help << endl;
 		return 1;
 	}
@@ -202,6 +203,19 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_argument("layout", start_layout.data, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
 	getopt(argc, argv);
 
+	if(floors<1)
+		throw usage_error("Invalid number of floors");
+	if(n_workers<1)
+		throw usage_error("Invalid number of worker threads");
+	if(loops_per_cycle<1)
+		throw usage_error("Invalid number of loops per cycle");
+	if(pool_size<1)
+		throw usage_error("Invalid pool size");
+	if(n_pools<1)
+		throw usage_error("Invalid number of pools");
+	if(prune_limit<1)
+		throw usage_error("Invalid prune limit");
+
 	if(preset=="single")
 	{
 		if(!n_pools_seen)
@@ -237,10 +251,10 @@ Spire::Spire(int argc, char **argv):
 		foreign_rate = 0;
 		prune_interval = 0;
 	}
+	if(n_pools<=prune_limit)
+		prune_interval = 0;
 	if(prune_interval)
 		next_prune = prune_interval;
-	if(prune_limit<1)
-		prune_limit = 1;
 
 	if(!start_layout.data.empty())
 	{
@@ -259,7 +273,7 @@ Spire::Spire(int argc, char **argv):
 	{
 		bool valid = (upgrades.size()==4);
 		for(auto i=upgrades.begin(); (valid && i!=upgrades.end()); ++i)
-			valid = (*i>='0' && *i<='8');
+			valid = isdigit(*i);
 		if(!valid)
 			throw usage_error("Upgrades string must consist of four numbers");
 
@@ -268,6 +282,15 @@ Spire::Spire(int argc, char **argv):
 		start_layout.upgrades.poison = upgrades[2]-'0';
 		start_layout.upgrades.lightning = upgrades[3]-'0';
 	}
+
+	if(start_layout.upgrades.fire>8)
+		throw usage_error("Invalid fire trap upgrade level");
+	if(start_layout.upgrades.frost>6)
+		throw usage_error("Invalid frost trap upgrade level");
+	if(start_layout.upgrades.poison>7)
+		throw usage_error("Invalid poison trap upgrade level");
+	if(start_layout.upgrades.lightning>6)
+		throw usage_error("Invalid lightning trap upgrade level");
 
 	if(!start_layout.data.empty())
 	{
