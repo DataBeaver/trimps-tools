@@ -187,6 +187,8 @@ Spire::Spire(int argc, char **argv):
 	pools.reserve(n_pools);
 	for(unsigned i=0; i<n_pools; ++i)
 		pools.push_back(new Pool(pool_size));
+	if(n_pools==1)
+		foreign_rate = 0;
 
 	if(!start_layout.data.empty())
 	{
