@@ -119,7 +119,7 @@ private:
 	std::uint64_t simulate_with_hp(const Layout &, uint64_t, bool = false) const;
 	std::uint64_t calculate_cost(const std::string &) const;
 	void cross(std::string &, const std::string &, Random &) const;
-	void mutate(Layout &, unsigned, Random &) const;
+	void mutate(Layout &, unsigned, unsigned, Random &) const;
 	bool is_valid(const std::string &) const;
 	void report(const Layout &, const std::string &);
 	bool print(const Layout &, unsigned &);
@@ -779,13 +779,18 @@ void Spire::cross(std::string &data1, const std::string &data2, Random &random) 
 			data1[i] = data2[i];
 }
 
-void Spire::mutate(Layout &layout, unsigned count, Random &random) const
+void Spire::mutate(Layout &layout, unsigned mode, unsigned count, Random &random) const
 {
 	unsigned slots = layout.data.size();
 	unsigned traps_count = (layout.upgrades.lightning>0 ? 7 : 5);
 	for(unsigned i=0; i<count; ++i)
 	{
-		unsigned op = random()%8;
+		unsigned op = 0;  // replace only
+		if(mode==1)       // permute only
+			op = 1+random()%4;
+		else if(mode==2)  // any operation
+			op = random()%8;
+
 		unsigned t = 1+random()%traps_count;
 		if(!layout.upgrades.lightning && t>=4)
 			++t;
@@ -793,7 +798,7 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 
 		if(op==0)  // replace
 			layout.data[random()%slots] = trap;
-		else if(op==1 || op==2 || op==3)  // swap, rotate, insert
+		else if(op==1 || op==2 || op==5)  // swap, rotate, insert
 		{
 			unsigned pos = random()%slots;
 			unsigned end = random()%(slots-1);
@@ -825,7 +830,7 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 			pos *= 5;
 			end *= 5;
 
-			if(op==4 || op==5)  // rotate, duplicate
+			if(op==3 || op==6)  // rotate, duplicate
 			{
 				char floor[5];
 				for(unsigned j=0; j<5; ++j)
@@ -836,18 +841,18 @@ void Spire::mutate(Layout &layout, unsigned count, Random &random) const
 				for(unsigned j=end; j<pos; ++j)
 					layout.data[j] = layout.data[j+5];
 
-				if(op==4)
+				if(op==3)
 				{
 					for(unsigned j=0; j<5; ++j)
 						layout.data[pos+j] = floor[j];
 				}
 			}
-			else if(op==6)  // copy
+			else if(op==7)  // copy
 			{
 				for(unsigned j=0; j<5; ++j)
 					layout.data[end+j] = layout.data[pos+j];
 			}
-			else if(op==7)  // swap
+			else if(op==4)  // swap
 			{
 				for(unsigned j=0; j<5; ++j)
 					swap(layout.data[pos+j], layout.data[end+j]);
@@ -1095,7 +1100,7 @@ void Spire::Worker::main()
 			unsigned slots = mutated.data.size();
 			unsigned mut_count = 1+random()%slots;
 			mut_count = max((mut_count*mut_count)/slots, 1U);
-			spire.mutate(mutated, mut_count, random);
+			spire.mutate(mutated, random()%3, mut_count, random);
 			if(!spire.is_valid(mutated.data))
 				continue;
 			
