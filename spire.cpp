@@ -115,7 +115,7 @@ private:
 	unsigned get_next_cycle();
 	void prune_pools();
 	void calculate_effects(const Layout &, TrapEffects &) const;
-	std::uint64_t simulate(const Layout &, bool = false) const;
+	std::uint64_t simulate(const Layout &) const;
 	std::uint64_t simulate_with_hp(const Layout &, uint64_t, bool = false) const;
 	std::uint64_t calculate_cost(const std::string &) const;
 	void cross(std::string &, const std::string &, Random &) const;
@@ -356,8 +356,7 @@ int Spire::main()
 {
 	if(debug_layout)
 	{
-		uint64_t damage = simulate(start_layout, true);
-		cout << "Total damage: " << damage << endl;
+		simulate_with_hp(start_layout, start_layout.damage, true);
 		return 0;
 	}
 
@@ -541,18 +540,13 @@ void Spire::calculate_effects(const Layout &layout, TrapEffects &effects) const
 	}
 }
 
-uint64_t Spire::simulate(const Layout &layout, bool debug) const
+uint64_t Spire::simulate(const Layout &layout) const
 {
-	uint64_t damage = simulate_with_hp(layout, 0, (debug && layout.upgrades.poison<5));
+	uint64_t damage = simulate_with_hp(layout, 0, false);
 	if(layout.upgrades.poison>=5)
 	{
 		uint64_t low = damage;
 		uint64_t high = simulate_with_hp(layout, low, false);
-		if(debug)
-		{
-			cout << "Initial damage: " << low << endl;
-			cout << "Maximum damage: " << high << endl;
-		}
 		for(unsigned i=0; (i<10 && low*101<high*100); ++i)
 		{
 			uint64_t mid = (low+high*3)/4;
@@ -565,8 +559,6 @@ uint64_t Spire::simulate(const Layout &layout, bool debug) const
 				low = damage;
 			}
 		}
-		if(debug)
-			simulate_with_hp(layout, low, true);
 		return low;
 	}
 	else
@@ -595,6 +587,9 @@ uint64_t Spire::simulate_with_hp(const Layout &layout, uint64_t max_hp, bool deb
 
 	TrapEffects effects;
 	calculate_effects(layout, effects);
+
+	if(debug)
+		cout << "Enemy HP: " << max_hp << endl;
 
 	unsigned chilled = 0;
 	unsigned frozen = 0;
@@ -681,7 +676,7 @@ uint64_t Spire::simulate_with_hp(const Layout &layout, uint64_t max_hp, bool deb
 		if(debug)
 		{
 			cout << setw(2) << i << ':' << step << ": " << t << ' ' << setw(9) << damage;
-			if(max_hp)
+			if(max_hp && layout.upgrades.poison>=5)
 			{
 				if(damage>max_hp)
 					cout << "  0%";
@@ -690,8 +685,6 @@ uint64_t Spire::simulate_with_hp(const Layout &layout, uint64_t max_hp, bool deb
 				else
 					cout << " **%";
 			}
-			else
-				cout << "    ";
 			if(poison)
 				cout << " P" << setw(6) << poison;
 			else
@@ -733,9 +726,12 @@ uint64_t Spire::simulate_with_hp(const Layout &layout, uint64_t max_hp, bool deb
 	}
 
 	if(layout.upgrades.fire>=4)
-		return max(damage, last_fire*5/4);
-	else
-		return damage;
+		damage = max(damage, last_fire*5/4);
+
+	if(debug)
+		cout << "Total damage: " << damage << endl;
+
+	return damage;
 }
 
 uint64_t Spire::calculate_cost(const std::string &data) const
