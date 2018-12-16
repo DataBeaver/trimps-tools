@@ -338,7 +338,7 @@ int Spire::main()
 	unsigned n_print = 100/n_pools-1;
 	while(!intr_flag)
 	{
-		std::this_thread::sleep_for(chrono::milliseconds(500));
+		this_thread::sleep_for(chrono::milliseconds(500));
 		if(show_pools)
 		{
 			cout << "\033[1;1H";
@@ -396,7 +396,7 @@ void Spire::prune_pools()
 	if(n_pools<=1)
 		return;
 
-	lock_guard<std::mutex> lock(pools_mutex);
+	lock_guard<mutex> lock(pools_mutex);
 	unsigned lowest = 0;
 	if(heterogeneous)
 		++lowest;
@@ -587,7 +587,7 @@ void Spire::Worker::join()
 
 void Spire::Worker::main()
 {
-	unique_lock<std::mutex> pools_lock(spire.pools_mutex, defer_lock);
+	unique_lock<mutex> pools_lock(spire.pools_mutex, defer_lock);
 	while(!intr_flag)
 	{
 		unsigned cycle = spire.get_next_cycle();

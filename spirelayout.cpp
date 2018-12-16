@@ -131,7 +131,7 @@ uint64_t Layout::simulate(uint64_t max_hp, bool debug) const
 		if(data[i]=='L')
 			++column_flags[i%5];
 
-	std::vector<uint16_t> floor_flags(slots/5, 0);
+	vector<uint16_t> floor_flags(slots/5, 0);
 	for(unsigned i=0; i<slots; ++i)
 	{
 		unsigned j = i/5;
