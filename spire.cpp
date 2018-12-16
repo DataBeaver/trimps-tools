@@ -9,25 +9,7 @@
 #include <random>
 #include <thread>
 #include "getopt.h"
-
-typedef std::minstd_rand Random;
-
-struct Layout
-{
-	struct
-	{
-		uint16_t fire;
-		uint16_t frost;
-		uint16_t poison;
-		uint16_t lightning;
-	} upgrades;
-	std::string data;
-	std::uint64_t damage;
-	std::uint64_t cost;
-	unsigned cycle;
-
-	Layout();
-};
+#include "spirelayout.h"
 
 class Pool 
 {
@@ -41,7 +23,7 @@ public:
 
 	void add_layout(const Layout &);
 	Layout get_best_layout() const;
-	Layout get_random_layout(Random &) const;
+	Layout get_random_layout(Layout::Random &) const;
 	std::uint64_t get_highest_damage() const;
 	std::uint64_t get_lowest_damage() const;
 
@@ -56,7 +38,7 @@ private:
 	{
 	private:
 		Spire &spire;
-		Random random;
+		Layout::Random random;
 		bool intr_flag;
 		std::thread thread;
 
@@ -68,18 +50,6 @@ private:
 
 	private:
 		void main();
-	};
-
-	struct TrapEffects
-	{
-		unsigned fire_damage;
-		unsigned frost_damage;
-		unsigned chill_dur;
-		unsigned poison_damage;
-		unsigned lightning_damage;
-		unsigned shock_dur;
-		unsigned damage_multi;
-		unsigned special_multi;
 	};
 
 	unsigned n_pools;
@@ -104,7 +74,6 @@ private:
 	Layout start_layout;
 
 	static Spire *instance;
-	static const char traps[];
 
 public:
 	Spire(int, char **);
@@ -114,13 +83,6 @@ public:
 private:
 	unsigned get_next_cycle();
 	void prune_pools();
-	void calculate_effects(const Layout &, TrapEffects &) const;
-	std::uint64_t simulate(const Layout &) const;
-	std::uint64_t simulate_with_hp(const Layout &, uint64_t, bool = false) const;
-	std::uint64_t calculate_cost(const std::string &) const;
-	void cross(std::string &, const std::string &, Random &) const;
-	void mutate(Layout &, unsigned, unsigned, Random &) const;
-	bool is_valid(const std::string &) const;
 	void report(const Layout &, const std::string &);
 	bool print(const Layout &, unsigned &);
 	static void sighandler(int);
@@ -147,7 +109,6 @@ int main(int argc, char **argv)
 }
 
 Spire *Spire::instance;
-const char Spire::traps[] = "_FZPLSCK";
 
 Spire::Spire(int argc, char **argv):
 	n_pools(10),
@@ -299,7 +260,7 @@ Spire::Spire(int argc, char **argv):
 		for(char c: start_layout.data)
 		{
 			if(c>='0' && c<='7')
-				clean_data += traps[c-'0'];
+				clean_data += Layout::traps[c-'0'];
 			else if(c!=' ')
 				clean_data += c;
 		}
@@ -309,8 +270,8 @@ Spire::Spire(int argc, char **argv):
 			floors = max<unsigned>((start_layout.data.size()+4)/5, 1U);
 
 		start_layout.data.resize(floors*5, '_');
-		start_layout.damage = simulate(start_layout);
-		start_layout.cost = calculate_cost(start_layout.data);
+		start_layout.update_damage();
+		start_layout.update_cost();
 		pools.front()->add_layout(start_layout);
 
 		if(!budget_seen)
@@ -356,7 +317,7 @@ int Spire::main()
 {
 	if(debug_layout)
 	{
-		simulate_with_hp(start_layout, start_layout.damage, true);
+		start_layout.simulate(start_layout.damage, true);
 		return 0;
 	}
 
@@ -364,7 +325,7 @@ int Spire::main()
 
 	Layout best_layout = pools.front()->get_best_layout();
 
-	Random random;
+	Layout::Random random;
 	for(unsigned i=0; i<n_workers; ++i)
 		workers.push_back(new Worker(*this, random()));
 
@@ -464,449 +425,6 @@ void Spire::prune_pools()
 	}
 }
 
-void Spire::calculate_effects(const Layout &layout, TrapEffects &effects) const
-{
-	effects.fire_damage = 50;
-	effects.frost_damage = 10;
-	effects.chill_dur = 3;
-	effects.poison_damage = 5;
-	effects.lightning_damage = 50;
-	effects.shock_dur = 1;
-	effects.damage_multi = 2;
-	effects.special_multi = 2;
-
-	if(layout.upgrades.fire>=2)
-		effects.fire_damage *= 10;
-	if(layout.upgrades.fire>=3)
-		effects.fire_damage *= 5;
-	if(layout.upgrades.fire>=4)
-		effects.fire_damage *= 2;
-	if(layout.upgrades.fire>=5)
-		effects.fire_damage *= 2;
-	if(layout.upgrades.fire>=6)
-		effects.fire_damage *= 10;
-	if(layout.upgrades.fire>=7)
-		effects.fire_damage *= 10;
-	if(layout.upgrades.fire>=8)
-		effects.fire_damage *= 100;
-
-	if(layout.upgrades.frost>=2)
-	{
-		++effects.chill_dur;
-		effects.frost_damage *= 5;
-	}
-	if(layout.upgrades.frost>=3)
-		effects.frost_damage *= 10;
-	if(layout.upgrades.frost>=4)
-		effects.frost_damage *= 5;
-	if(layout.upgrades.frost>=5)
-		effects.frost_damage *= 2;
-	if(layout.upgrades.frost>=6)
-	{
-		++effects.chill_dur;
-		effects.frost_damage *= 5;
-	}
-
-	if(layout.upgrades.poison>=2)
-		effects.poison_damage *= 2;
-	if(layout.upgrades.poison>=4)
-		effects.poison_damage *= 2;
-	if(layout.upgrades.poison>=5)
-		effects.poison_damage *= 2;
-	if(layout.upgrades.poison>=6)
-		effects.poison_damage *= 2;
-	if(layout.upgrades.poison>=7)
-		effects.poison_damage *= 2;
-
-	if(layout.upgrades.lightning>=2)
-	{
-		effects.lightning_damage *= 10;
-		++effects.shock_dur;
-	}
-	if(layout.upgrades.lightning>=3)
-	{
-		effects.lightning_damage *= 10;
-		effects.damage_multi *= 2;
-	}
-	if(layout.upgrades.lightning>=5)
-	{
-		effects.lightning_damage *= 10;
-		++effects.shock_dur;
-	}
-	if(layout.upgrades.lightning>=6)
-	{
-		effects.lightning_damage *= 10;
-		effects.damage_multi *= 2;
-	}
-}
-
-uint64_t Spire::simulate(const Layout &layout) const
-{
-	uint64_t damage = simulate_with_hp(layout, 0, false);
-	if(layout.upgrades.poison>=5)
-	{
-		uint64_t low = damage;
-		uint64_t high = simulate_with_hp(layout, low, false);
-		for(unsigned i=0; (i<10 && low*101<high*100); ++i)
-		{
-			uint64_t mid = (low+high*3)/4;
-			damage = simulate_with_hp(layout, mid, false);
-			if(damage>mid)
-				low = mid;
-			else
-			{
-				high = mid;
-				low = damage;
-			}
-		}
-		return low;
-	}
-	else
-		return damage;
-}
-
-uint64_t Spire::simulate_with_hp(const Layout &layout, uint64_t max_hp, bool debug) const
-{
-	unsigned slots = layout.data.size();
-
-	uint8_t column_flags[5] = { };
-	for(unsigned i=0; i<slots; ++i)
-		if(layout.data[i]=='L')
-			++column_flags[i%5];
-
-	std::vector<uint16_t> floor_flags(slots/5, 0);
-	for(unsigned i=0; i<slots; ++i)
-	{
-		unsigned j = i/5;
-		char t = layout.data[i];
-		if(t=='F')
-			floor_flags[j] += 1+0x10*column_flags[i%5];
-		else if(t=='S')
-			floor_flags[j] |= 0x08;
-	}
-
-	TrapEffects effects;
-	calculate_effects(layout, effects);
-
-	if(debug)
-		cout << "Enemy HP: " << max_hp << endl;
-
-	unsigned chilled = 0;
-	unsigned frozen = 0;
-	unsigned shocked = 0;
-	unsigned damage_multi = 1;
-	unsigned special_multi = 1;
-	uint64_t poison = 0;
-	uint64_t damage = 0;
-	uint64_t last_fire = 0;
-	unsigned step = 0;
-	for(unsigned i=0; i<slots; )
-	{
-		char t = layout.data[i];
-		bool antifreeze = false;
-		if(t=='Z')
-		{
-			damage += effects.frost_damage*damage_multi;
-			chilled = effects.chill_dur*special_multi+1;
-			frozen = 0;
-			antifreeze = true;
-		}
-		else if(t=='F')
-		{
-			unsigned d = effects.fire_damage*damage_multi;
-			if(floor_flags[i/5]&0x08)
-				d *= 2;
-			if(chilled && layout.upgrades.frost>=3)
-				d = d*5/4;
-			if(layout.upgrades.lightning>=4)
-				d = d*(10+column_flags[i%5])/10;
-			damage += d;
-			last_fire = damage;
-		}
-		else if(t=='P')
-		{
-			unsigned p = effects.poison_damage*damage_multi;
-			if(layout.upgrades.frost>=4 && i+1<slots && layout.data[i+1]=='Z')
-				p *= 4;
-			if(layout.upgrades.poison>=3)
-			{
-				if(i>0 && layout.data[i-1]=='P')
-					p *= 3;
-				if(i+1<slots && layout.data[i+1]=='P')
-					p *= 3;
-			}
-			if(layout.upgrades.poison>=5 && max_hp && damage*4>=max_hp)
-				p *= 5;
-			if(layout.upgrades.lightning>=4)
-				p = p*(10+column_flags[i%5])/10;
-			poison += p;
-		}
-		else if(t=='L')
-		{
-			damage += effects.lightning_damage*damage_multi;
-			shocked = effects.shock_dur+1;
-			damage_multi = effects.damage_multi;
-			special_multi = effects.special_multi;
-		}
-		else if(t=='S')
-		{
-			uint16_t flags = floor_flags[i/5];
-			uint64_t d = effects.fire_damage*(flags&0x07);
-			if(layout.upgrades.lightning>=4)
-				d += effects.fire_damage*(flags>>4)/10;
-			d *= 2*damage_multi;
-			if(chilled && layout.upgrades.frost>=3)
-				d = d*5/4;
-			damage += d;
-		}
-		else if(t=='K')
-		{
-			if(chilled)
-			{
-				chilled = 0;
-				frozen = 5*special_multi+1;
-			}
-			antifreeze = true;
-		}
-		else if(t=='C')
-			poison = poison*(4+special_multi)/4;
-
-		damage += poison;
-
-		if(debug)
-		{
-			cout << setw(2) << i << ':' << step << ": " << t << ' ' << setw(9) << damage;
-			if(max_hp && layout.upgrades.poison>=5)
-			{
-				if(damage>max_hp)
-					cout << "  0%";
-				else if(damage)
-					cout << ' ' << setw(2) << (max_hp-damage)*100/max_hp << '%';
-				else
-					cout << " **%";
-			}
-			if(poison)
-				cout << " P" << setw(6) << poison;
-			else
-				cout << "        ";
-			if(frozen)
-				cout << " F" << setw(2) << frozen;
-			else if(chilled)
-				cout << " C" << setw(2) << chilled;
-			else
-				cout << "    ";
-			if(shocked)
-				cout << " S" << shocked;
-			cout << endl;
-		}
-
-		++step;
-		if(shocked)
-		{
-			if(!--shocked)
-			{
-				damage_multi = 1;
-				special_multi = 1;
-			}
-		}
-		if(!antifreeze)
-		{
-			if(chilled && step<2)
-				continue;
-			if(frozen && step<3)
-				continue;
-		}
-
-		if(chilled)
-			--chilled;
-		if(frozen)
-			--frozen;
-		step = 0;
-		++i;
-	}
-
-	if(layout.upgrades.fire>=4)
-		damage = max(damage, last_fire*5/4);
-
-	if(debug)
-		cout << "Total damage: " << damage << endl;
-
-	return damage;
-}
-
-uint64_t Spire::calculate_cost(const std::string &data) const
-{
-	uint64_t fire_cost = 100;
-	uint64_t frost_cost = 100;
-	uint64_t poison_cost = 500;
-	uint64_t lightning_cost = 1000;
-	uint64_t strength_cost = 3000;
-	uint64_t condenser_cost = 6000;
-	uint64_t knowledge_cost = 9000;
-	uint64_t cost = 0;
-	for(char t: data)
-	{
-		uint64_t prev_cost = cost;
-		if(t=='F')
-		{
-			cost += fire_cost;
-			fire_cost = fire_cost*3/2;
-		}
-		else if(t=='Z')
-		{
-			cost += frost_cost;
-			frost_cost *= 5;
-		}
-		else if(t=='P')
-		{
-			cost += poison_cost;
-			poison_cost = poison_cost*7/4;
-		}
-		else if(t=='L')
-		{
-			cost += lightning_cost;
-			lightning_cost *= 3;
-		}
-		else if(t=='S')
-		{
-			cost += strength_cost;
-			strength_cost *= 100;
-		}
-		else if(t=='C')
-		{
-			cost += condenser_cost;
-			condenser_cost *= 100;
-		}
-		else if(t=='K')
-		{
-			cost += knowledge_cost;
-			knowledge_cost *= 100;
-		}
-
-		if(cost<prev_cost)
-			return numeric_limits<uint64_t>::max();
-	}
-
-	return cost;
-}
-
-void Spire::cross(std::string &data1, const std::string &data2, Random &random) const
-{
-	unsigned slots = min(data1.size(), data2.size());
-	for(unsigned i=0; i<slots; ++i)
-		if(random()&1)
-			data1[i] = data2[i];
-}
-
-void Spire::mutate(Layout &layout, unsigned mode, unsigned count, Random &random) const
-{
-	unsigned slots = layout.data.size();
-	unsigned locality = (slots>=10 ? random()%(slots*2/15) : 0);
-	unsigned base = 0;
-	if(locality)
-	{
-		slots -= locality*5;
-		base = (random()%locality)*5;
-	}
-
-	unsigned traps_count = (layout.upgrades.lightning>0 ? 7 : 5);
-	for(unsigned i=0; i<count; ++i)
-	{
-		unsigned op = 0;  // replace only
-		if(mode==1)       // permute only
-			op = 1+random()%4;
-		else if(mode==2)  // any operation
-			op = random()%8;
-
-		unsigned t = 1+random()%traps_count;
-		if(!layout.upgrades.lightning && t>=4)
-			++t;
-		char trap = traps[t];
-
-		if(op==0)  // replace
-			layout.data[base+random()%slots] = trap;
-		else if(op==1 || op==2 || op==5)  // swap, rotate, insert
-		{
-			unsigned pos = base+random()%slots;
-			unsigned end = base+random()%(slots-1);
-			while(end==pos)
-				++end;
-
-			if(op==1)
-				swap(layout.data[pos], layout.data[end]);
-			else
-			{
-				if(op==2)
-					trap = layout.data[end];
-
-				for(unsigned j=end; j>pos; --j)
-					layout.data[j] = layout.data[j-1];
-				for(unsigned j=end; j<pos; ++j)
-					layout.data[j] = layout.data[j+1];
-				layout.data[pos] = trap;
-			}
-		}
-		else  // floor operations
-		{
-			unsigned floors = slots/5;
-			unsigned pos = random()%floors;
-			unsigned end = random()%(floors-1);
-			while(end==pos)
-				++end;
-
-			pos = base+pos*5;
-			end = base+end*5;
-
-			if(op==3 || op==6)  // rotate, duplicate
-			{
-				char floor[5];
-				for(unsigned j=0; j<5; ++j)
-					floor[j] = layout.data[end+j];
-
-				for(unsigned j=end; j>pos; --j)
-					layout.data[j+4] = layout.data[j-1];
-				for(unsigned j=end; j<pos; ++j)
-					layout.data[j] = layout.data[j+5];
-
-				if(op==3)
-				{
-					for(unsigned j=0; j<5; ++j)
-						layout.data[pos+j] = floor[j];
-				}
-			}
-			else if(op==7)  // copy
-			{
-				for(unsigned j=0; j<5; ++j)
-					layout.data[end+j] = layout.data[pos+j];
-			}
-			else if(op==4)  // swap
-			{
-				for(unsigned j=0; j<5; ++j)
-					swap(layout.data[pos+j], layout.data[end+j]);
-			}
-		}
-	}
-}
-
-bool Spire::is_valid(const std::string &data) const
-{
-	unsigned slots = data.size();
-	bool have_strength = false;
-	for(unsigned i=0; i<slots; ++i)
-	{
-		if(i%5==0)
-			have_strength = false;
-		if(data[i]=='S')
-		{
-			if(have_strength)
-				return false;
-			have_strength = true;
-		}
-	}
-
-	return true;
-}
-
 void Spire::report(const Layout &layout, const string &message)
 {
 	cout << message << " (" << layout.damage << " damage, " << layout.cost << " Rs, cycle " << layout.cycle << "):" << endl;
@@ -923,8 +441,8 @@ bool Spire::print(const Layout &layout, unsigned &count)
 	{
 		descr.reserve(slots+8);
 		for(unsigned i=0; i<slots; ++i)
-			for(unsigned j=0; j<sizeof(traps); ++j)
-				if(layout.data[i]==traps[j])
+			for(unsigned j=0; Layout::traps[j]; ++j)
+				if(layout.data[i]==Layout::traps[j])
 					descr += '0'+j;
 		descr += "+0000+";
 		descr += stringify(slots/5);
@@ -958,14 +476,6 @@ void Spire::sighandler(int)
 {
 	instance->intr_flag = true;
 }
-
-
-Layout::Layout():
-	upgrades({ 1, 1, 1, 1 }),
-	damage(0),
-	cost(0),
-	cycle(0)
-{ }
 
 
 Pool::Pool(unsigned s):
@@ -1009,7 +519,7 @@ Layout Pool::get_best_layout() const
 	return layouts.front();
 }
 
-Layout Pool::get_random_layout(Random &random) const
+Layout Pool::get_random_layout(Layout::Random &random) const
 {
 	lock_guard<std::mutex> lock(mutex);
 
@@ -1122,20 +632,20 @@ void Spire::Worker::main()
 			Layout mutated = base_layout;
 			mutated.cycle = cycle;
 			if(do_cross)
-				spire.cross(mutated.data, cross_layout.data, random);
+				mutated.cross_from(cross_layout, random);
 
 			unsigned slots = mutated.data.size();
 			unsigned mut_count = 1+random()%slots;
 			mut_count = max((mut_count*mut_count)/slots, 1U);
-			spire.mutate(mutated, random()%3, mut_count, random);
-			if(!spire.is_valid(mutated.data))
+			mutated.mutate(random()%3, mut_count, random);
+			if(!mutated.is_valid())
 				continue;
 			
-			mutated.cost = spire.calculate_cost(mutated.data);
+			mutated.update_cost();
 			if(mutated.cost>spire.budget)
 				continue;
 
-			mutated.damage = spire.simulate(mutated);
+			mutated.update_damage();
 			if(mutated.damage>=lowest_damage)
 				pool.add_layout(mutated);
 		}
