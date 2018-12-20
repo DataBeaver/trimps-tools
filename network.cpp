@@ -10,6 +10,7 @@
 #endif
 #include <future>
 #include "network.h"
+#include "stringutils.h"
 
 using namespace std;
 
@@ -74,20 +75,18 @@ void Network::serve_(uint16_t port)
 
 Network::ConnectionTag Network::connect(const string &host, uint16_t port)
 {
-	addrinfo hints;
-	addrinfo *ai;
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = 0;
-	hints.ai_flags = 0;
+	addrinfo hints = { 0, AF_INET, SOCK_STREAM, 0, 0, 0, 0, 0 };
+	addrinfo *ai = 0;
 	int err = getaddrinfo(host.c_str(), 0, &hints, &ai);
-	if(err<0)
-		throw runtime_error("Network::connect (getaddrinfo)");
+	if(err!=0)
+		throw runtime_error(format("Network::connect (getaddrinfo, %s)", gai_strerror(err)));
+	if(!ai)
+		throw runtime_error("Network::connect (unexpected null address)");
 
 	if(ai->ai_addr->sa_family!=AF_INET)
 	{
 		freeaddrinfo(ai);
-		throw runtime_error("Network::connect");
+		throw runtime_error("Network::connect (address family mismatch)");
 	}
 
 	sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(ai->ai_addr);
