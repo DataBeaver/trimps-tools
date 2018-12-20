@@ -503,25 +503,25 @@ void Spire::report(const Layout &layout, const string &message)
 
 bool Spire::print(const Layout &layout, unsigned &count)
 {
-	unsigned slots = layout.data.size();
+	unsigned cells = layout.data.size();
 	string descr;
 	if(numeric_format)
 	{
-		descr.reserve(slots+8);
-		for(unsigned i=0; i<slots; ++i)
+		descr.reserve(cells+8);
+		for(unsigned i=0; i<cells; ++i)
 			for(unsigned j=0; Layout::traps[j]; ++j)
 				if(layout.data[i]==Layout::traps[j])
 					descr += '0'+j;
 		descr += '+';
 		descr += layout.upgrades.str();
 		descr += '+';
-		descr += stringify(slots/5);
+		descr += stringify(cells/5);
 	}
 	else
 	{
-		descr.reserve(5+slots+slots/5-1);
+		descr.reserve(5+cells+cells/5-1);
 		descr += layout.upgrades.str();
-		for(unsigned i=0; i<slots; i+=5)
+		for(unsigned i=0; i<cells; i+=5)
 		{
 			descr += ' ';
 			descr.append(layout.data.substr(i, 5));
@@ -681,9 +681,9 @@ void Spire::Worker::main()
 				cross_layout = cross_pool->get_random_layout(random);
 				if(!do_cross)
 				{
-					unsigned slots = base_layout.data.size();
+					unsigned cells = base_layout.data.size();
 					base_layout.data = cross_layout.data;
-					base_layout.data.resize(slots, '_');
+					base_layout.data.resize(cells, '_');
 				}
 			}
 		}
@@ -698,9 +698,9 @@ void Spire::Worker::main()
 			if(do_cross)
 				mutated.cross_from(cross_layout, random);
 
-			unsigned slots = mutated.data.size();
-			unsigned mut_count = 1+random()%slots;
-			mut_count = max((mut_count*mut_count)/slots, 1U);
+			unsigned cells = mutated.data.size();
+			unsigned mut_count = 1+random()%cells;
+			mut_count = max((mut_count*mut_count)/cells, 1U);
 			mutated.mutate(random()%3, mut_count, random);
 			if(!mutated.is_valid())
 				continue;

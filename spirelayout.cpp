@@ -149,15 +149,15 @@ uint64_t Layout::update_damage()
 
 uint64_t Layout::simulate(uint64_t max_hp, bool debug) const
 {
-	unsigned slots = data.size();
+	unsigned cells = data.size();
 
 	uint8_t column_flags[5] = { };
-	for(unsigned i=0; i<slots; ++i)
+	for(unsigned i=0; i<cells; ++i)
 		if(data[i]=='L')
 			++column_flags[i%5];
 
-	vector<uint16_t> floor_flags(slots/5, 0);
-	for(unsigned i=0; i<slots; ++i)
+	vector<uint16_t> floor_flags(cells/5, 0);
+	for(unsigned i=0; i<cells; ++i)
 	{
 		unsigned j = i/5;
 		char t = data[i];
@@ -181,7 +181,7 @@ uint64_t Layout::simulate(uint64_t max_hp, bool debug) const
 	uint64_t sim_damage = 0;
 	uint64_t last_fire = 0;
 	unsigned step = 0;
-	for(unsigned i=0; i<slots; )
+	for(unsigned i=0; i<cells; )
 	{
 		char t = data[i];
 		bool antifreeze = false;
@@ -207,13 +207,13 @@ uint64_t Layout::simulate(uint64_t max_hp, bool debug) const
 		else if(t=='P')
 		{
 			unsigned p = effects.poison_damage*damage_multi;
-			if(upgrades.frost>=4 && i+1<slots && data[i+1]=='Z')
+			if(upgrades.frost>=4 && i+1<cells && data[i+1]=='Z')
 				p *= 4;
 			if(upgrades.poison>=3)
 			{
 				if(i>0 && data[i-1]=='P')
 					p *= 3;
-				if(i+1<slots && data[i+1]=='P')
+				if(i+1<cells && data[i+1]=='P')
 					p *= 3;
 			}
 			if(upgrades.poison>=5 && max_hp && sim_damage*4>=max_hp)
@@ -376,20 +376,20 @@ uint64_t Layout::update_cost()
 
 void Layout::cross_from(const Layout &other, Random &random)
 {
-	unsigned slots = min(data.size(), other.data.size());
-	for(unsigned i=0; i<slots; ++i)
+	unsigned cells = min(data.size(), other.data.size());
+	for(unsigned i=0; i<cells; ++i)
 		if(random()&1)
 			data[i] = other.data[i];
 }
 
 void Layout::mutate(unsigned mode, unsigned count, Random &random)
 {
-	unsigned slots = data.size();
-	unsigned locality = (slots>=10 ? random()%(slots*2/15) : 0);
+	unsigned cells = data.size();
+	unsigned locality = (cells>=10 ? random()%(cells*2/15) : 0);
 	unsigned base = 0;
 	if(locality)
 	{
-		slots -= locality*5;
+		cells -= locality*5;
 		base = (random()%locality)*5;
 	}
 
@@ -408,11 +408,11 @@ void Layout::mutate(unsigned mode, unsigned count, Random &random)
 		char trap = traps[t];
 
 		if(op==0)  // replace
-			data[base+random()%slots] = trap;
+			data[base+random()%cells] = trap;
 		else if(op==1 || op==2 || op==5)  // swap, rotate, insert
 		{
-			unsigned pos = base+random()%slots;
-			unsigned end = base+random()%(slots-1);
+			unsigned pos = base+random()%cells;
+			unsigned end = base+random()%(cells-1);
 			while(end==pos)
 				++end;
 
@@ -430,9 +430,9 @@ void Layout::mutate(unsigned mode, unsigned count, Random &random)
 				data[pos] = trap;
 			}
 		}
-		else if(slots>=10)  // floor operations
+		else if(cells>=10)  // floor operations
 		{
-			unsigned floors = slots/5;
+			unsigned floors = cells/5;
 			unsigned pos = random()%floors;
 			unsigned end = random()%(floors-1);
 			while(end==pos)
@@ -474,9 +474,9 @@ void Layout::mutate(unsigned mode, unsigned count, Random &random)
 
 bool Layout::is_valid() const
 {
-	unsigned slots = data.size();
+	unsigned cells = data.size();
 	bool have_strength = false;
-	for(unsigned i=0; i<slots; ++i)
+	for(unsigned i=0; i<cells; ++i)
 	{
 		if(i%5==0)
 			have_strength = false;
