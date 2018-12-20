@@ -266,8 +266,12 @@ Spire::Spire(int argc, char **argv):
 		{
 			if(c>='0' && c<='7')
 				clean_data += Layout::traps[c-'0'];
-			else if(c!=' ')
-				clean_data += c;
+			else
+			{
+				unsigned i;
+				for(i=7; (i>0 && Layout::traps[i]!=c); --i) ;
+				clean_data += Layout::traps[i];
+			}
 		}
 		start_layout.data = clean_data;
 
