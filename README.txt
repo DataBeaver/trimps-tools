@@ -24,6 +24,11 @@ of the more important options are:
   Output layouts in numeric format compatible with swaq's TD calculator
   (http://swaqvalley.com/td_calc/)
 
+--online
+  Use the online layout database.  On startup the database is queried for the
+  best known layout.  As better layouts are found they are submitted to the
+  database.
+
 You can also specify a starting layout on the command line.  Budget, floors
 and upgrades are deduced from the layout if not explicitly specified.
 
