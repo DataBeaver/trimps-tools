@@ -232,16 +232,14 @@ Spire::Spire(int argc, char **argv):
 
 	if(!upgrades.empty())
 	{
-		bool valid = (upgrades.size()==4);
-		for(auto i=upgrades.begin(); (valid && i!=upgrades.end()); ++i)
-			valid = isdigit(*i);
-		if(!valid)
+		try
+		{
+			start_layout.upgrades = upgrades;
+		}
+		catch(const exception &)
+		{
 			throw usage_error("Upgrades string must consist of four numbers");
-
-		start_layout.upgrades.fire = upgrades[0]-'0';
-		start_layout.upgrades.frost = upgrades[1]-'0';
-		start_layout.upgrades.poison = upgrades[2]-'0';
-		start_layout.upgrades.lightning = upgrades[3]-'0';
+		}
 	}
 
 	if(start_layout.upgrades.fire>8)
@@ -436,7 +434,6 @@ bool Spire::print(const Layout &layout, unsigned &count)
 {
 	unsigned slots = layout.data.size();
 	string descr;
-	unsigned upgrades_pos = 0;
 	if(numeric_format)
 	{
 		descr.reserve(slots+8);
@@ -444,25 +441,21 @@ bool Spire::print(const Layout &layout, unsigned &count)
 			for(unsigned j=0; Layout::traps[j]; ++j)
 				if(layout.data[i]==Layout::traps[j])
 					descr += '0'+j;
-		descr += "+0000+";
+		descr += '+';
+		descr += layout.upgrades.str();
+		descr += '+';
 		descr += stringify(slots/5);
-		upgrades_pos = slots+1;
 	}
 	else
 	{
 		descr.reserve(5+slots+slots/5-1);
-		descr += "0000";
+		descr += layout.upgrades.str();
 		for(unsigned i=0; i<slots; i+=5)
 		{
 			descr += ' ';
 			descr.append(layout.data.substr(i, 5));
 		}
 	}
-
-	descr[upgrades_pos] = '0'+layout.upgrades.fire;
-	descr[upgrades_pos+1] = '0'+layout.upgrades.frost;
-	descr[upgrades_pos+2] = '0'+layout.upgrades.poison;
-	descr[upgrades_pos+3] = '0'+layout.upgrades.lightning;
 
 	if(show_pools)
 		cout << "\033[K" << descr << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.cycle << endl;

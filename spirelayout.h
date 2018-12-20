@@ -12,6 +12,9 @@ struct TrapUpgrades
 	uint16_t lightning;
 
 	TrapUpgrades();
+	TrapUpgrades(const std::string &);
+
+	std::string str() const;
 };
 
 struct TrapEffects

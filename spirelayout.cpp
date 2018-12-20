@@ -1,3 +1,4 @@
+#include <cctype>
 #include <iostream>
 #include <iomanip>
 #include "spirelayout.h"
@@ -10,6 +11,30 @@ TrapUpgrades::TrapUpgrades():
 	poison(1),
 	lightning(1)
 { }
+
+TrapUpgrades::TrapUpgrades(const string &upgrades)
+{
+	if(upgrades.size()!=4)
+		throw invalid_argument("TrapUpgrades::TrapUpgrades");
+	for(auto c: upgrades)
+		if(!isdigit(c))
+			throw invalid_argument("TrapUpgrades::TrapUpgrades");
+
+	fire = upgrades[0]-'0';
+	frost = upgrades[1]-'0';
+	poison = upgrades[2]-'0';
+	lightning = upgrades[3]-'0';
+}
+
+string TrapUpgrades::str() const
+{
+	char buf[4];
+	buf[0] = '0'+fire;
+	buf[1] = '0'+frost;
+	buf[2] = '0'+poison;
+	buf[3] = '0'+lightning;
+	return string(buf, 4);
+}
 
 
 TrapEffects::TrapEffects(const TrapUpgrades &upgrades):
