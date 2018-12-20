@@ -411,7 +411,7 @@ int Spire::main()
 				w->join();
 		}
 
-		unsigned best_damage = best_layout.damage;
+		uint64_t best_damage = best_layout.damage;
 		for(auto *p: pools)
 		{
 			if(p->get_highest_damage()>best_layout.damage)
@@ -586,7 +586,7 @@ Layout Pool::get_random_layout(Layout::Random &random) const
 {
 	lock_guard<std::mutex> lock(mutex);
 
-	unsigned total = 0;
+	uint64_t total = 0;
 	for(const auto &l: layouts)
 		total += l.damage;
 
@@ -597,7 +597,7 @@ Layout Pool::get_random_layout(Layout::Random &random) const
 		return *i;
 	}
 
-	unsigned p = random()%total;
+	uint64_t p = ((static_cast<uint64_t>(random())<<32)+random())%total;
 	for(const auto &l: layouts)
 	{
 		if(p<l.damage)
