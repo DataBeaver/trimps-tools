@@ -385,7 +385,6 @@ int Spire::main()
 	if(best_layout.damage && !show_pools)
 		report(best_layout, "Initial layout");
 
-	unsigned n_print = 100/n_pools-1;
 	while(!intr_flag)
 	{
 		this_thread::sleep_for(chrono::milliseconds(500));
@@ -398,9 +397,27 @@ int Spire::main()
 				w->join();
 		}
 
+		unsigned best_damage = best_layout.damage;
+		for(auto *p: pools)
+		{
+			if(p->get_highest_damage()>best_layout.damage)
+				best_layout = p->get_best_layout();
+			if(heterogeneous)
+				break;
+		}
+
+		if(best_layout.damage>best_damage)
+		{
+			if(!show_pools)
+				report(best_layout, "New best layout found");
+			if(network)
+				network->send_message(connection, format("submit %s %s", best_layout.upgrades.str(), best_layout.data));
+		}
+
 		if(show_pools)
 		{
 			cout << "\033[1;1H";
+			unsigned n_print = 100/n_pools-1;
 			for(unsigned i=0; i<n_pools; ++i)
 			{
 				unsigned count = n_print;
@@ -412,30 +429,9 @@ int Spire::main()
 				}
 			}
 		}
-		else
-		{
-			unsigned best_damage = best_layout.damage;
-			for(auto *p: pools)
-			{
-				if(p->get_highest_damage()>best_layout.damage)
-					best_layout = p->get_best_layout();
-				if(heterogeneous)
-					break;
-			}
-
-			if(best_layout.damage>best_damage)
-			{
-				report(best_layout, "New best layout found");
-				if(network)
-					network->send_message(connection, format("submit %s %s", best_layout.upgrades.str(), best_layout.data));
-			}
-		}
 
 		if(next_prune && cycle>=next_prune)
-		{
 			prune_pools();
-			n_print = 100/n_pools-1;
-		}
 	}
 
 	for(auto w: workers)
