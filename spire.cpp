@@ -356,26 +356,39 @@ int Spire::main()
 	}
 
 	Layout best_layout = pools.front()->get_best_layout();
+	if(best_layout.damage && !show_pools)
+		report(best_layout, "Initial layout");
 
 	if(network)
 	{
-		if(best_layout.damage)
-			network->send_message(connection, format("submit %s %s", best_layout.upgrades.str(), best_layout.data));
-		else
+		bool submit = true;
+
+		cout << "Querying online build database for best known layout" << endl;
+		unsigned floors = best_layout.data.size()/5;
+		string reply = network->communicate(connection, format("query %s %s %s", best_layout.upgrades.str(), floors, budget));
+		vector<string> parts = split(reply);
+		if(parts[0]=="ok")
 		{
-			cout << "Querying online build database for best known layout" << endl;
-			unsigned floors  = best_layout.data.size()/5;
-			string reply = network->communicate(connection, format("query %s %s %s", best_layout.upgrades.str(), floors, budget));
-			vector<string> parts = split(reply);
-			if(parts[0]=="ok")
+			Layout layout;
+			layout.upgrades = best_layout.upgrades;
+			layout.data = parts[2];
+			layout.data.resize(floors*5, '_');
+			layout.update_cost();
+			layout.update_damage();
+
+			if(layout.damage>best_layout.damage)
 			{
-				best_layout.data = parts[2];
-				best_layout.data.resize(floors*5, '_');
-				best_layout.update_cost();
-				best_layout.update_damage();
+				best_layout = layout;
+				pools.front()->add_layout(best_layout);
+				if(!show_pools)
+					report(best_layout, "Layout from database");
 			}
-			pools.front()->add_layout(best_layout);
+
+			submit = (best_layout.damage>=layout.damage);
 		}
+
+		if(submit)
+			network->send_message(connection, format("submit %s %s", best_layout.upgrades.str(), best_layout.data));
 	}
 
 	signal(SIGINT, sighandler);
@@ -386,9 +399,6 @@ int Spire::main()
 
 	if(show_pools)
 		cout << "\033[1;1H\033[2J";
-
-	if(best_layout.damage && !show_pools)
-		report(best_layout, "Initial layout");
 
 	while(!intr_flag)
 	{
