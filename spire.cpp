@@ -300,7 +300,7 @@ Spire::Spire(int argc, char **argv):
 				--empty.upgrades.poison;
 			else if(downgrade[j]==4 && empty.upgrades.lightning>1)
 				--empty.upgrades.lightning;
-			else if(downgrade[j]==5)
+			else if(downgrade[j]==5 && reduce+1<floors)
 				++reduce;
 		}
 

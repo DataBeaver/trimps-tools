@@ -430,7 +430,7 @@ void Layout::mutate(unsigned mode, unsigned count, Random &random)
 				data[pos] = trap;
 			}
 		}
-		else  // floor operations
+		else if(slots>=10)  // floor operations
 		{
 			unsigned floors = slots/5;
 			unsigned pos = random()%floors;
