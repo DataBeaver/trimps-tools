@@ -132,35 +132,6 @@ Layout::Layout():
 	cycle(0)
 { }
 
-uint64_t Layout::update_damage()
-{
-	vector<Step> steps;
-	build_steps(steps);
-
-	damage = simulate(steps, 0);
-	if(upgrades.poison>=5)
-	{
-		uint64_t low = damage;
-		uint64_t high = simulate(steps, low);
-		for(unsigned i=0; (i<10 && low*101<high*100); ++i)
-		{
-			uint64_t mid = (low+high*3)/4;
-			damage = simulate(steps, mid);
-			if(damage>=mid)
-				low = mid;
-			else
-			{
-				high = mid;
-				low = damage;
-			}
-		}
-
-		damage = low;
-	}
-
-	return damage;
-}
-
 void Layout::build_steps(vector<Step> &steps) const
 {
 	unsigned cells = data.size();
@@ -334,7 +305,46 @@ uint64_t Layout::simulate(const vector<Step> &steps, uint64_t max_hp, bool debug
 	return (kill_damage>=max_hp ? kill_damage : sim_damage);
 }
 
-uint64_t Layout::update_cost()
+void Layout::update()
+{
+	vector<Step> steps;
+	build_steps(steps);
+	update_damage(steps);
+	update_cost();
+}
+
+void Layout::update_damage()
+{
+	vector<Step> steps;
+	build_steps(steps);
+	update_damage(steps);
+}
+
+void Layout::update_damage(const vector<Step> &steps)
+{
+	damage = simulate(steps, 0);
+	if(upgrades.poison>=5)
+	{
+		uint64_t low = damage;
+		uint64_t high = simulate(steps, low);
+		for(unsigned i=0; (i<10 && low*101<high*100); ++i)
+		{
+			uint64_t mid = (low+high*3)/4;
+			damage = simulate(steps, mid);
+			if(damage>=mid)
+				low = mid;
+			else
+			{
+				high = mid;
+				low = damage;
+			}
+		}
+
+		damage = low;
+	}
+}
+
+void Layout::update_cost()
 {
 	uint64_t fire_cost = 100;
 	uint64_t frost_cost = 100;
@@ -389,8 +399,6 @@ uint64_t Layout::update_cost()
 			break;
 		}
 	}
-
-	return cost;
 }
 
 void Layout::cross_from(const Layout &other, Random &random)

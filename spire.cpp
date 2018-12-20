@@ -279,8 +279,7 @@ Spire::Spire(int argc, char **argv):
 			floors = max<unsigned>((start_layout.data.size()+4)/5, 1U);
 
 		start_layout.data.resize(floors*5, '_');
-		start_layout.update_damage();
-		start_layout.update_cost();
+		start_layout.update();
 		pools.front()->add_layout(start_layout);
 
 		if(!budget_seen)
@@ -375,8 +374,7 @@ int Spire::main()
 			layout.upgrades = best_layout.upgrades;
 			layout.data = parts[2];
 			layout.data.resize(floors*5, '_');
-			layout.update_cost();
-			layout.update_damage();
+			layout.update();
 
 			submit = (best_layout.damage>=layout.damage || best_layout.cost<=layout.cost);
 			if(layout.damage>best_layout.damage)

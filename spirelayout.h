@@ -60,10 +60,12 @@ struct Layout
 
 	Layout();
 
-	std::uint64_t update_damage();
 	void build_steps(std::vector<Step> &) const;
 	std::uint64_t simulate(const std::vector<Step> &, std::uint64_t, bool = false) const;
-	std::uint64_t update_cost();
+	void update();
+	void update_damage();
+	void update_damage(const std::vector<Step> &);
+	void update_cost();
 	void cross_from(const Layout &, Random &);
 	void mutate(unsigned, unsigned, Random &);
 	bool is_valid() const;
