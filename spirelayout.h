@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <random>
+#include <vector>
 
 struct TrapUpgrades
 {
@@ -31,6 +32,20 @@ struct TrapEffects
 	TrapEffects(const TrapUpgrades &);
 };
 
+struct Step
+{
+	std::uint16_t cell;
+	char trap;
+	std::uint8_t slow;
+	bool shock;
+	std::uint8_t kill_pct;
+	std::uint8_t toxic_pct;
+	std::uint64_t direct_damage;
+	std::uint64_t toxicity;
+
+	Step();
+};
+
 struct Layout
 {
 	typedef std::minstd_rand Random;
@@ -46,7 +61,8 @@ struct Layout
 	Layout();
 
 	std::uint64_t update_damage();
-	std::uint64_t simulate(uint64_t, bool = false) const;
+	void build_steps(std::vector<Step> &) const;
+	std::uint64_t simulate(const std::vector<Step> &, std::uint64_t, bool = false) const;
 	std::uint64_t update_cost();
 	void cross_from(const Layout &, Random &);
 	void mutate(unsigned, unsigned, Random &);

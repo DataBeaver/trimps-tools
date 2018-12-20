@@ -113,6 +113,17 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades):
 }
 
 
+Step::Step():
+	trap(0),
+	slow(0),
+	shock(false),
+	kill_pct(0),
+	toxic_pct(0),
+	direct_damage(0),
+	toxicity(0)
+{ }
+
+
 const char Layout::traps[] = "_FZPLSCK";
 
 Layout::Layout():
@@ -123,15 +134,18 @@ Layout::Layout():
 
 uint64_t Layout::update_damage()
 {
-	damage = simulate(0);
+	vector<Step> steps;
+	build_steps(steps);
+
+	damage = simulate(steps, 0);
 	if(upgrades.poison>=5)
 	{
 		uint64_t low = damage;
-		uint64_t high = simulate(low);
+		uint64_t high = simulate(steps, low);
 		for(unsigned i=0; (i<10 && low*101<high*100); ++i)
 		{
 			uint64_t mid = (low+high*3)/4;
-			damage = simulate(mid);
+			damage = simulate(steps, mid);
 			if(damage>mid)
 				low = mid;
 			else
@@ -147,9 +161,11 @@ uint64_t Layout::update_damage()
 	return damage;
 }
 
-uint64_t Layout::simulate(uint64_t max_hp, bool debug) const
+void Layout::build_steps(vector<Step> &steps) const
 {
 	unsigned cells = data.size();
+	steps.clear();
+	steps.reserve(cells*3);
 
 	uint8_t column_flags[5] = { };
 	for(unsigned i=0; i<cells; ++i)
@@ -169,62 +185,56 @@ uint64_t Layout::simulate(uint64_t max_hp, bool debug) const
 
 	TrapEffects effects(upgrades);
 
-	if(debug)
-		cout << "Enemy HP: " << max_hp << endl;
-
 	unsigned chilled = 0;
 	unsigned frozen = 0;
 	unsigned shocked = 0;
 	unsigned damage_multi = 1;
 	unsigned special_multi = 1;
-	uint64_t poison = 0;
-	uint64_t sim_damage = 0;
-	uint64_t last_fire = 0;
-	unsigned step = 0;
+	unsigned repeat = 1;
 	for(unsigned i=0; i<cells; )
 	{
 		char t = data[i];
-		bool antifreeze = false;
+		Step step;
+		step.cell = i;
+		step.trap = t;
+
 		if(t=='Z')
 		{
-			sim_damage += effects.frost_damage*damage_multi;
+			step.direct_damage = effects.frost_damage*damage_multi;
 			chilled = effects.chill_dur*special_multi+1;
 			frozen = 0;
-			antifreeze = true;
+			repeat = 1;
 		}
 		else if(t=='F')
 		{
-			unsigned d = effects.fire_damage*damage_multi;
+			step.direct_damage = effects.fire_damage*damage_multi;
 			if(floor_flags[i/5]&0x08)
-				d *= 2;
+				step.direct_damage *= 2;
 			if(chilled && upgrades.frost>=3)
-				d = d*5/4;
+				step.direct_damage = step.direct_damage*5/4;
 			if(upgrades.lightning>=4)
-				d = d*(10+column_flags[i%5])/10;
-			sim_damage += d;
-			last_fire = sim_damage;
+				step.direct_damage = step.direct_damage*(10+column_flags[i%5])/10;
+			if(upgrades.fire>=4)
+				step.kill_pct = 20;
 		}
 		else if(t=='P')
 		{
-			unsigned p = effects.poison_damage*damage_multi;
+			step.toxicity = effects.poison_damage*damage_multi;
 			if(upgrades.frost>=4 && i+1<cells && data[i+1]=='Z')
-				p *= 4;
+				step.toxicity *= 4;
 			if(upgrades.poison>=3)
 			{
 				if(i>0 && data[i-1]=='P')
-					p *= 3;
+					step.toxicity *= 3;
 				if(i+1<cells && data[i+1]=='P')
-					p *= 3;
+					step.toxicity *= 3;
 			}
-			if(upgrades.poison>=5 && max_hp && sim_damage*4>=max_hp)
-				p *= 5;
 			if(upgrades.lightning>=4)
-				p = p*(10+column_flags[i%5])/10;
-			poison += p;
+				step.toxicity = step.toxicity*(10+column_flags[i%5])/10;
 		}
 		else if(t=='L')
 		{
-			sim_damage += effects.lightning_damage*damage_multi;
+			step.direct_damage = effects.lightning_damage*damage_multi;
 			shocked = effects.shock_dur+1;
 			damage_multi = effects.damage_multi;
 			special_multi = effects.special_multi;
@@ -232,13 +242,12 @@ uint64_t Layout::simulate(uint64_t max_hp, bool debug) const
 		else if(t=='S')
 		{
 			uint16_t flags = floor_flags[i/5];
-			uint64_t d = effects.fire_damage*(flags&0x07);
+			step.direct_damage = effects.fire_damage*(flags&0x07);
 			if(upgrades.lightning>=4)
-				d += effects.fire_damage*(flags>>4)/10;
-			d *= 2*damage_multi;
+				step.direct_damage += effects.fire_damage*(flags>>4)/10;
+			step.direct_damage *= 2*damage_multi;
 			if(chilled && upgrades.frost>=3)
-				d = d*5/4;
-			sim_damage += d;
+				step.direct_damage = step.direct_damage*5/4;
 		}
 		else if(t=='K')
 		{
@@ -247,16 +256,60 @@ uint64_t Layout::simulate(uint64_t max_hp, bool debug) const
 				chilled = 0;
 				frozen = 5*special_multi+1;
 			}
-			antifreeze = true;
+			repeat = 1;
 		}
 		else if(t=='C')
-			poison = poison*(4+special_multi)/4;
+			step.toxic_pct = 25*special_multi;
 
-		sim_damage += poison;
+		step.slow = (frozen ? 2 : chilled ? 1 : 0);
+		step.shock = (shocked!=0);
+		steps.push_back(step);
+
+		if(shocked && !--shocked)
+		{
+			damage_multi = 1;
+			special_multi = 1;
+		}
+
+		if(repeat && --repeat)
+			continue;
+
+		++i;
+		if(chilled)
+			--chilled;
+		if(frozen)
+			--frozen;
+		repeat = (frozen ? 3 : chilled ? 2 : 1);
+	}
+}
+
+uint64_t Layout::simulate(const vector<Step> &steps, uint64_t max_hp, bool debug) const
+{
+	if(debug && max_hp)
+		cout << "Enemy HP: " << max_hp << endl;
+
+	unsigned last_cell = 0;
+	unsigned repeat = 0;
+	uint64_t sim_damage = 0;
+	uint64_t kill_damage = 0;
+	uint64_t toxicity = 0;
+	for(const auto &s: steps)
+	{
+		sim_damage += s.direct_damage;
+		kill_damage = max(kill_damage, sim_damage*100/(100-s.kill_pct));
+		if(upgrades.poison>=5 && max_hp && sim_damage*4>=max_hp)
+			toxicity += s.toxicity*5;
+		else
+			toxicity += s.toxicity;
+		toxicity = toxicity*(100+s.toxic_pct)/100;
+		sim_damage += toxicity;
 
 		if(debug)
 		{
-			cout << setw(2) << i << ':' << step << ": " << t << ' ' << setw(9) << sim_damage;
+			repeat = (s.cell==last_cell ? repeat+1 : 0);
+			last_cell = s.cell;
+
+			cout << setw(2) << s.cell << ':' << repeat << ": " << s.trap << ' ' << setw(9) << sim_damage;
 			if(max_hp && upgrades.poison>=5)
 			{
 				if(sim_damage>max_hp)
@@ -266,53 +319,18 @@ uint64_t Layout::simulate(uint64_t max_hp, bool debug) const
 				else
 					cout << " **%";
 			}
-			if(poison)
-				cout << " P" << setw(6) << poison;
+			if(toxicity)
+				cout << " P" << setw(6) << toxicity;
 			else
 				cout << "        ";
-			if(frozen)
-				cout << " F" << setw(2) << frozen;
-			else if(chilled)
-				cout << " C" << setw(2) << chilled;
-			else
-				cout << "    ";
-			if(shocked)
-				cout << " S" << shocked;
-			cout << endl;
+			cout << ' ' << (s.slow==1 ? 'C' : ' ') << (s.slow==2 ? 'F' : ' ') << (s.shock ? 'S' : ' ') << endl;
 		}
-
-		++step;
-		if(shocked)
-		{
-			if(!--shocked)
-			{
-				damage_multi = 1;
-				special_multi = 1;
-			}
-		}
-		if(!antifreeze)
-		{
-			if(chilled && step<2)
-				continue;
-			if(frozen && step<3)
-				continue;
-		}
-
-		if(chilled)
-			--chilled;
-		if(frozen)
-			--frozen;
-		step = 0;
-		++i;
 	}
 
-	if(upgrades.fire>=4)
-		sim_damage = max(sim_damage, last_fire*5/4);
-
 	if(debug)
-		cout << "Total damage: " << sim_damage << endl;
+		cout << "Kill damage: " << kill_damage << endl;
 
-	return sim_damage;
+	return kill_damage;
 }
 
 uint64_t Layout::update_cost()

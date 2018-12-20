@@ -351,7 +351,9 @@ int Spire::main()
 {
 	if(debug_layout)
 	{
-		start_layout.simulate(start_layout.damage, true);
+		vector<Step> steps;
+		start_layout.build_steps(steps);
+		start_layout.simulate(steps, start_layout.damage, true);
 		return 0;
 	}
 
