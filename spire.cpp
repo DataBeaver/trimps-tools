@@ -283,32 +283,40 @@ Spire::Spire(int argc, char **argv):
 			budget = start_layout.cost;
 	}
 
-	unsigned downgrade = 0;
+	uint8_t downgrade[4] = { };
 	for(unsigned i=0; i<pools.size(); ++i)
 	{
 		Layout empty;
 		empty.upgrades = start_layout.upgrades;
+
 		unsigned reduce = 0;
-		if(downgrade>0)
+		for(unsigned j=0; j<sizeof(downgrade); ++j)
 		{
-			for(unsigned dg=downgrade; dg; dg/=4)
-			{
-				unsigned t = --dg%4;
-				if(t==0 && empty.upgrades.fire>1)
-					--empty.upgrades.fire;
-				if(t==1 && empty.upgrades.frost>1)
-					--empty.upgrades.frost;
-				if(t==2 && empty.upgrades.poison>1)
-					--empty.upgrades.poison;
-				if(t==3 && empty.upgrades.lightning>1)
-					--empty.upgrades.lightning;
+			if(downgrade[j]==1 && empty.upgrades.fire>1)
+				--empty.upgrades.fire;
+			else if(downgrade[j]==2 && empty.upgrades.frost>1)
+				--empty.upgrades.frost;
+			else if(downgrade[j]==3 && empty.upgrades.poison>1)
+				--empty.upgrades.poison;
+			else if(downgrade[j]==4 && empty.upgrades.lightning>1)
+				--empty.upgrades.lightning;
+			else if(downgrade[j]==5)
 				++reduce;
-			}
 		}
+
 		empty.data = string((floors-reduce)*5, '_');
 		pools[i]->add_layout(empty);
+
 		if(heterogeneous)
-			++downgrade;
+		{
+			++downgrade[0];
+			for(unsigned j=1; (j<sizeof(downgrade) && downgrade[j-1]>5); ++j)
+			{
+				++downgrade[j];
+				for(unsigned k=0; k<j; ++k)
+					downgrade[k] = downgrade[j];
+			}
+		}
 	}
 
 	if(online)
