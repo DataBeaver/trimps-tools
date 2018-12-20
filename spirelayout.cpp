@@ -146,7 +146,7 @@ uint64_t Layout::update_damage()
 		{
 			uint64_t mid = (low+high*3)/4;
 			damage = simulate(steps, mid);
-			if(damage>mid)
+			if(damage>=mid)
 				low = mid;
 			else
 			{
@@ -303,6 +303,7 @@ uint64_t Layout::simulate(const vector<Step> &steps, uint64_t max_hp, bool debug
 			toxicity += s.toxicity;
 		toxicity = toxicity*(100+s.toxic_pct)/100;
 		sim_damage += toxicity;
+		kill_damage = max(kill_damage, sim_damage);
 
 		if(debug)
 		{
@@ -330,7 +331,7 @@ uint64_t Layout::simulate(const vector<Step> &steps, uint64_t max_hp, bool debug
 	if(debug)
 		cout << "Kill damage: " << kill_damage << endl;
 
-	return kill_damage;
+	return (kill_damage>=max_hp ? kill_damage : sim_damage);
 }
 
 uint64_t Layout::update_cost()
