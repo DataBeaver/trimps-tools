@@ -389,6 +389,15 @@ int Spire::main()
 	while(!intr_flag)
 	{
 		this_thread::sleep_for(chrono::milliseconds(500));
+
+		if(intr_flag)
+		{
+			for(auto w: workers)
+				w->interrupt();
+			for(auto w: workers)
+				w->join();
+		}
+
 		if(show_pools)
 		{
 			cout << "\033[1;1H";
@@ -430,12 +439,7 @@ int Spire::main()
 	}
 
 	for(auto w: workers)
-		w->interrupt();
-	for(auto w: workers)
-	{
-		w->join();
 		delete w;
-	}
 
 	return 0;
 }
