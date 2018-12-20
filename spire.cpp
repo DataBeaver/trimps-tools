@@ -370,6 +370,7 @@ int Spire::main()
 				best_layout.update_cost();
 				best_layout.update_damage();
 			}
+			pools.front()->add_layout(best_layout);
 		}
 	}
 
