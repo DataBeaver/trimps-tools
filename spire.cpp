@@ -378,6 +378,7 @@ int Spire::main()
 			layout.update_cost();
 			layout.update_damage();
 
+			submit = (best_layout.damage>=layout.damage || best_layout.cost<=layout.cost);
 			if(layout.damage>best_layout.damage)
 			{
 				best_layout = layout;
@@ -385,8 +386,6 @@ int Spire::main()
 				if(!show_pools)
 					report(best_layout, "Layout from database");
 			}
-
-			submit = (best_layout.damage>=layout.damage);
 		}
 
 		if(submit)
