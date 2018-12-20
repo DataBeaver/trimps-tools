@@ -1,4 +1,5 @@
 #ifdef _WIN32
+#define _WIN32_WINNT _WIN32_WINNT_VISTA
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
@@ -262,9 +263,15 @@ void Network::Worker::accept_connection()
 	sockaddr_storage addr;
 	socklen_t addr_len = sizeof(addr);
 	int sock = accept(network.listen_sock, reinterpret_cast<sockaddr *>(&addr), &addr_len);
+
 	string host;
 	if(addr.ss_family==AF_INET)
-		host = inet_ntoa(reinterpret_cast<const sockaddr_in *>(&addr)->sin_addr);
+	{
+		char host_buf[INET6_ADDRSTRLEN];
+		const char *host_ptr = inet_ntop(AF_INET, &reinterpret_cast<sockaddr_in *>(&addr)->sin_addr, host_buf, sizeof(host_buf));
+		if(host_ptr)
+			host = host_ptr;
+	}
 	if(sock>=0)
 		network.add_connection(sock, host);
 }
