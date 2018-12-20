@@ -9,6 +9,7 @@
 #include <random>
 #include <thread>
 #include "getopt.h"
+#include "network.h"
 #include "spirelayout.h"
 
 class Pool 
@@ -68,6 +69,8 @@ private:
 	bool debug_layout;
 	bool numeric_format;
 	bool show_pools;
+	Network *network;
+	Network::ConnectionTag connection;
 	bool intr_flag;
 
 	std::uint64_t budget;
@@ -124,6 +127,8 @@ Spire::Spire(int argc, char **argv):
 	debug_layout(false),
 	numeric_format(false),
 	show_pools(false),
+	network(0),
+	connection(0),
 	intr_flag(false),
 	budget(1000000)
 {
@@ -139,6 +144,7 @@ Spire::Spire(int argc, char **argv):
 	unsigned budget_seen = 0;
 	string upgrades;
 	string preset;
+	bool online = false;
 
 	GetOpt getopt;
 	getopt.add_option('b', "budget", budget, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM").bind_seen_count(budget_seen);
@@ -149,6 +155,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("lightning", start_layout.upgrades.lightning, GetOpt::REQUIRED_ARG).set_help("Set lightning trap upgrade level", "LEVEL");
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
+	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online build database");
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
 	getopt.add_option('l', "loops", loops_per_cycle, GetOpt::REQUIRED_ARG).set_help("Number of loops per cycle", "NUM");
@@ -303,6 +310,23 @@ Spire::Spire(int argc, char **argv):
 		if(heterogeneous)
 			++downgrade;
 	}
+
+	if(online)
+	{
+		network = new Network;
+		try
+		{
+			connection = network->connect("spiredb.tdb.fi", 8676);
+		}
+		catch(const exception &e)
+		{
+			cout << "Can't connect to online build database:" << endl;
+			cout << e.what() << endl;
+			cout << "Continuing in offline mode" << endl;
+			delete network;
+			network = 0;
+		}
+	}
 }
 
 Spire::~Spire()
@@ -319,9 +343,29 @@ int Spire::main()
 		return 0;
 	}
 
-	signal(SIGINT, sighandler);
-
 	Layout best_layout = pools.front()->get_best_layout();
+
+	if(network)
+	{
+		if(best_layout.damage)
+			network->send_message(connection, format("submit %s %s", best_layout.upgrades.str(), best_layout.data));
+		else
+		{
+			cout << "Querying online build database for best known layout" << endl;
+			unsigned floors  = best_layout.data.size()/5;
+			string reply = network->communicate(connection, format("query %s %s %s", best_layout.upgrades.str(), floors, budget));
+			vector<string> parts = split(reply);
+			if(parts[0]=="ok")
+			{
+				best_layout.data = parts[2];
+				best_layout.data.resize(floors*5, '_');
+				best_layout.update_cost();
+				best_layout.update_damage();
+			}
+		}
+	}
+
+	signal(SIGINT, sighandler);
 
 	Layout::Random random;
 	for(unsigned i=0; i<n_workers; ++i)
@@ -363,7 +407,11 @@ int Spire::main()
 			}
 
 			if(best_layout.damage>best_damage)
+			{
 				report(best_layout, "New best layout found");
+				if(network)
+					network->send_message(connection, format("submit %s %s", best_layout.upgrades.str(), best_layout.data));
+			}
 		}
 
 		if(next_prune && cycle>=next_prune)

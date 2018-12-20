@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <vector>
 
 template<typename T>
 inline std::string stringify(const T &value)
@@ -39,6 +40,23 @@ inline std::string format(const std::string &fmt, const T &arg, Args... args)
 	while(marker_end<fmt.size() && !isalpha(fmt[marker_end]))
 		++marker_end;
 	return fmt.substr(0, marker)+stringify(arg)+format(fmt.substr(marker_end+1), args...);
+}
+
+inline std::vector<std::string> split(const std::string &str)
+{
+	std::vector<std::string> parts;
+	std::string::size_type start = 0;
+
+	while(start<str.size())
+	{
+		std::string::size_type space = str.find(' ', start+1);
+		parts.push_back(str.substr(start, space-start));
+		if(space==std::string::npos)
+			break;
+		start = space+1;
+	}
+
+	return parts;
 }
 
 #endif
