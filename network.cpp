@@ -53,7 +53,7 @@ void Network::serve_(uint16_t port)
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = 0;
 	addr.sin_port = ntohs(port);
-	int err = bind(sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
+	int err = ::bind(sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
 	if(err<0)
 	{
 		closesocket(sock);
