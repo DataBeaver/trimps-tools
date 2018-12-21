@@ -24,9 +24,9 @@ public:
 
 	void add_layout(const Layout &);
 	Layout get_best_layout() const;
+	bool get_best_layout(Layout &) const;
 	Layout get_random_layout(Layout::Random &) const;
 	std::uint64_t get_highest_damage() const;
-	std::uint64_t get_lowest_damage() const;
 
 	template<typename F>
 	void visit_layouts(const F &) const;
@@ -416,8 +416,7 @@ int Spire::main()
 		uint64_t best_damage = best_layout.damage;
 		for(auto *p: pools)
 		{
-			if(p->get_highest_damage()>best_layout.damage)
-				best_layout = p->get_best_layout();
+			p->get_best_layout(best_layout);
 			if(heterogeneous)
 				break;
 		}
@@ -584,6 +583,15 @@ Layout Pool::get_best_layout() const
 	return layouts.front();
 }
 
+bool Pool::get_best_layout(Layout &layout) const
+{
+	lock_guard<mutex> lock(layouts_mutex);
+	if(layout.damage>=score_func(layouts.front()))
+		return false;
+	layout = layouts.front();
+	return true;
+}
+
 Layout Pool::get_random_layout(Layout::Random &random) const
 {
 	lock_guard<mutex> lock(layouts_mutex);
@@ -614,12 +622,6 @@ uint64_t Pool::get_highest_damage() const
 {
 	lock_guard<mutex> lock(layouts_mutex);
 	return layouts.front().damage;
-}
-
-uint64_t Pool::get_lowest_damage() const
-{
-	lock_guard<mutex> lock(layouts_mutex);
-	return layouts.back().damage;
 }
 
 template<typename F>
@@ -691,7 +693,6 @@ void Spire::Worker::main()
 		else
 			pools_lock.unlock();
 
-		uint64_t lowest_damage = pool.get_lowest_damage();
 		for(unsigned i=0; i<spire.loops_per_cycle; ++i)
 		{
 			Layout mutated = base_layout;
@@ -713,8 +714,7 @@ void Spire::Worker::main()
 			vector<Step> steps;
 			mutated.build_steps(steps);
 			mutated.update_damage(steps);
-			if(mutated.damage>=lowest_damage)
-				pool.add_layout(mutated);
+			pool.add_layout(mutated);
 		}
 	}
 }
