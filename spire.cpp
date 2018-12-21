@@ -17,7 +17,7 @@ class Pool
 private:
 	unsigned max_size;
 	std::list<Layout> layouts;
-	mutable std::mutex mutex;
+	mutable std::mutex layouts_mutex;
 
 public:
 	Pool(unsigned);
@@ -549,7 +549,7 @@ Pool::Pool(unsigned s):
 
 void Pool::add_layout(const Layout &layout)
 {
-	lock_guard<std::mutex> lock(mutex);
+	lock_guard<mutex> lock(layouts_mutex);
 
 	if(layouts.size()>=max_size && layout.damage<layouts.back().damage)
 		return;
@@ -580,13 +580,13 @@ void Pool::add_layout(const Layout &layout)
 
 Layout Pool::get_best_layout() const
 {
-	lock_guard<std::mutex> lock(mutex);
+	lock_guard<mutex> lock(layouts_mutex);
 	return layouts.front();
 }
 
 Layout Pool::get_random_layout(Layout::Random &random) const
 {
-	lock_guard<std::mutex> lock(mutex);
+	lock_guard<mutex> lock(layouts_mutex);
 
 	uint64_t total = 0;
 	for(const auto &l: layouts)
@@ -612,20 +612,20 @@ Layout Pool::get_random_layout(Layout::Random &random) const
 
 uint64_t Pool::get_highest_damage() const
 {
-	lock_guard<std::mutex> lock(mutex);
+	lock_guard<mutex> lock(layouts_mutex);
 	return layouts.front().damage;
 }
 
 uint64_t Pool::get_lowest_damage() const
 {
-	lock_guard<std::mutex> lock(mutex);
+	lock_guard<mutex> lock(layouts_mutex);
 	return layouts.back().damage;
 }
 
 template<typename F>
 void Pool::visit_layouts(const F &func) const
 {
-	lock_guard<std::mutex> lock(mutex);
+	lock_guard<mutex> lock(layouts_mutex);
 	for(const auto &layout: layouts)
 		if(!func(layout))
 			return;
