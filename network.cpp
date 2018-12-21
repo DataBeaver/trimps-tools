@@ -218,7 +218,7 @@ void Network::Worker::main()
 		int res = select(max_fd+1, &fds, 0, 0, 0);
 		if(res>0)
 		{
-			if(FD_ISSET(network.listen_sock, &fds))
+			if(network.listen_sock>=0 && FD_ISSET(network.listen_sock, &fds))
 				accept_connection();
 
 			lock_guard<mutex> lock(network.connections_mutex);
