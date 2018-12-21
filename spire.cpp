@@ -416,6 +416,8 @@ int Spire::main()
 	if(show_pools)
 		cout << "\033[1;1H\033[2J";
 
+	chrono::steady_clock::time_point period_start_time = chrono::steady_clock::now();
+	unsigned period_start_cycle = cycle;
 	while(!intr_flag)
 	{
 		this_thread::sleep_for(chrono::milliseconds(500));
@@ -447,6 +449,12 @@ int Spire::main()
 
 		if(show_pools)
 		{
+			chrono::steady_clock::time_point period_end_time = chrono::steady_clock::now();
+			unsigned period_end_cycle = cycle;
+			unsigned loops_per_sec = loops_per_cycle*(period_end_cycle-period_start_cycle)/chrono::duration<float>(period_end_time-period_start_time).count();
+			period_start_time = period_end_time;
+			period_start_cycle = period_end_cycle;
+
 			cout << "\033[1;1H";
 			unsigned n_print = 100/n_pools-1;
 			for(unsigned i=0; i<n_pools; ++i)
@@ -459,6 +467,8 @@ int Spire::main()
 						cout << "\033[K" << endl;
 				}
 			}
+
+			cout << "\033[K" << loops_per_sec << " loops/sec" << endl;
 		}
 
 		if(next_prune && cycle>=next_prune)
