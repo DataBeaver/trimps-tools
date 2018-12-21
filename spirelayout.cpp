@@ -119,6 +119,7 @@ Step::Step():
 	shock(false),
 	kill_pct(0),
 	toxic_pct(0),
+	rs_bonus(0),
 	direct_damage(0),
 	toxicity(0)
 { }
@@ -129,6 +130,8 @@ const char Layout::traps[] = "_FZPLSCK";
 Layout::Layout():
 	damage(0),
 	cost(0),
+	rs_per_sec(0),
+	threat(0),
 	cycle(0)
 { }
 
@@ -234,6 +237,8 @@ void Layout::build_steps(vector<Step> &steps) const
 
 		step.slow = (frozen ? 2 : chilled ? 1 : 0);
 		step.shock = (shocked!=0);
+		if(repeat>1 && upgrades.frost>=5)
+			step.rs_bonus = 2;
 		steps.push_back(step);
 
 		if(shocked && !--shocked)
@@ -254,40 +259,56 @@ void Layout::build_steps(vector<Step> &steps) const
 	}
 }
 
-uint64_t Layout::simulate(const vector<Step> &steps, uint64_t max_hp, bool debug) const
+Layout::SimResult Layout::simulate(const vector<Step> &steps, uint64_t max_hp, bool debug) const
 {
+	SimResult result;
+
 	if(debug && max_hp)
 		cout << "Enemy HP: " << max_hp << endl;
 
 	unsigned last_cell = 0;
 	unsigned repeat = 0;
-	uint64_t sim_damage = 0;
 	uint64_t kill_damage = 0;
 	uint64_t toxicity = 0;
+	unsigned rs_pct = 100;
 	for(const auto &s: steps)
 	{
-		sim_damage += s.direct_damage;
-		kill_damage = max(kill_damage, sim_damage*100/(100-s.kill_pct));
-		if(upgrades.poison>=5 && max_hp && sim_damage*4>=max_hp)
+		result.damage += s.direct_damage;
+		kill_damage = max(kill_damage, result.damage*100/(100-s.kill_pct));
+		if(upgrades.poison>=5 && max_hp && result.damage*4>=max_hp)
 			toxicity += s.toxicity*5;
 		else
 			toxicity += s.toxicity;
 		toxicity = toxicity*(100+s.toxic_pct)/100;
-		sim_damage += toxicity;
-		kill_damage = max(kill_damage, sim_damage);
+		result.damage += toxicity;
+		rs_pct += s.rs_bonus;
+		kill_damage = max(kill_damage, result.damage);
+
+		if(result.kill_cell<0)
+		{
+			++result.steps_taken;
+			if(kill_damage>=max_hp)
+			{
+				result.kill_cell = s.cell;
+				result.runestones = (max_hp+599)/600+threat/20;
+				result.runestones = result.runestones*pow(1.00116, threat);
+				if(upgrades.fire>=7 && s.trap=='F')
+					result.runestones = result.runestones*6/5;
+				result.runestones = result.runestones*rs_pct/100;
+			}
+		}
 
 		if(debug)
 		{
 			repeat = (s.cell==last_cell ? repeat+1 : 0);
-			last_cell = s.cell;
 
-			cout << setw(2) << s.cell << ':' << repeat << ": " << s.trap << ' ' << setw(9) << sim_damage;
+			cout << setw(2) << s.cell << ':' << repeat << ": " << s.trap << ' ' << setw(9) << result.damage;
 			if(max_hp && upgrades.poison>=5)
 			{
-				if(sim_damage>max_hp)
+				if(result.damage>max_hp)
 					cout << "  0%";
-				else if(sim_damage)
-					cout << ' ' << setw(2) << (max_hp-sim_damage)*100/max_hp << '%';
+				else if(result.damage)
+					cout << ' ' << setw(2) << (max_hp-result.damage)*100/max_hp << '%';
 				else
 					cout << " **%";
 			}
@@ -297,12 +318,19 @@ uint64_t Layout::simulate(const vector<Step> &steps, uint64_t max_hp, bool debug
 				cout << "        ";
 			cout << ' ' << (s.slow==1 ? 'C' : ' ') << (s.slow==2 ? 'F' : ' ') << (s.shock ? 'S' : ' ') << endl;
 		}
+
+		last_cell = s.cell;
 	}
 
 	if(debug)
 		cout << "Kill damage: " << kill_damage << endl;
 
-	return (kill_damage>=max_hp ? kill_damage : sim_damage);
+	if(kill_damage>=max_hp)
+		result.damage = kill_damage;
+	else if(upgrades.poison>=6)
+		result.runestones = toxicity/10;
+
+	return result;
 }
 
 void Layout::update()
@@ -311,19 +339,21 @@ void Layout::update()
 	build_steps(steps);
 	update_damage(steps);
 	update_cost();
+	update_threat(steps);
+	update_runestones(steps);
 }
 
 void Layout::update_damage(const vector<Step> &steps)
 {
-	damage = simulate(steps, 0);
+	damage = simulate(steps, 0).damage;
 	if(upgrades.poison>=5)
 	{
 		uint64_t low = damage;
-		uint64_t high = simulate(steps, low);
+		uint64_t high = simulate(steps, low).damage;
 		for(unsigned i=0; (i<10 && low*101<high*100); ++i)
 		{
 			uint64_t mid = (low+high*3)/4;
-			damage = simulate(steps, mid);
+			damage = simulate(steps, mid).damage;
 			if(damage>=mid)
 				low = mid;
 			else
@@ -392,6 +422,60 @@ void Layout::update_cost()
 			break;
 		}
 	}
+}
+
+void Layout::update_threat(const vector<Step> &steps)
+{
+	unsigned cells = data.size();
+	unsigned floors = cells/5;
+
+	double log_base = log(1.012);
+	double low = log(damage)/log_base;
+	low = log(damage-4*low)/log_base;
+	double high = low+60;
+
+	unsigned hp_div = 7;
+	for(unsigned i=0; i<7; ++i)
+	{
+		double mid = (low+high)/2;
+		unsigned range = min(max<int>(0.53*mid, 150), 850);
+		uint64_t max_hp = 10+4*mid+pow(1.012, mid);
+		int change = 0;
+		for(unsigned j=0; j<=hp_div; ++j)
+		{
+			uint64_t hp = max_hp*(1000-range*j/hp_div)/1000;
+			SimResult result = simulate(steps, hp);
+			if(result.damage>=hp)
+				change += (cells-result.kill_cell+4)/5;
+			else
+				change -= floors*ceil((hp-result.damage)/(hp*0.15));
+		}
+
+		threat = round(mid);
+		if(change==0)
+			break;
+		else if(change>0)
+			low = mid;
+		else
+			high = mid;
+
+		hp_div += 2;
+	}
+}
+
+void Layout::update_runestones(const vector<Step> &steps)
+{
+	unsigned capacity = (1+(data.size()+1)/2)*3;
+	unsigned range = min(max<int>(0.53*threat, 150), 850);
+	uint64_t max_hp = 10+4*threat+pow(1.012, threat);
+	uint64_t runestones = 0;
+	for(unsigned i=0; i<=24; ++i)
+	{
+		uint64_t hp = max_hp*(1000-range*i/24)/1000;
+		SimResult result = simulate(steps, hp);
+		runestones += result.runestones*capacity/max(result.steps_taken, capacity);
+	}
+	rs_per_sec = runestones/25/3;
 }
 
 void Layout::cross_from(const Layout &other, Random &random)
@@ -510,3 +594,11 @@ bool Layout::is_valid() const
 
 	return true;
 }
+
+
+Layout::SimResult::SimResult():
+	damage(0),
+	runestones(0),
+	steps_taken(0),
+	kill_cell(-1)
+{ }

@@ -40,6 +40,7 @@ struct Step
 	bool shock;
 	std::uint8_t kill_pct;
 	std::uint8_t toxic_pct;
+	std::uint8_t rs_bonus;
 	std::uint64_t direct_damage;
 	std::uint64_t toxicity;
 
@@ -50,10 +51,22 @@ struct Layout
 {
 	typedef std::minstd_rand Random;
 
+	struct SimResult
+	{
+		uint64_t damage;
+		uint64_t runestones;
+		unsigned steps_taken;
+		int kill_cell;
+
+		SimResult();
+	};
+
 	TrapUpgrades upgrades;
 	std::string data;
 	std::uint64_t damage;
 	std::uint64_t cost;
+	std::uint64_t rs_per_sec;
+	unsigned threat;
 	unsigned cycle;
 
 	static const char traps[];
@@ -61,10 +74,12 @@ struct Layout
 	Layout();
 
 	void build_steps(std::vector<Step> &) const;
-	std::uint64_t simulate(const std::vector<Step> &, std::uint64_t, bool = false) const;
+	SimResult simulate(const std::vector<Step> &, std::uint64_t, bool = false) const;
 	void update();
 	void update_damage(const std::vector<Step> &);
 	void update_cost();
+	void update_threat(const std::vector<Step> &);
+	void update_runestones(const std::vector<Step> &);
 	void cross_from(const Layout &, Random &);
 	void mutate(unsigned, unsigned, Random &);
 	bool is_valid() const;
