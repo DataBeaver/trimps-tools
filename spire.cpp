@@ -391,7 +391,7 @@ int Spire::main()
 			layout.data.resize(floors*5, '_');
 			layout.update();
 
-			submit = (score_func(best_layout)>=score_func(layout) || best_layout.cost<=layout.cost);
+			submit = (score_func(best_layout)>score_func(layout) || best_layout.cost<layout.cost);
 			if(layout.damage>best_layout.damage)
 			{
 				best_layout = layout;
