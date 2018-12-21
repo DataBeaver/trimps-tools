@@ -78,6 +78,7 @@ private:
 	bool intr_flag;
 
 	std::uint64_t budget;
+	bool runestones;
 	Pool::ScoreFunc *score_func;
 	Layout start_layout;
 
@@ -94,6 +95,7 @@ private:
 	void report(const Layout &, const std::string &);
 	bool print(const Layout &, unsigned &);
 	static std::uint64_t damage_score(const Layout &);
+	static std::uint64_t runestones_score(const Layout &);
 	static void sighandler(int);
 };
 
@@ -137,6 +139,7 @@ Spire::Spire(int argc, char **argv):
 	connection(0),
 	intr_flag(false),
 	budget(1000000),
+	runestones(false),
 	score_func(damage_score)
 {
 	instance = this;
@@ -162,6 +165,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("lightning", start_layout.upgrades.lightning, GetOpt::REQUIRED_ARG).set_help("Set lightning trap upgrade level", "LEVEL");
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
+	getopt.add_option('r', "runestones", runestones, GetOpt::NO_ARG).set_help("Optimize runestones per second");
 	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online build database");
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
@@ -218,6 +222,8 @@ Spire::Spire(int argc, char **argv):
 
 	if(!n_pools_seen && heterogeneous)
 		n_pools = 21;
+	if(runestones)
+		score_func = runestones_score;
 	pools.reserve(n_pools);
 	for(unsigned i=0; i<n_pools; ++i)
 		pools.push_back(new Pool(pool_size, score_func));
@@ -551,6 +557,11 @@ uint64_t Spire::damage_score(const Layout &layout)
 	return layout.damage;
 }
 
+uint64_t Spire::runestones_score(const Layout &layout)
+{
+	return layout.rs_per_sec;
+}
+
 void Spire::sighandler(int)
 {
 	instance->intr_flag = true;
@@ -732,6 +743,11 @@ void Spire::Worker::main()
 			vector<Step> steps;
 			mutated.build_steps(steps);
 			mutated.update_damage(steps);
+			if(spire.runestones)
+			{
+				mutated.update_threat(steps);
+				mutated.update_runestones(steps);
+			}
 			pool.add_layout(mutated);
 		}
 	}
