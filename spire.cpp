@@ -384,6 +384,8 @@ int Spire::main()
 				if(!show_pools)
 					report(best_layout, "Layout from database");
 			}
+			else
+				cout << "No better layout found" << endl;
 		}
 
 		if(submit)
