@@ -5,6 +5,7 @@
 #include <thread>
 #define PQXX_HIDE_EXP_OPTIONAL
 #include <pqxx/connection>
+#include <pqxx/result>
 #include <pqxx/transaction>
 #include "getopt.h"
 #include "network.h"
@@ -24,12 +25,15 @@ private:
 	Network network;
 	pqxx::connection *pq_conn;
 
+	static const unsigned current_version;
+
 public:
 	SpireDB(int, char **);
 	~SpireDB();
 
 	int main();
 private:
+	void update_layouts();
 	void serve(Network::ConnectionTag, const std::string &);
 	Layout query_layout(const std::string &, unsigned, std::uint64_t);
 	SubmitResult submit_layout(const std::string &, const std::string &, const std::string &);
@@ -43,6 +47,8 @@ int main(int argc, char **argv)
 	SpireDB spiredb(argc, argv);
 	return spiredb.main();
 }
+
+const unsigned SpireDB::current_version = 1;
 
 SpireDB::SpireDB(int argc, char **argv)
 {
@@ -64,7 +70,9 @@ SpireDB::SpireDB(int argc, char **argv)
 	}
 
 	pq_conn = new pqxx::connection(dbopts);
-	pq_conn->prepare("insert_layout", "INSERT INTO layouts (floors, fire, frost, poison, lightning, traps, damage, cost, submitter) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)");
+	pq_conn->prepare("select_old", "SELECT id, fire, frost, poison, lightning, traps FROM layouts WHERE version<$1");
+	pq_conn->prepare("update_values", "UPDATE layouts SET damage=$2, cost=$3, version=$4 WHERE id=$1");
+	pq_conn->prepare("insert_layout", "INSERT INTO layouts (floors, fire, frost, poison, lightning, traps, damage, cost, submitter, version) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)");
 	pq_conn->prepare("select_best", "SELECT fire, frost, poison, lightning, traps, damage, cost FROM layouts WHERE floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND cost<=$6 ORDER BY damage DESC LIMIT 1");
 	pq_conn->prepare("delete_worse", "DELETE FROM layouts WHERE floors>=$1 AND fire>=$2 AND frost>=$3 AND poison>=$4 AND lightning>=$5 AND damage<$6 AND cost>=$7");
 }
@@ -76,6 +84,8 @@ SpireDB::~SpireDB()
 
 int SpireDB::main()
 {
+	update_layouts();
+
 	bool waiting = false;
 	while(1)
 	{
@@ -96,6 +106,27 @@ int SpireDB::main()
 	cout << "Begin serving requests" << endl;
 	while(1)
 		this_thread::sleep_for(chrono::milliseconds(100));
+}
+
+void SpireDB::update_layouts()
+{
+	pqxx::work xact(*pq_conn);
+	pqxx::result result = xact.exec_prepared("select_old", current_version);
+	if(!result.empty())
+		cout << "Updating " << result.size() << " layouts" << endl;
+	for(const auto &row: result)
+	{
+		unsigned id = row[0].as<unsigned>();
+		Layout layout;
+		layout.upgrades.fire = row[1].as<uint16_t>();
+		layout.upgrades.frost = row[2].as<uint16_t>();
+		layout.upgrades.poison = row[3].as<uint16_t>();
+		layout.upgrades.lightning = row[4].as<uint16_t>();
+		layout.data = row[5].as<string>();
+		layout.update();
+		xact.exec_prepared("update_values", id, layout.damage, layout.cost, current_version);
+	}
+	xact.commit();
 }
 
 void SpireDB::serve(Network::ConnectionTag tag, const string &data)
@@ -188,7 +219,7 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 	}
 
 	xact.exec_prepared("delete_worse", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.damage, layout.cost);
-	xact.exec_prepared("insert_layout", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.data, layout.damage, layout.cost, submitter);
+	xact.exec_prepared("insert_layout", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.data, layout.damage, layout.cost, submitter, current_version);
 	xact.commit();
 
 	return ACCEPTED;
