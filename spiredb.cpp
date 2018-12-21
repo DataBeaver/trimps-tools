@@ -206,8 +206,7 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 	layout.data = data;
 	if(!layout.is_valid())
 		throw invalid_argument("SpireDB::submit_layout");
-	layout.update_damage();
-	layout.update_cost();
+	layout.update();
 	cout << "submit " << layout.upgrades.str() << ' ' << layout.data << ' ' << layout.damage << ' ' << layout.cost << ' ' << submitter << endl;
 
 	pqxx::work xact(*pq_conn);

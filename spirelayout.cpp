@@ -313,13 +313,6 @@ void Layout::update()
 	update_cost();
 }
 
-void Layout::update_damage()
-{
-	vector<Step> steps;
-	build_steps(steps);
-	update_damage(steps);
-}
-
 void Layout::update_damage(const vector<Step> &steps)
 {
 	damage = simulate(steps, 0);

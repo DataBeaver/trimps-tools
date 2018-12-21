@@ -63,7 +63,6 @@ struct Layout
 	void build_steps(std::vector<Step> &) const;
 	std::uint64_t simulate(const std::vector<Step> &, std::uint64_t, bool = false) const;
 	void update();
-	void update_damage();
 	void update_damage(const std::vector<Step> &);
 	void update_cost();
 	void cross_from(const Layout &, Random &);

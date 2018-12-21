@@ -708,7 +708,9 @@ void Spire::Worker::main()
 			if(mutated.cost>spire.budget)
 				continue;
 
-			mutated.update_damage();
+			vector<Step> steps;
+			mutated.build_steps(steps);
+			mutated.update_damage(steps);
 			if(mutated.damage>=lowest_damage)
 				pool.add_layout(mutated);
 		}
