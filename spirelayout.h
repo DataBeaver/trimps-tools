@@ -54,7 +54,8 @@ struct Layout
 	struct SimResult
 	{
 		uint64_t damage;
-		uint64_t runestones;
+		uint64_t toxicity;
+		unsigned runestone_pct;
 		unsigned steps_taken;
 		int kill_cell;
 

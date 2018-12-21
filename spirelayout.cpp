@@ -290,11 +290,9 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, uint64_t max_hp, b
 			if(kill_damage>=max_hp)
 			{
 				result.kill_cell = s.cell;
-				result.runestones = (max_hp+599)/600+threat/20;
-				result.runestones = result.runestones*pow(1.00116, threat);
+				result.runestone_pct = rs_pct;
 				if(upgrades.fire>=7 && s.trap=='F')
-					result.runestones = result.runestones*6/5;
-				result.runestones = result.runestones*rs_pct/100;
+					result.runestone_pct = result.runestone_pct*6/5;
 			}
 		}
 
@@ -325,10 +323,9 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, uint64_t max_hp, b
 	if(debug)
 		cout << "Kill damage: " << kill_damage << endl;
 
+	result.toxicity = toxicity;
 	if(kill_damage>=max_hp)
 		result.damage = kill_damage;
-	else if(upgrades.poison>=6)
-		result.runestones = toxicity/10;
 
 	return result;
 }
@@ -473,7 +470,15 @@ void Layout::update_runestones(const vector<Step> &steps)
 	{
 		uint64_t hp = max_hp*(1000-range*i/24)/1000;
 		SimResult result = simulate(steps, hp);
-		runestones += result.runestones*capacity/max(result.steps_taken, capacity);
+		uint64_t rs_gain = 0;
+		if(result.damage>=hp)
+		{
+			rs_gain = ((hp+599)/600+threat/20)*pow(1.00116, threat);
+			rs_gain = rs_gain*result.runestone_pct/100;
+		}
+		else if(upgrades.poison>=6)
+			rs_gain = result.toxicity/10;
+		runestones += rs_gain*capacity/max(result.steps_taken, capacity);
 	}
 	rs_per_sec = runestones/25/3;
 }
@@ -598,7 +603,7 @@ bool Layout::is_valid() const
 
 Layout::SimResult::SimResult():
 	damage(0),
-	runestones(0),
+	runestone_pct(100),
 	steps_taken(0),
 	kill_cell(-1)
 { }
