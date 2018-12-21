@@ -150,7 +150,12 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 			}
 			catch(const exception &e)
 			{
-				network.send_message(tag, format("error %s", e.what()));
+				cout << e.what() << endl;
+				string message = e.what();
+				for(char &c: message)
+					if(c=='\n')
+						c = ' ';
+				network.send_message(tag, format("error %s", message));
 			}
 		}
 		else
