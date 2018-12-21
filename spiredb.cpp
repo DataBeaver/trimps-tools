@@ -67,8 +67,6 @@ SpireDB::SpireDB(int argc, char **argv)
 	pq_conn->prepare("insert_layout", "INSERT INTO layouts (floors, fire, frost, poison, lightning, traps, damage, cost, submitter) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)");
 	pq_conn->prepare("select_best", "SELECT fire, frost, poison, lightning, traps, damage, cost FROM layouts WHERE floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND cost<=$6 ORDER BY damage DESC LIMIT 1");
 	pq_conn->prepare("delete_worse", "DELETE FROM layouts WHERE floors>=$1 AND fire>=$2 AND frost>=$3 AND poison>=$4 AND lightning>=$5 AND damage<$6 AND cost>=$7");
-
-	network.serve(8676, bind(&SpireDB::serve, this, _1, _2));
 }
 
 SpireDB::~SpireDB()
@@ -78,6 +76,24 @@ SpireDB::~SpireDB()
 
 int SpireDB::main()
 {
+	bool waiting = false;
+	while(1)
+	{
+		try
+		{
+			network.serve(8676, bind(&SpireDB::serve, this, _1, _2));
+			break;
+		}
+		catch(const exception &)
+		{
+			if(!waiting)
+				cout << "Waiting for port to become available" << endl;
+			waiting = true;
+			this_thread::sleep_for(chrono::seconds(1));
+		}
+	}
+
+	cout << "Begin serving requests" << endl;
 	while(1)
 		this_thread::sleep_for(chrono::milliseconds(100));
 }
