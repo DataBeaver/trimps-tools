@@ -14,19 +14,23 @@
 
 class Pool 
 {
+public:
+	typedef std::uint64_t ScoreFunc(const Layout &);
+
 private:
 	unsigned max_size;
+	ScoreFunc *score_func;
 	std::list<Layout> layouts;
 	mutable std::mutex layouts_mutex;
 
 public:
-	Pool(unsigned);
+	Pool(unsigned, ScoreFunc *);
 
 	void add_layout(const Layout &);
 	Layout get_best_layout() const;
 	bool get_best_layout(Layout &) const;
 	Layout get_random_layout(Layout::Random &) const;
-	std::uint64_t get_highest_damage() const;
+	std::uint64_t get_best_score() const;
 
 	template<typename F>
 	void visit_layouts(const F &) const;
@@ -74,6 +78,7 @@ private:
 	bool intr_flag;
 
 	std::uint64_t budget;
+	Pool::ScoreFunc *score_func;
 	Layout start_layout;
 
 	static Spire *instance;
@@ -88,6 +93,7 @@ private:
 	void prune_pools();
 	void report(const Layout &, const std::string &);
 	bool print(const Layout &, unsigned &);
+	static std::uint64_t damage_score(const Layout &);
 	static void sighandler(int);
 };
 
@@ -130,7 +136,8 @@ Spire::Spire(int argc, char **argv):
 	network(0),
 	connection(0),
 	intr_flag(false),
-	budget(1000000)
+	budget(1000000),
+	score_func(damage_score)
 {
 	instance = this;
 
@@ -213,7 +220,7 @@ Spire::Spire(int argc, char **argv):
 		n_pools = 21;
 	pools.reserve(n_pools);
 	for(unsigned i=0; i<n_pools; ++i)
-		pools.push_back(new Pool(pool_size));
+		pools.push_back(new Pool(pool_size, score_func));
 	if(n_pools==1)
 	{
 		foreign_rate = 0;
@@ -376,7 +383,7 @@ int Spire::main()
 			layout.data.resize(floors*5, '_');
 			layout.update();
 
-			submit = (best_layout.damage>=layout.damage || best_layout.cost<=layout.cost);
+			submit = (score_func(best_layout)>=score_func(layout) || best_layout.cost<=layout.cost);
 			if(layout.damage>best_layout.damage)
 			{
 				best_layout = layout;
@@ -413,7 +420,7 @@ int Spire::main()
 				w->join();
 		}
 
-		uint64_t best_damage = best_layout.damage;
+		uint64_t best_score = score_func(best_layout);
 		for(auto *p: pools)
 		{
 			p->get_best_layout(best_layout);
@@ -421,7 +428,7 @@ int Spire::main()
 				break;
 		}
 
-		if(best_layout.damage>best_damage)
+		if(score_func(best_layout)>best_score)
 		{
 			if(!show_pools)
 				report(best_layout, "New best layout found");
@@ -469,14 +476,14 @@ void Spire::prune_pools()
 	unsigned lowest = 0;
 	if(heterogeneous)
 		++lowest;
-	uint64_t damage = pools[lowest]->get_highest_damage();
+	uint64_t score = pools[lowest]->get_best_score();
 	for(unsigned i=0; i<n_pools; ++i)
 	{
-		uint64_t d = pools[i]->get_highest_damage();
-		if(d<damage)
+		uint64_t s = pools[i]->get_best_score();
+		if(s<score)
 		{
 			lowest = i;
-			damage = d;
+			score = s;
 		}
 	}
 
@@ -529,11 +536,16 @@ bool Spire::print(const Layout &layout, unsigned &count)
 	}
 
 	if(show_pools)
-		cout << "\033[K" << descr << ' ' << layout.damage << ' ' << layout.cost << ' ' << layout.cycle << endl;
+		cout << "\033[K" << descr << ' ' << score_func(layout) << ' ' << layout.cost << ' ' << layout.cycle << endl;
 	else
 		cout << descr << endl;
 
 	return (count && --count);
+}
+
+uint64_t Spire::damage_score(const Layout &layout)
+{
+	return layout.damage;
 }
 
 void Spire::sighandler(int)
@@ -542,22 +554,24 @@ void Spire::sighandler(int)
 }
 
 
-Pool::Pool(unsigned s):
-	max_size(s)
+Pool::Pool(unsigned s, ScoreFunc *f):
+	max_size(s),
+	score_func(f)
 { }
 
 void Pool::add_layout(const Layout &layout)
 {
 	lock_guard<mutex> lock(layouts_mutex);
 
-	if(layouts.size()>=max_size && layout.damage<layouts.back().damage)
+	if(layouts.size()>=max_size && score_func(layout)<score_func(layouts.back()))
 		return;
 
+	uint64_t score = score_func(layout);
 	auto i = layouts.begin();
-	for(; (i!=layouts.end() && i->damage>layout.damage); ++i)
+	for(; (i!=layouts.end() && score_func(*i)>score); ++i)
 		if(i->cost<=layout.cost)
 			return;
-	if(i!=layouts.end() && i->damage==layout.damage)
+	if(i!=layouts.end() && score_func(*i)==score)
 	{
 		*i = layout;
 		++i;
@@ -586,7 +600,7 @@ Layout Pool::get_best_layout() const
 bool Pool::get_best_layout(Layout &layout) const
 {
 	lock_guard<mutex> lock(layouts_mutex);
-	if(layout.damage>=score_func(layouts.front()))
+	if(score_func(layout)>=score_func(layouts.front()))
 		return false;
 	layout = layouts.front();
 	return true;
@@ -598,7 +612,7 @@ Layout Pool::get_random_layout(Layout::Random &random) const
 
 	uint64_t total = 0;
 	for(const auto &l: layouts)
-		total += l.damage;
+		total += score_func(l);
 
 	if(!total)
 	{
@@ -610,18 +624,19 @@ Layout Pool::get_random_layout(Layout::Random &random) const
 	uint64_t p = ((static_cast<uint64_t>(random())<<32)+random())%total;
 	for(const auto &l: layouts)
 	{
-		if(p<l.damage)
+		uint64_t score = score_func(l);
+		if(p<score)
 			return l;
-		p -= l.damage;
+		p -= score;
 	}
 
 	throw logic_error("Spire::get_random_layout");
 }
 
-uint64_t Pool::get_highest_damage() const
+uint64_t Pool::get_best_score() const
 {
 	lock_guard<mutex> lock(layouts_mutex);
-	return layouts.front().damage;
+	return score_func(layouts.front());
 }
 
 template<typename F>
