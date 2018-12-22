@@ -166,11 +166,12 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 	{
 		if(parts.size()==4 || parts.size()==5)
 		{
-			if(parts[4]!="damage" && parts[4]!="income")
+			if(parts.size()>=5 && parts[4]!="damage" && parts[4]!="income")
 				network.send_message(tag, "error bad args");
 			else
 			{
-				Layout layout = query_layout(parts[1], parse_string<unsigned>(parts[2]), parse_string<uint64_t>(parts[3]), (parts[4]=="income"));
+				bool income = (parts.size()>=5 && parts[4]=="income");
+				Layout layout = query_layout(parts[1], parse_string<unsigned>(parts[2]), parse_string<uint64_t>(parts[3]), income);
 				if(layout.data.empty())
 					network.send_message(tag, "notfound");
 				else
