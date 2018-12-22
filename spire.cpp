@@ -381,7 +381,7 @@ int Spire::main()
 
 		cout << "Querying online build database for best known layout" << endl;
 		unsigned floors = best_layout.data.size()/5;
-		string reply = network->communicate(connection, format("query %s %s %s", best_layout.upgrades.str(), floors, budget));
+		string reply = network->communicate(connection, format("query %s %s %s %s", best_layout.upgrades.str(), floors, budget, (income ? "income" : "damage")));
 		vector<string> parts = split(reply);
 		if(parts[0]=="ok")
 		{

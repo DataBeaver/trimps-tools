@@ -35,7 +35,7 @@ public:
 private:
 	void update_layouts();
 	void serve(Network::ConnectionTag, const std::string &);
-	Layout query_layout(const std::string &, unsigned, std::uint64_t);
+	Layout query_layout(const std::string &, unsigned, std::uint64_t, bool);
 	SubmitResult submit_layout(const std::string &, const std::string &, const std::string &);
 };
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 	return spiredb.main();
 }
 
-const unsigned SpireDB::current_version = 1;
+const unsigned SpireDB::current_version = 2;
 
 SpireDB::SpireDB(int argc, char **argv)
 {
@@ -71,10 +71,11 @@ SpireDB::SpireDB(int argc, char **argv)
 
 	pq_conn = new pqxx::connection(dbopts);
 	pq_conn->prepare("select_old", "SELECT id, fire, frost, poison, lightning, traps FROM layouts WHERE version<$1");
-	pq_conn->prepare("update_values", "UPDATE layouts SET damage=$2, cost=$3, version=$4 WHERE id=$1");
-	pq_conn->prepare("insert_layout", "INSERT INTO layouts (floors, fire, frost, poison, lightning, traps, damage, cost, submitter, version) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)");
-	pq_conn->prepare("select_best", "SELECT fire, frost, poison, lightning, traps, damage, cost FROM layouts WHERE floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND cost<=$6 ORDER BY damage DESC LIMIT 1");
-	pq_conn->prepare("delete_worse", "DELETE FROM layouts WHERE floors>=$1 AND fire>=$2 AND frost>=$3 AND poison>=$4 AND lightning>=$5 AND damage<$6 AND cost>=$7");
+	pq_conn->prepare("update_values", "UPDATE layouts SET damage=$2, threat=$3, rs_per_sec=$4, cost=$5, version=$6 WHERE id=$1");
+	pq_conn->prepare("insert_layout", "INSERT INTO layouts (floors, fire, frost, poison, lightning, traps, damage, threat, rs_per_sec, cost, submitter, version) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)");
+	pq_conn->prepare("select_best_damage", "SELECT fire, frost, poison, lightning, traps, damage, cost FROM layouts WHERE floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND cost<=$6 ORDER BY damage DESC LIMIT 1");
+	pq_conn->prepare("select_best_income", "SELECT fire, frost, poison, lightning, traps, rs_per_sec, cost FROM layouts WHERE floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND cost<=$6 ORDER BY rs_per_sec DESC LIMIT 1");
+	pq_conn->prepare("delete_worse", "DELETE FROM layouts WHERE floors>=$1 AND fire>=$2 AND frost>=$3 AND poison>=$4 AND lightning>=$5 AND damage<$6 AND rs_per_sec<$7 AND cost>=$8");
 }
 
 SpireDB::~SpireDB()
@@ -123,8 +124,8 @@ void SpireDB::update_layouts()
 		layout.upgrades.poison = row[3].as<uint16_t>();
 		layout.upgrades.lightning = row[4].as<uint16_t>();
 		layout.data = row[5].as<string>();
-		layout.update(Layout::FAST);
-		xact.exec_prepared("update_values", id, layout.damage, layout.cost, current_version);
+		layout.update(Layout::FULL);
+		xact.exec_prepared("update_values", id, layout.damage, layout.threat, layout.rs_per_sec, layout.cost, current_version);
 	}
 	xact.commit();
 }
@@ -163,13 +164,18 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 	}
 	else if(parts[0]=="query")
 	{
-		if(parts.size()==4)
+		if(parts.size()==4 || parts.size()==5)
 		{
-			Layout layout = query_layout(parts[1], parse_string<unsigned>(parts[2]), parse_string<uint64_t>(parts[3]));
-			if(layout.data.empty())
-				network.send_message(tag, "notfound");
+			if(parts[4]!="damage" && parts[4]!="income")
+				network.send_message(tag, "error bad args");
 			else
-				network.send_message(tag, format("ok %s %s", layout.upgrades.str(), layout.data));
+			{
+				Layout layout = query_layout(parts[1], parse_string<unsigned>(parts[2]), parse_string<uint64_t>(parts[3]), (parts[4]=="income"));
+				if(layout.data.empty())
+					network.send_message(tag, "notfound");
+				else
+					network.send_message(tag, format("ok %s %s", layout.upgrades.str(), layout.data));
+			}
 		}
 		else
 			network.send_message(tag, "error bad args");
@@ -178,11 +184,11 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 		network.send_message(tag, "error bad command");
 }
 
-Layout SpireDB::query_layout(const string &up_str, unsigned floors, uint64_t budget)
+Layout SpireDB::query_layout(const string &up_str, unsigned floors, uint64_t budget, bool income)
 {
 	TrapUpgrades upgrades(up_str);
 	pqxx::work xact(*pq_conn);
-	pqxx::result result = xact.exec_prepared("select_best", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, budget);
+	pqxx::result result = xact.exec_prepared((income ? "select_best_income" : "select_best_damage"), floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, budget);
 	Layout layout;
 	if(!result.empty())
 	{
@@ -206,25 +212,48 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 	layout.data = data;
 	if(!layout.is_valid())
 		throw invalid_argument("SpireDB::submit_layout");
-	layout.update(Layout::FAST);
+	layout.update(Layout::FULL);
 	cout << "submit " << layout.upgrades.str() << ' ' << layout.data << ' ' << layout.damage << ' ' << layout.cost << ' ' << submitter << endl;
 
+	bool accepted = false;
+	bool duplicate_damage = false;
+	bool duplicate_income = false;
+
 	pqxx::work xact(*pq_conn);
-	pqxx::result result = xact.exec_prepared("select_best", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.cost);
+	pqxx::result result = xact.exec_prepared("select_best_damage", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.cost);
 	if(!result.empty())
 	{
 		pqxx::row row = result.front();
 		uint64_t best_damage = row[5].as<uint64_t>(0);
 		uint64_t best_cost = row[6].as<uint64_t>(0);
-		if(best_damage>layout.damage || (best_damage==layout.damage && best_cost<layout.cost))
-			return OBSOLETE;
+		if(best_damage<layout.damage || (best_damage==layout.damage && best_cost>layout.cost))
+			accepted = true;
 		else if(best_damage==layout.damage && best_cost==layout.cost)
-			return DUPLICATE;
+			duplicate_damage = true;
 	}
 
-	xact.exec_prepared("delete_worse", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.damage, layout.cost);
-	xact.exec_prepared("insert_layout", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.data, layout.damage, layout.cost, submitter, current_version);
-	xact.commit();
+	result = xact.exec_prepared("select_best_income", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.cost);
+	if(!result.empty())
+	{
+		pqxx::row row = result.front();
+		uint64_t best_income = row[5].as<uint64_t>(0);
+		uint64_t best_cost = row[6].as<uint64_t>(0);
+		if(best_income<layout.rs_per_sec || (best_income==layout.rs_per_sec && best_cost>layout.cost))
+			accepted = true;
+		else if(best_income==layout.rs_per_sec && best_cost==layout.cost)
+			duplicate_income = true;
+	}
 
-	return ACCEPTED;
+	if(accepted)
+	{
+		xact.exec_prepared("delete_worse", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.damage, layout.rs_per_sec, layout.cost);
+		xact.exec_prepared("insert_layout", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.data, layout.damage, layout.threat, layout.rs_per_sec, layout.cost, submitter, current_version);
+		xact.commit();
+
+		return ACCEPTED;
+	}
+	else if(duplicate_damage && duplicate_income)
+		return DUPLICATE;
+	else
+		return OBSOLETE;
 }
