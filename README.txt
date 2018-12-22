@@ -20,7 +20,7 @@ of the more important options are:
   Set upgrade levels of all trap types at once.  The argument should be four
   numbers, one for each trap type.
 
--r, --runestones
+-i, --income
   Optimize for runestone income instead of damage.  This is much slower so it
   may be prudent to first find a decent damage-optimized build and use that
   as a base for runestone optization.

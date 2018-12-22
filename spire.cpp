@@ -78,7 +78,7 @@ private:
 	bool intr_flag;
 
 	std::uint64_t budget;
-	bool runestones;
+	bool income;
 	Pool::ScoreFunc *score_func;
 	Layout start_layout;
 
@@ -139,7 +139,7 @@ Spire::Spire(int argc, char **argv):
 	connection(0),
 	intr_flag(false),
 	budget(1000000),
-	runestones(false),
+	income(false),
 	score_func(damage_score)
 {
 	instance = this;
@@ -165,7 +165,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("lightning", start_layout.upgrades.lightning, GetOpt::REQUIRED_ARG).set_help("Set lightning trap upgrade level", "LEVEL");
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
-	getopt.add_option('r', "runestones", runestones, GetOpt::NO_ARG).set_help("Optimize runestones per second");
+	getopt.add_option('i', "income", income, GetOpt::NO_ARG).set_help("Optimize runestones per second");
 	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online build database");
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
@@ -222,7 +222,7 @@ Spire::Spire(int argc, char **argv):
 
 	if(!n_pools_seen && heterogeneous)
 		n_pools = 21;
-	if(runestones)
+	if(income)
 		score_func = runestones_score;
 	pools.reserve(n_pools);
 	for(unsigned i=0; i<n_pools; ++i)
@@ -292,7 +292,7 @@ Spire::Spire(int argc, char **argv):
 			floors = max<unsigned>((start_layout.data.size()+4)/5, 1U);
 
 		start_layout.data.resize(floors*5, '_');
-		start_layout.update(runestones ? Layout::FULL : Layout::COMPATIBLE);
+		start_layout.update(income ? Layout::FULL : Layout::COMPATIBLE);
 		pools.front()->add_layout(start_layout);
 
 		if(!budget_seen)
@@ -389,7 +389,7 @@ int Spire::main()
 			layout.upgrades = best_layout.upgrades;
 			layout.data = parts[2];
 			layout.data.resize(floors*5, '_');
-			layout.update(runestones ? Layout::FULL : Layout::COMPATIBLE);
+			layout.update(income ? Layout::FULL : Layout::COMPATIBLE);
 
 			submit = (score_func(best_layout)>score_func(layout) || best_layout.cost<layout.cost);
 			if(layout.damage>best_layout.damage)
@@ -440,7 +440,7 @@ int Spire::main()
 
 		if(score_func(best_layout)>best_score)
 		{
-			best_layout.update(runestones ? Layout::FULL : Layout::COMPATIBLE);
+			best_layout.update(income ? Layout::FULL : Layout::COMPATIBLE);
 			if(!show_pools)
 				report(best_layout, "New best layout found");
 			if(network)
@@ -750,7 +750,7 @@ void Spire::Worker::main()
 			if(mutated.cost>spire.budget)
 				continue;
 
-			mutated.update(spire.runestones ? Layout::FULL : Layout::FAST);
+			mutated.update(spire.income ? Layout::FULL : Layout::FAST);
 			pool.add_layout(mutated);
 		}
 	}
