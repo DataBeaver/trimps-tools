@@ -51,6 +51,12 @@ struct Layout
 {
 	typedef std::minstd_rand Random;
 
+	enum UpdateMode
+	{
+		FAST,
+		FULL
+	};
+
 	struct SimResult
 	{
 		uint64_t damage;
@@ -76,7 +82,7 @@ struct Layout
 
 	void build_steps(std::vector<Step> &) const;
 	SimResult simulate(const std::vector<Step> &, std::uint64_t, bool = false) const;
-	void update();
+	void update(UpdateMode);
 	void update_damage(const std::vector<Step> &);
 	void update_cost();
 	void update_threat(const std::vector<Step> &);

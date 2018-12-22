@@ -330,14 +330,17 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, uint64_t max_hp, b
 	return result;
 }
 
-void Layout::update()
+void Layout::update(UpdateMode mode)
 {
 	vector<Step> steps;
 	build_steps(steps);
 	update_damage(steps);
 	update_cost();
-	update_threat(steps);
-	update_runestones(steps);
+	if(mode!=FAST)
+	{
+		update_threat(steps);
+		update_runestones(steps);
+	}
 }
 
 void Layout::update_damage(const vector<Step> &steps)

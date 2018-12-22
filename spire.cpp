@@ -292,7 +292,7 @@ Spire::Spire(int argc, char **argv):
 			floors = max<unsigned>((start_layout.data.size()+4)/5, 1U);
 
 		start_layout.data.resize(floors*5, '_');
-		start_layout.update();
+		start_layout.update(Layout::FULL);
 		pools.front()->add_layout(start_layout);
 
 		if(!budget_seen)
@@ -389,7 +389,7 @@ int Spire::main()
 			layout.upgrades = best_layout.upgrades;
 			layout.data = parts[2];
 			layout.data.resize(floors*5, '_');
-			layout.update();
+			layout.update(Layout::FULL);
 
 			submit = (score_func(best_layout)>score_func(layout) || best_layout.cost<layout.cost);
 			if(layout.damage>best_layout.damage)
@@ -440,7 +440,7 @@ int Spire::main()
 
 		if(score_func(best_layout)>best_score)
 		{
-			best_layout.update();
+			best_layout.update(Layout::FULL);
 			if(!show_pools)
 				report(best_layout, "New best layout found");
 			if(network)
@@ -750,14 +750,7 @@ void Spire::Worker::main()
 			if(mutated.cost>spire.budget)
 				continue;
 
-			vector<Step> steps;
-			mutated.build_steps(steps);
-			mutated.update_damage(steps);
-			if(spire.runestones)
-			{
-				mutated.update_threat(steps);
-				mutated.update_runestones(steps);
-			}
+			mutated.update(spire.runestones ? Layout::FULL : Layout::FAST);
 			pool.add_layout(mutated);
 		}
 	}

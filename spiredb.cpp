@@ -123,7 +123,7 @@ void SpireDB::update_layouts()
 		layout.upgrades.poison = row[3].as<uint16_t>();
 		layout.upgrades.lightning = row[4].as<uint16_t>();
 		layout.data = row[5].as<string>();
-		layout.update();
+		layout.update(Layout::FAST);
 		xact.exec_prepared("update_values", id, layout.damage, layout.cost, current_version);
 	}
 	xact.commit();
@@ -206,7 +206,7 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 	layout.data = data;
 	if(!layout.is_valid())
 		throw invalid_argument("SpireDB::submit_layout");
-	layout.update();
+	layout.update(Layout::FAST);
 	cout << "submit " << layout.upgrades.str() << ' ' << layout.data << ' ' << layout.damage << ' ' << layout.cost << ' ' << submitter << endl;
 
 	pqxx::work xact(*pq_conn);
