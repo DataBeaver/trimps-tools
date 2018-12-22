@@ -262,6 +262,7 @@ void Layout::build_steps(vector<Step> &steps) const
 Layout::SimResult Layout::simulate(const vector<Step> &steps, uint64_t max_hp, bool debug) const
 {
 	SimResult result;
+	result.max_hp = max_hp;
 
 	if(debug && max_hp)
 		cout << "Enemy HP: " << max_hp << endl;
@@ -330,16 +331,141 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, uint64_t max_hp, b
 	return result;
 }
 
+void Layout::build_results(const vector<Step> &steps, unsigned subdiv, vector<SimResult> &results) const
+{
+	results.clear();
+	results.reserve(subdiv);
+	uint64_t max_hp = simulate(steps, 0).damage;
+	if(upgrades.poison>=5)
+		max_hp = simulate(steps, max_hp).damage;
+	max_hp = max_hp*3/2;
+
+	for(unsigned i=1; i<=subdiv; ++i)
+		results.push_back(simulate(steps, max_hp*i/subdiv));
+}
+
+Layout::SimResult Layout::interpolate_result(const vector<SimResult> &results, uint64_t hp) const
+{
+	unsigned max_hp = results.back().max_hp;
+	if(hp>=max_hp)
+		return results.back();
+
+	unsigned i = hp*(results.size()-1)/max_hp;
+	const SimResult &low = results[i];
+	const SimResult &high = results[i+1];
+	uint64_t delta = high.max_hp-low.max_hp;
+	uint64_t t = i-low.max_hp;
+
+	SimResult result;
+	result.max_hp = hp;
+	result.damage = low.max_hp+(high.max_hp-low.max_hp)*t/delta;
+
+	return result;
+}
+
+template<typename F>
+unsigned Layout::integrate_results_for_threat(const vector<SimResult> &results, unsigned thrt, const F &func) const
+{
+	if(results.empty())
+		return 0;
+
+	unsigned range = min(max<int>(0.53*thrt, 150), 850);
+	uint64_t max_hp = 10+4*thrt+pow(1.012, thrt);
+	uint64_t min_hp = max_hp*(1000-range)/1000;
+
+	auto i = results.begin();
+	const SimResult *p = &*i++;
+
+	unsigned p_wt = 0;
+	unsigned total_wt = 0;
+	for(; (i!=results.end() && p->max_hp<max_hp); ++i)
+	{
+		if(i->max_hp<min_hp)
+		{
+			p = &*i;
+			continue;
+		}
+
+		uint64_t d_hp = i->max_hp-p->max_hp;
+		unsigned weight = 0;
+		int split = -1;
+		if(i->max_hp>damage && p->max_hp<damage)
+			split = ((damage-p->max_hp)*2000/d_hp+1)/2;
+
+		if(i->max_hp>max_hp)
+		{
+			unsigned t = ((max_hp-p->max_hp)*2000/d_hp+1)/2;
+			if(split>=0)
+			{
+				weight = t-min<int>(t, split);
+				p_wt += t-weight;
+			}
+			else
+			{
+				weight = t*t/2000;
+				p_wt += t-weight;
+			}
+		}
+		else if(p->max_hp<min_hp)
+		{
+			unsigned t = ((i->max_hp-min_hp)*2000/d_hp+1)/2;
+			if(split>=0)
+			{
+				weight = min<int>(1000-split, t);
+				p_wt += t-weight;
+			}
+			else
+			{
+				p_wt = t*t/2000;
+				weight = t-p_wt;
+			}
+		}
+		else if(split>=0)
+		{
+			p_wt += 1000-split;
+			weight = split;
+		}
+		else
+		{
+			p_wt += 500;
+			weight = 500;
+		}
+
+		if(p_wt)
+		{
+			func(*p, p_wt);
+			total_wt += p_wt;
+		}
+
+		p = &*i;
+		p_wt = weight;
+	}
+
+	if(p_wt)
+	{
+		func(*p, p_wt);
+		total_wt += p_wt;
+	}
+
+	return total_wt;
+}
+
 void Layout::update(UpdateMode mode)
 {
+	update_cost();
+
 	vector<Step> steps;
 	build_steps(steps);
-	update_damage(steps);
-	update_cost();
+	if(mode==FAST || mode==COMPATIBLE)
+		update_damage(steps);
 	if(mode!=FAST)
 	{
-		update_threat(steps);
-		update_runestones(steps);
+		vector<SimResult> results;
+		build_results(steps, 40, results);
+		if(mode!=COMPATIBLE)
+			update_damage(steps, results);
+		update_threat(results);
+		update_runestones(results);
 	}
 }
 
@@ -348,23 +474,39 @@ void Layout::update_damage(const vector<Step> &steps)
 	damage = simulate(steps, 0).damage;
 	if(upgrades.poison>=5)
 	{
-		uint64_t low = damage;
-		uint64_t high = simulate(steps, low).damage;
-		for(unsigned i=0; (i<10 && low*101<high*100); ++i)
-		{
-			uint64_t mid = (low+high*3)/4;
-			damage = simulate(steps, mid).damage;
-			if(damage>=mid)
-				low = mid;
-			else
-			{
-				high = mid;
-				low = damage;
-			}
-		}
-
-		damage = low;
+		uint64_t high_damage = simulate(steps, damage).damage;
+		refine_damage(steps, damage, high_damage);
 	}
+}
+
+void Layout::update_damage(const vector<Step> &steps, const vector<SimResult> &results)
+{
+	damage = results[0].damage;
+	if(upgrades.poison>=5)
+	{
+		unsigned i;
+		for(i=0; (i<results.size() && results[i].kill_cell>=0); ++i) ;
+		if(i<results.size())
+			refine_damage(steps, results[i].damage, damage);
+	}
+}
+
+void Layout::refine_damage(const vector<Step> &steps, uint64_t low, uint64_t high)
+{
+	for(unsigned i=0; (i<10 && low*101<high*100); ++i)
+	{
+		uint64_t mid = (low+high*3)/4;
+		damage = simulate(steps, mid).damage;
+		if(damage>=mid)
+			low = mid;
+		else
+		{
+			high = mid;
+			low = damage;
+		}
+	}
+
+	damage = low;
 }
 
 void Layout::update_cost()
@@ -424,66 +566,54 @@ void Layout::update_cost()
 	}
 }
 
-void Layout::update_threat(const vector<Step> &steps)
+void Layout::update_threat(const vector<SimResult> &results)
 {
 	unsigned cells = data.size();
 	unsigned floors = cells/5;
 
-	double log_base = log(1.012);
-	double low = log(damage)/log_base;
-	low = log(damage-4*low)/log_base;
-	double high = low+60;
+	static double log_base = log(1.012);
+	unsigned low = log(damage-4*log(damage)/log_base)/log_base;
+	unsigned high = low+64;
 
-	unsigned hp_div = 7;
-	for(unsigned i=0; i<7; ++i)
+	for(unsigned i=0; i<6; ++i)
 	{
-		double mid = (low+high)/2;
-		unsigned range = min(max<int>(0.53*mid, 150), 850);
-		uint64_t max_hp = 10+4*mid+pow(1.012, mid);
+		threat = (low+high+1)/2;
+
 		int change = 0;
-		for(unsigned j=0; j<=hp_div; ++j)
+		integrate_results_for_threat(results, threat, [&change, cells, floors](const SimResult &r, unsigned w)
 		{
-			uint64_t hp = max_hp*(1000-range*j/hp_div)/1000;
-			SimResult result = simulate(steps, hp);
-			if(result.damage>=hp)
-				change += (cells-result.kill_cell+4)/5;
+			if(r.kill_cell>=0)
+				change += (cells-r.kill_cell+4)/5*w;
 			else
-				change -= floors*ceil((hp-result.damage)/(hp*0.15));
-		}
+				change -= floors*ceil((r.max_hp-r.damage)/(r.max_hp*0.15))*w;
+		});
 
-		threat = round(mid);
-		if(change==0)
-			break;
-		else if(change>0)
-			low = mid;
+		if(change>0)
+			low = threat;
 		else
-			high = mid;
-
-		hp_div += 2;
+			high = threat;
 	}
 }
 
-void Layout::update_runestones(const vector<Step> &steps)
+void Layout::update_runestones(const vector<SimResult> &results)
 {
 	unsigned capacity = (1+(data.size()+1)/2)*3;
-	unsigned range = min(max<int>(0.53*threat, 150), 850);
-	uint64_t max_hp = 10+4*threat+pow(1.012, threat);
 	uint64_t runestones = 0;
-	for(unsigned i=0; i<=24; ++i)
+
+	unsigned total_w = integrate_results_for_threat(results, threat, [this, &runestones, capacity](const SimResult &r, unsigned w)
 	{
-		uint64_t hp = max_hp*(1000-range*i/24)/1000;
-		SimResult result = simulate(steps, hp);
 		uint64_t rs_gain = 0;
-		if(result.damage>=hp)
+		if(r.damage>=r.max_hp)
 		{
-			rs_gain = ((hp+599)/600+threat/20)*pow(1.00116, threat);
-			rs_gain = rs_gain*result.runestone_pct/100;
+			rs_gain = ((r.max_hp+599)/600+threat/20)*pow(1.00116, threat);
+			rs_gain = rs_gain*r.runestone_pct/100;
 		}
 		else if(upgrades.poison>=6)
-			rs_gain = result.toxicity/10;
-		runestones += rs_gain*capacity/max(result.steps_taken, capacity);
-	}
-	rs_per_sec = runestones/25/3;
+			rs_gain = r.toxicity/10;
+		runestones += rs_gain*w*capacity/max(r.steps_taken, capacity);
+	});
+
+	rs_per_sec = runestones/max(total_w*3, 1U);
 }
 
 void Layout::cross_from(const Layout &other, Random &random)
@@ -605,6 +735,7 @@ bool Layout::is_valid() const
 
 
 Layout::SimResult::SimResult():
+	max_hp(0),
 	damage(0),
 	runestone_pct(100),
 	steps_taken(0),

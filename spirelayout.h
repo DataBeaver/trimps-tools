@@ -54,11 +54,13 @@ struct Layout
 	enum UpdateMode
 	{
 		FAST,
+		COMPATIBLE,
 		FULL
 	};
 
 	struct SimResult
 	{
+		uint64_t max_hp;
 		uint64_t damage;
 		uint64_t toxicity;
 		unsigned runestone_pct;
@@ -82,11 +84,17 @@ struct Layout
 
 	void build_steps(std::vector<Step> &) const;
 	SimResult simulate(const std::vector<Step> &, std::uint64_t, bool = false) const;
+	void build_results(const std::vector<Step> &, unsigned, std::vector<SimResult> &) const;
+	SimResult interpolate_result(const std::vector<SimResult> &, std::uint64_t) const;
+	template<typename F>
+	unsigned integrate_results_for_threat(const std::vector<SimResult> &, unsigned, const F &) const;
 	void update(UpdateMode);
 	void update_damage(const std::vector<Step> &);
+	void update_damage(const std::vector<Step> &, const std::vector<SimResult> &);
+	void refine_damage(const std::vector<Step> &, uint64_t, uint64_t);
 	void update_cost();
-	void update_threat(const std::vector<Step> &);
-	void update_runestones(const std::vector<Step> &);
+	void update_threat(const std::vector<SimResult> &);
+	void update_runestones(const std::vector<SimResult> &);
 	void cross_from(const Layout &, Random &);
 	void mutate(unsigned, unsigned, Random &);
 	bool is_valid() const;
