@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 	return spiredb.main();
 }
 
-const unsigned SpireDB::current_version = 2;
+const unsigned SpireDB::current_version = 3;
 
 SpireDB::SpireDB(int argc, char **argv)
 {

@@ -599,8 +599,9 @@ void Layout::update_runestones(const vector<SimResult> &results)
 {
 	unsigned capacity = (1+(data.size()+1)/2)*3;
 	uint64_t runestones = 0;
+	unsigned steps_taken = 0;
 
-	unsigned total_w = integrate_results_for_threat(results, threat, [this, &runestones, capacity](const SimResult &r, unsigned w)
+	unsigned total_w = integrate_results_for_threat(results, threat, [this, &runestones, &steps_taken](const SimResult &r, unsigned w)
 	{
 		uint64_t rs_gain = 0;
 		if(r.damage>=r.max_hp)
@@ -610,10 +611,16 @@ void Layout::update_runestones(const vector<SimResult> &results)
 		}
 		else if(upgrades.poison>=6)
 			rs_gain = r.toxicity/10;
-		runestones += rs_gain*w*capacity/max(r.steps_taken, capacity);
+		steps_taken += r.steps_taken*w;
+		runestones += rs_gain*w;
 	});
 
-	rs_per_sec = runestones/max(total_w*3, 1U);
+	if(total_w)
+	{
+		runestones /= total_w;
+		steps_taken = max(steps_taken/total_w, capacity);
+		rs_per_sec = runestones*capacity/steps_taken/3;
+	}
 }
 
 void Layout::cross_from(const Layout &other, Random &random)
