@@ -502,7 +502,7 @@ void Layout::refine_damage(const vector<Step> &steps, uint64_t low, uint64_t hig
 		else
 		{
 			high = mid;
-			low = damage;
+			low = max(low, damage);
 		}
 	}
 
