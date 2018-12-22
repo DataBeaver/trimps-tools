@@ -745,7 +745,7 @@ void Spire::Worker::main()
 			mutated.mutate(random()%3, mut_count, random);
 			if(!mutated.is_valid())
 				continue;
-			
+
 			mutated.update_cost();
 			if(mutated.cost>spire.budget)
 				continue;

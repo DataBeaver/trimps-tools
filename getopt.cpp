@@ -104,7 +104,7 @@ void GetOpt::operator()(unsigned argc, const char *const *argv)
 			else
 				args_raw.push_back(argv[i++]);
 		}
-		
+
 		for(; i<argc; ++i)
 			args_raw.push_back(argv[i]);
 
@@ -152,9 +152,9 @@ unsigned GetOpt::process_long(const char *const *argp)
 	// See if the argument contains an =
 	unsigned equals = 0;
 	for(; arg[equals] && arg[equals]!='='; ++equals) ;
-	
+
 	OptionImpl &opt = get_option(string(arg, equals));
-	
+
 	if(arg[equals])
 		// Process the part after the = as option argument
 		opt.process(arg+equals+1);
@@ -169,7 +169,7 @@ unsigned GetOpt::process_long(const char *const *argp)
 	}
 	else
 		opt.process();
-	
+
 	return 1;
 }
 
@@ -193,7 +193,7 @@ unsigned GetOpt::process_short(const char *const *argp)
 		{
 			if(!argp[1])
 				throw usage_error("-"+string(1, *arg)+" requires an argument");
-			
+
 			// Use the next argument as option argument
 			opt.process(argp[1]);
 			return 2;
@@ -309,7 +309,7 @@ string GetOpt::generate_help() const
 		for(ArgumentList::const_iterator i=args.begin(); i!=args.end(); ++i, ++j)
 			result += format("  %s%s%s\n", *j, string(maxw+2-j->size(), ' '), (*i)->get_help());
 	}
-	
+
 	return result;
 }
 
