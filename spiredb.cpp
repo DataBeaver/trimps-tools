@@ -232,6 +232,8 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 		else if(best_damage==layout.damage && best_cost==layout.cost)
 			duplicate_damage = true;
 	}
+	else
+		accepted = true;
 
 	result = xact.exec_prepared("select_best_income", layout.data.size()/5, layout.upgrades.fire, layout.upgrades.frost, layout.upgrades.poison, layout.upgrades.lightning, layout.cost);
 	if(!result.empty())
@@ -244,6 +246,8 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 		else if(best_income==layout.rs_per_sec && best_cost==layout.cost)
 			duplicate_income = true;
 	}
+	else
+		accepted = true;
 
 	if(accepted)
 	{
