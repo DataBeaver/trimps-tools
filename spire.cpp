@@ -522,8 +522,12 @@ void Spire::prune_pools()
 
 void Spire::report(const Layout &layout, const string &message)
 {
-	cout << message << " (" << layout.damage << " damage, " << layout.threat << " threat, " << layout.rs_per_sec << " Rs/s, cost " << layout.cost << " Rs, cycle " << layout.cycle << "):" << endl;
+	time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());
+	cout << '[' << put_time(localtime(&t), "%F %T") << "] "
+		<< message << " (" << layout.damage << " damage, " << layout.threat << " threat, "
+		<< layout.rs_per_sec << " Rs/s, cost " << layout.cost << " Rs, cycle " << layout.cycle << "):" << endl;
 	unsigned count = 1;
+	cout << "  ";
 	print(layout, count);
 }
 
