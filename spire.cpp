@@ -377,7 +377,7 @@ int Spire::main()
 
 	if(network)
 	{
-		bool submit = true;
+		bool submit = (score_func(best_layout)>0);
 
 		cout << "Querying online build database for best known layout" << endl;
 		unsigned floors = best_layout.data.size()/5;
@@ -391,9 +391,9 @@ int Spire::main()
 			layout.data.resize(floors*5, '_');
 			layout.update(income ? Layout::FULL : Layout::COMPATIBLE);
 
-			submit = (score_func(best_layout)>score_func(layout) || best_layout.cost<layout.cost);
-			if(layout.damage>best_layout.damage)
+			if(score_func(layout)>score_func(best_layout))
 			{
+				submit = false;
 				best_layout = layout;
 				pools.front()->add_layout(best_layout);
 				if(!show_pools)
