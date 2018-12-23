@@ -166,7 +166,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
 	getopt.add_option('i', "income", income, GetOpt::NO_ARG).set_help("Optimize runestones per second");
-	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online build database");
+	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online layout database");
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
 	getopt.add_option('l', "loops", loops_per_cycle, GetOpt::REQUIRED_ARG).set_help("Number of loops per cycle", "NUM");
@@ -379,7 +379,7 @@ int Spire::main()
 	{
 		bool submit = (score_func(best_layout)>0);
 
-		cout << "Querying online build database for best known layout" << endl;
+		cout << "Querying online database for best known layout" << endl;
 		unsigned floors = best_layout.data.size()/5;
 		string reply = network->communicate(connection, format("query %s %s %s %s", best_layout.upgrades.str(), floors, budget, (income ? "income" : "damage")));
 		vector<string> parts = split(reply);
@@ -400,7 +400,7 @@ int Spire::main()
 					report(best_layout, "Layout from database");
 			}
 			else
-				cout << "No better layout found" << endl;
+				cout << "Database returned no better layout" << endl;
 		}
 
 		if(submit)
