@@ -12,6 +12,15 @@
 #include "network.h"
 #include "spirelayout.h"
 
+#ifdef _WIN32
+struct tm *localtime_r(const time_t *timep, struct tm *result)
+{
+	if(!localtime_s(result, timep))
+		return result;
+	return 0;
+}
+#endif
+
 class Pool 
 {
 public:
@@ -523,7 +532,8 @@ void Spire::prune_pools()
 void Spire::report(const Layout &layout, const string &message)
 {
 	time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());
-	cout << '[' << put_time(localtime(&t), "%F %T") << "] "
+	struct tm lt;
+	cout << '[' << put_time(localtime_r(&t, &lt), "%Y-%m-%d %H:%M:%S") << "] "
 		<< message << " (" << layout.damage << " damage, " << layout.threat << " threat, "
 		<< layout.rs_per_sec << " Rs/s, cost " << layout.cost << " Rs, cycle " << layout.cycle << "):" << endl;
 	unsigned count = 1;
