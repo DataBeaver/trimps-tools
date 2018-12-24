@@ -178,7 +178,7 @@ private:
 		virtual void store() { }
 
 		virtual void store(const std::string &a)
-		{ data = parse_string<T>(a); }
+		{ data = parse_value<T>(a); }
 	};
 
 	template<typename T>
@@ -198,7 +198,7 @@ private:
 		virtual void store() { }
 
 		virtual void store(const std::string &a)
-		{ data.push_back(parse_string<typename T::value_type>(a)); }
+		{ data.push_back(parse_value<typename T::value_type>(a)); }
 	};
 
 	typedef std::list<OptionImpl *> OptionList;

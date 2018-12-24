@@ -15,7 +15,7 @@ inline std::string stringify(const T &value)
 }
 
 template<typename T>
-inline T parse_string(const std::string &str)
+inline T parse_value(const std::string &str)
 {
 	std::istringstream ss(str);
 	T value;
@@ -42,21 +42,6 @@ inline std::string format(const std::string &fmt, const T &arg, Args... args)
 	return fmt.substr(0, marker)+stringify(arg)+format(fmt.substr(marker_end+1), args...);
 }
 
-inline std::vector<std::string> split(const std::string &str)
-{
-	std::vector<std::string> parts;
-	std::string::size_type start = 0;
-
-	while(start<str.size())
-	{
-		std::string::size_type space = str.find(' ', start+1);
-		parts.push_back(str.substr(start, space-start));
-		if(space==std::string::npos)
-			break;
-		start = space+1;
-	}
-
-	return parts;
-}
+std::vector<std::string> split(const std::string &);
 
 #endif

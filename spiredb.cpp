@@ -171,7 +171,7 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 			else
 			{
 				bool income = (parts.size()>=5 && parts[4]=="income");
-				Layout layout = query_layout(parts[1], parse_string<unsigned>(parts[2]), parse_string<uint64_t>(parts[3]), income);
+				Layout layout = query_layout(parts[1], parse_value<unsigned>(parts[2]), parse_value<uint64_t>(parts[3]), income);
 				if(layout.data.empty())
 					network.send_message(tag, "notfound");
 				else
