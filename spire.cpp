@@ -114,7 +114,7 @@ private:
 	bool print(const Layout &, unsigned &);
 	PrintNum print_num(Number) const;
 	static Number damage_score(const Layout &);
-	static Number runestones_score(const Layout &);
+	static Number income_score(const Layout &);
 	static void sighandler(int);
 
 	friend std::ostream &operator<<(std::ostream &, const PrintNum &);
@@ -249,7 +249,7 @@ Spire::Spire(int argc, char **argv):
 	if(!n_pools_seen && heterogeneous)
 		n_pools = 21;
 	if(income)
-		score_func = runestones_score;
+		score_func = income_score;
 	pools.reserve(n_pools);
 	for(unsigned i=0; i<n_pools; ++i)
 		pools.push_back(new Pool(pool_size, score_func));
@@ -603,7 +603,7 @@ Number Spire::damage_score(const Layout &layout)
 	return layout.damage;
 }
 
-Number Spire::runestones_score(const Layout &layout)
+Number Spire::income_score(const Layout &layout)
 {
 	return layout.rs_per_sec;
 }
