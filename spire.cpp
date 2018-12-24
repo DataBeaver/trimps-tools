@@ -24,7 +24,7 @@ struct tm *localtime_r(const time_t *timep, struct tm *result)
 class Pool 
 {
 public:
-	typedef std::uint64_t ScoreFunc(const Layout &);
+	typedef Number ScoreFunc(const Layout &);
 
 private:
 	unsigned max_size;
@@ -39,7 +39,7 @@ public:
 	Layout get_best_layout() const;
 	bool get_best_layout(Layout &) const;
 	Layout get_random_layout(Layout::Random &) const;
-	std::uint64_t get_best_score() const;
+	Number get_best_score() const;
 
 	template<typename F>
 	void visit_layouts(const F &) const;
@@ -86,7 +86,7 @@ private:
 	Network::ConnectionTag connection;
 	bool intr_flag;
 
-	std::uint64_t budget;
+	Number budget;
 	bool income;
 	Pool::ScoreFunc *score_func;
 	Layout start_layout;
@@ -103,8 +103,8 @@ private:
 	void prune_pools();
 	void report(const Layout &, const std::string &);
 	bool print(const Layout &, unsigned &);
-	static std::uint64_t damage_score(const Layout &);
-	static std::uint64_t runestones_score(const Layout &);
+	static Number damage_score(const Layout &);
+	static Number runestones_score(const Layout &);
 	static void sighandler(int);
 };
 
@@ -439,7 +439,7 @@ int Spire::main()
 				w->join();
 		}
 
-		uint64_t best_score = score_func(best_layout);
+		Number best_score = score_func(best_layout);
 		for(auto *p: pools)
 		{
 			p->get_best_layout(best_layout);
@@ -504,10 +504,10 @@ void Spire::prune_pools()
 	unsigned lowest = 0;
 	if(heterogeneous)
 		++lowest;
-	uint64_t score = pools[lowest]->get_best_score();
+	Number score = pools[lowest]->get_best_score();
 	for(unsigned i=0; i<n_pools; ++i)
 	{
-		uint64_t s = pools[i]->get_best_score();
+		Number s = pools[i]->get_best_score();
 		if(s<score)
 		{
 			lowest = i;
@@ -576,12 +576,12 @@ bool Spire::print(const Layout &layout, unsigned &count)
 	return (count && --count);
 }
 
-uint64_t Spire::damage_score(const Layout &layout)
+Number Spire::damage_score(const Layout &layout)
 {
 	return layout.damage;
 }
 
-uint64_t Spire::runestones_score(const Layout &layout)
+Number Spire::runestones_score(const Layout &layout)
 {
 	return layout.rs_per_sec;
 }
@@ -604,7 +604,7 @@ void Pool::add_layout(const Layout &layout)
 	if(layouts.size()>=max_size && score_func(layout)<score_func(layouts.back()))
 		return;
 
-	uint64_t score = score_func(layout);
+	Number score = score_func(layout);
 	auto i = layouts.begin();
 	for(; (i!=layouts.end() && score_func(*i)>score); ++i)
 		if(i->cost<=layout.cost)
@@ -648,7 +648,7 @@ Layout Pool::get_random_layout(Layout::Random &random) const
 {
 	lock_guard<mutex> lock(layouts_mutex);
 
-	uint64_t total = 0;
+	Number total = 0;
 	for(const auto &l: layouts)
 		total += score_func(l);
 
@@ -659,10 +659,10 @@ Layout Pool::get_random_layout(Layout::Random &random) const
 		return *i;
 	}
 
-	uint64_t p = ((static_cast<uint64_t>(random())<<32)+random())%total;
+	Number p = ((static_cast<Number>(random())<<32)+random())%total;
 	for(const auto &l: layouts)
 	{
-		uint64_t score = score_func(l);
+		Number score = score_func(l);
 		if(p<score)
 			return l;
 		p -= score;
@@ -671,7 +671,7 @@ Layout Pool::get_random_layout(Layout::Random &random) const
 	throw logic_error("Spire::get_random_layout");
 }
 
-uint64_t Pool::get_best_score() const
+Number Pool::get_best_score() const
 {
 	lock_guard<mutex> lock(layouts_mutex);
 	return score_func(layouts.front());

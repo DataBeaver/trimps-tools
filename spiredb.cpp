@@ -35,7 +35,7 @@ public:
 private:
 	void update_layouts();
 	void serve(Network::ConnectionTag, const std::string &);
-	Layout query_layout(const std::string &, unsigned, std::uint64_t, bool);
+	Layout query_layout(const std::string &, unsigned, Number, bool);
 	SubmitResult submit_layout(const std::string &, const std::string &, const std::string &);
 };
 
@@ -171,7 +171,7 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 			else
 			{
 				bool income = (parts.size()>=5 && parts[4]=="income");
-				Layout layout = query_layout(parts[1], parse_value<unsigned>(parts[2]), parse_value<uint64_t>(parts[3]), income);
+				Layout layout = query_layout(parts[1], parse_value<unsigned>(parts[2]), parse_value<Number>(parts[3]), income);
 				if(layout.data.empty())
 					network.send_message(tag, "notfound");
 				else
@@ -185,7 +185,7 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 		network.send_message(tag, "error bad command");
 }
 
-Layout SpireDB::query_layout(const string &up_str, unsigned floors, uint64_t budget, bool income)
+Layout SpireDB::query_layout(const string &up_str, unsigned floors, Number budget, bool income)
 {
 	TrapUpgrades upgrades(up_str);
 	pqxx::work xact(*pq_conn);
@@ -225,8 +225,8 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 	if(!result.empty())
 	{
 		pqxx::row row = result.front();
-		uint64_t best_damage = row[5].as<uint64_t>(0);
-		uint64_t best_cost = row[6].as<uint64_t>(0);
+		Number best_damage = row[5].as<Number>(0);
+		Number best_cost = row[6].as<Number>(0);
 		if(best_damage<layout.damage || (best_damage==layout.damage && best_cost>layout.cost))
 			accepted = true;
 		else if(best_damage==layout.damage && best_cost==layout.cost)
@@ -239,8 +239,8 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 	if(!result.empty())
 	{
 		pqxx::row row = result.front();
-		uint64_t best_income = row[5].as<uint64_t>(0);
-		uint64_t best_cost = row[6].as<uint64_t>(0);
+		Number best_income = row[5].as<Number>(0);
+		Number best_cost = row[6].as<Number>(0);
 		if(best_income<layout.rs_per_sec || (best_income==layout.rs_per_sec && best_cost>layout.cost))
 			accepted = true;
 		else if(best_income==layout.rs_per_sec && best_cost==layout.cost)

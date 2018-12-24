@@ -4,13 +4,14 @@
 #include <cstdint>
 #include <random>
 #include <vector>
+#include "types.h"
 
 struct TrapUpgrades
 {
-	uint16_t fire;
-	uint16_t frost;
-	uint16_t poison;
-	uint16_t lightning;
+	std::uint16_t fire;
+	std::uint16_t frost;
+	std::uint16_t poison;
+	std::uint16_t lightning;
 
 	TrapUpgrades();
 	TrapUpgrades(const std::string &);
@@ -41,8 +42,8 @@ struct Step
 	std::uint8_t kill_pct;
 	std::uint8_t toxic_pct;
 	std::uint8_t rs_bonus;
-	std::uint64_t direct_damage;
-	std::uint64_t toxicity;
+	Number direct_damage;
+	Number toxicity;
 
 	Step();
 };
@@ -60,11 +61,11 @@ struct Layout
 
 	struct SimResult
 	{
-		uint64_t max_hp;
-		uint64_t damage;
-		uint64_t toxicity;
-		unsigned runestone_pct;
-		unsigned steps_taken;
+		Number max_hp;
+		Number damage;
+		Number toxicity;
+		std::uint16_t runestone_pct;
+		std::uint16_t steps_taken;
 		int kill_cell;
 
 		SimResult();
@@ -72,9 +73,9 @@ struct Layout
 
 	TrapUpgrades upgrades;
 	std::string data;
-	std::uint64_t damage;
-	std::uint64_t cost;
-	std::uint64_t rs_per_sec;
+	Number damage;
+	Number cost;
+	Number rs_per_sec;
 	unsigned threat;
 	unsigned cycle;
 
@@ -83,14 +84,14 @@ struct Layout
 	Layout();
 
 	void build_steps(std::vector<Step> &) const;
-	SimResult simulate(const std::vector<Step> &, std::uint64_t, bool = false) const;
+	SimResult simulate(const std::vector<Step> &, Number, bool = false) const;
 	void build_results(const std::vector<Step> &, unsigned, std::vector<SimResult> &) const;
 	template<typename F>
 	unsigned integrate_results_for_threat(const std::vector<SimResult> &, unsigned, const F &) const;
 	void update(UpdateMode);
 	void update_damage(const std::vector<Step> &);
 	void update_damage(const std::vector<Step> &, const std::vector<SimResult> &);
-	void refine_damage(const std::vector<Step> &, uint64_t, uint64_t);
+	void refine_damage(const std::vector<Step> &, Number, Number);
 	void update_cost();
 	void update_threat(const std::vector<SimResult> &);
 	void update_runestones(const std::vector<SimResult> &);
