@@ -196,7 +196,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('i', "income", income, GetOpt::NO_ARG).set_help("Optimize runestones per second");
 	getopt.add_option("towers", towers, GetOpt::NO_ARG).set_help("Try to use as many towers as possible");
 	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online layout database");
-	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on");
+	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on", "NAME");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
 	getopt.add_option('l', "loops", loops_per_cycle, GetOpt::REQUIRED_ARG).set_help("Number of loops per cycle", "NUM");
 	getopt.add_option('p', "pools", n_pools, GetOpt::REQUIRED_ARG).set_help("Number of population pools", "NUM").bind_seen_count(n_pools_seen);
