@@ -326,7 +326,7 @@ Spire::Spire(int argc, char **argv):
 			floors = max<unsigned>((start_layout.data.size()+4)/5, 1U);
 
 		start_layout.data.resize(floors*5, '_');
-		start_layout.update(income ? Layout::FULL : Layout::COMPATIBLE);
+		start_layout.update((income || debug_layout) ? Layout::FULL : Layout::COMPATIBLE);
 		pools.front()->add_layout(start_layout);
 
 		if(!budget_seen)
