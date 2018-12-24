@@ -344,25 +344,6 @@ void Layout::build_results(const vector<Step> &steps, unsigned subdiv, vector<Si
 		results.push_back(simulate(steps, max_hp*i/subdiv));
 }
 
-Layout::SimResult Layout::interpolate_result(const vector<SimResult> &results, uint64_t hp) const
-{
-	unsigned max_hp = results.back().max_hp;
-	if(hp>=max_hp)
-		return results.back();
-
-	unsigned i = hp*(results.size()-1)/max_hp;
-	const SimResult &low = results[i];
-	const SimResult &high = results[i+1];
-	uint64_t delta = high.max_hp-low.max_hp;
-	uint64_t t = i-low.max_hp;
-
-	SimResult result;
-	result.max_hp = hp;
-	result.damage = low.max_hp+(high.max_hp-low.max_hp)*t/delta;
-
-	return result;
-}
-
 template<typename F>
 unsigned Layout::integrate_results_for_threat(const vector<SimResult> &results, unsigned thrt, const F &func) const
 {

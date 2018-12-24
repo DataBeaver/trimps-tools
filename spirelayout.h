@@ -85,7 +85,6 @@ struct Layout
 	void build_steps(std::vector<Step> &) const;
 	SimResult simulate(const std::vector<Step> &, std::uint64_t, bool = false) const;
 	void build_results(const std::vector<Step> &, unsigned, std::vector<SimResult> &) const;
-	SimResult interpolate_result(const std::vector<SimResult> &, std::uint64_t) const;
 	template<typename F>
 	unsigned integrate_results_for_threat(const std::vector<SimResult> &, unsigned, const F &) const;
 	void update(UpdateMode);
