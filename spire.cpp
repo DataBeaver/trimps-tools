@@ -38,7 +38,7 @@ public:
 	void add_layout(const Layout &);
 	Layout get_best_layout() const;
 	bool get_best_layout(Layout &) const;
-	Layout get_random_layout(Layout::Random &) const;
+	Layout get_random_layout(Random &) const;
 	Number get_best_score() const;
 
 	template<typename F>
@@ -52,7 +52,7 @@ private:
 	{
 	private:
 		Spire &spire;
-		Layout::Random random;
+		Random random;
 		bool intr_flag;
 		std::thread thread;
 
@@ -418,7 +418,7 @@ int Spire::main()
 
 	signal(SIGINT, sighandler);
 
-	Layout::Random random;
+	Random random;
 	for(unsigned i=0; i<n_workers; ++i)
 		workers.push_back(new Worker(*this, random()));
 
@@ -644,7 +644,7 @@ bool Pool::get_best_layout(Layout &layout) const
 	return true;
 }
 
-Layout Pool::get_random_layout(Layout::Random &random) const
+Layout Pool::get_random_layout(Random &random) const
 {
 	lock_guard<mutex> lock(layouts_mutex);
 

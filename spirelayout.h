@@ -2,7 +2,6 @@
 #define SPIRELAYOUT_H_
 
 #include <cstdint>
-#include <random>
 #include <vector>
 #include "types.h"
 
@@ -50,8 +49,6 @@ struct Step
 
 struct Layout
 {
-	typedef std::minstd_rand Random;
-
 	enum UpdateMode
 	{
 		FAST,
