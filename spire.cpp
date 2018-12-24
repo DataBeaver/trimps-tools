@@ -164,9 +164,10 @@ Spire::Spire(int argc, char **argv):
 	string upgrades;
 	string preset;
 	bool online = false;
+	NumberIO budget_in = budget;
 
 	GetOpt getopt;
-	getopt.add_option('b', "budget", budget, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM").bind_seen_count(budget_seen);
+	getopt.add_option('b', "budget", budget_in, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM").bind_seen_count(budget_seen);
 	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG).set_help("Number of floors in the spire", "NUM").bind_seen_count(floors_seen);
 	getopt.add_option("fire", start_layout.upgrades.fire, GetOpt::REQUIRED_ARG).set_help("Set fire trap upgrade level", "LEVEL");
 	getopt.add_option("frost", start_layout.upgrades.frost, GetOpt::REQUIRED_ARG).set_help("Set frost trap upgrade level", "LEVEL");
@@ -190,6 +191,8 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("show-pools", show_pools, GetOpt::NO_ARG).set_help("Show population pool contents while running");
 	getopt.add_argument("layout", start_layout.data, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
 	getopt(argc, argv);
+
+	budget = budget_in.value;
 
 	if(floors<1)
 		throw usage_error("Invalid number of floors");
@@ -534,8 +537,8 @@ void Spire::report(const Layout &layout, const string &message)
 	time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	struct tm lt;
 	cout << '[' << put_time(localtime_r(&t, &lt), "%Y-%m-%d %H:%M:%S") << "] "
-		<< message << " (" << layout.damage << " damage, " << layout.threat << " threat, "
-		<< layout.rs_per_sec << " Rs/s, cost " << layout.cost << " Rs, cycle " << layout.cycle << "):" << endl;
+		<< message << " (" << NumberIO(layout.damage) << " damage, " << layout.threat << " threat, "
+		<< NumberIO(layout.rs_per_sec) << " Rs/s, cost " << NumberIO(layout.cost) << " Rs, cycle " << layout.cycle << "):" << endl;
 	unsigned count = 1;
 	cout << "  ";
 	print(layout, count);
