@@ -85,12 +85,12 @@ struct Layout
 	void build_results(const std::vector<Step> &, unsigned, std::vector<SimResult> &) const;
 	template<typename F>
 	unsigned integrate_results_for_threat(const std::vector<SimResult> &, unsigned, const F &) const;
-	void update(UpdateMode);
-	void update_damage(const std::vector<Step> &);
-	void update_damage(const std::vector<Step> &, const std::vector<SimResult> &);
-	void refine_damage(const std::vector<Step> &, Number, Number);
+	void update(UpdateMode, unsigned = 12);
+	void update_damage(const std::vector<Step> &, unsigned);
+	void update_damage(const std::vector<Step> &, const std::vector<SimResult> &, unsigned);
+	void refine_damage(const std::vector<Step> &, Number, Number, unsigned);
 	void update_cost();
-	void update_threat(const std::vector<SimResult> &);
+	void update_threat(const std::vector<SimResult> &, unsigned);
 	void update_runestones(const std::vector<SimResult> &);
 	void cross_from(const Layout &, Random &);
 	void mutate(unsigned, unsigned, Random &);

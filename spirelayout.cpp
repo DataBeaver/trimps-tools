@@ -431,36 +431,39 @@ unsigned Layout::integrate_results_for_threat(const vector<SimResult> &results, 
 	return total_wt;
 }
 
-void Layout::update(UpdateMode mode)
+void Layout::update(UpdateMode mode, unsigned accuracy)
 {
+	accuracy = max(accuracy, 3U);
+
 	update_cost();
 
 	vector<Step> steps;
 	build_steps(steps);
 	if(mode==FAST || mode==COMPATIBLE)
-		update_damage(steps);
+		update_damage(steps, accuracy);
 	if(mode!=FAST)
 	{
+		unsigned subdiv = min(max(accuracy/3, 3U), 10U);
 		vector<SimResult> results;
-		build_results(steps, 40, results);
+		build_results(steps, 1<<subdiv, results);
 		if(mode!=COMPATIBLE)
-			update_damage(steps, results);
-		update_threat(results);
+			update_damage(steps, results, accuracy-subdiv);
+		update_threat(results, accuracy/2);
 		update_runestones(results);
 	}
 }
 
-void Layout::update_damage(const vector<Step> &steps)
+void Layout::update_damage(const vector<Step> &steps, unsigned accuracy)
 {
 	damage = simulate(steps, 0).damage;
 	if(upgrades.poison>=5)
 	{
 		Number high_damage = simulate(steps, damage).damage;
-		refine_damage(steps, damage, high_damage);
+		refine_damage(steps, damage, high_damage, accuracy);
 	}
 }
 
-void Layout::update_damage(const vector<Step> &steps, const vector<SimResult> &results)
+void Layout::update_damage(const vector<Step> &steps, const vector<SimResult> &results, unsigned accuracy)
 {
 	damage = results[0].damage;
 	if(upgrades.poison>=5)
@@ -468,15 +471,15 @@ void Layout::update_damage(const vector<Step> &steps, const vector<SimResult> &r
 		unsigned i;
 		for(i=0; (i<results.size() && results[i].kill_cell>=0); ++i) ;
 		if(i<results.size())
-			refine_damage(steps, results[i].damage, damage);
+			refine_damage(steps, results[i-1].max_hp, results[i].max_hp, accuracy);
 	}
 }
 
-void Layout::refine_damage(const vector<Step> &steps, Number low, Number high)
+void Layout::refine_damage(const vector<Step> &steps, Number low, Number high, unsigned accuracy)
 {
-	for(unsigned i=0; (i<10 && low*101<high*100); ++i)
+	for(unsigned i=0; (i<accuracy && low+1<high); ++i)
 	{
-		Number mid = (low+high*3)/4;
+		Number mid = (low+high)/2;
 		damage = simulate(steps, mid).damage;
 		if(damage>=mid)
 			low = mid;
@@ -547,7 +550,7 @@ void Layout::update_cost()
 	}
 }
 
-void Layout::update_threat(const vector<SimResult> &results)
+void Layout::update_threat(const vector<SimResult> &results, unsigned accuracy)
 {
 	unsigned cells = data.size();
 	unsigned floors = cells/5;
@@ -556,7 +559,7 @@ void Layout::update_threat(const vector<SimResult> &results)
 	unsigned low = log(damage-4*log(damage)/log_base)/log_base;
 	unsigned high = low+64;
 
-	for(unsigned i=0; i<6; ++i)
+	for(unsigned i=0; (i<accuracy && low+1<high); ++i)
 	{
 		threat = (low+high+1)/2;
 

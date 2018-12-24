@@ -87,6 +87,7 @@ private:
 	std::list<Worker *> workers;
 	unsigned loops_per_cycle;
 	std::atomic<unsigned> cycle;
+	unsigned accuracy;
 	bool debug_layout;
 	bool numeric_format;
 	bool raw_values;
@@ -157,6 +158,7 @@ Spire::Spire(int argc, char **argv):
 	n_workers(4),
 	loops_per_cycle(200),
 	cycle(1),
+	accuracy(12),
 	debug_layout(false),
 	numeric_format(false),
 	raw_values(false),
@@ -197,6 +199,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("towers", towers, GetOpt::NO_ARG).set_help("Try to use as many towers as possible");
 	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online layout database");
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on", "NAME");
+	getopt.add_option('a', "accuracy", accuracy, GetOpt::REQUIRED_ARG).set_help("Set simulation accuracy", "NUM");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
 	getopt.add_option('l', "loops", loops_per_cycle, GetOpt::REQUIRED_ARG).set_help("Number of loops per cycle", "NUM");
 	getopt.add_option('p', "pools", n_pools, GetOpt::REQUIRED_ARG).set_help("Number of population pools", "NUM").bind_seen_count(n_pools_seen);
@@ -326,7 +329,7 @@ Spire::Spire(int argc, char **argv):
 			floors = max<unsigned>((start_layout.data.size()+4)/5, 1U);
 
 		start_layout.data.resize(floors*5, '_');
-		start_layout.update((income || debug_layout) ? Layout::FULL : Layout::COMPATIBLE);
+		start_layout.update((income || debug_layout) ? Layout::FULL : Layout::COMPATIBLE, accuracy);
 		pools.front()->add_layout(start_layout);
 
 		if(!budget_seen)
@@ -423,7 +426,7 @@ int Spire::main()
 			layout.upgrades = best_layout.upgrades;
 			layout.data = parts[2];
 			layout.data.resize(floors*5, '_');
-			layout.update(income ? Layout::FULL : Layout::COMPATIBLE);
+			layout.update(income ? Layout::FULL : Layout::COMPATIBLE, accuracy);
 
 			if(score_func(layout)>score_func(best_layout))
 			{
@@ -474,7 +477,7 @@ int Spire::main()
 
 		if(score_func(best_layout)>best_score)
 		{
-			best_layout.update(income ? Layout::FULL : Layout::COMPATIBLE);
+			best_layout.update(income ? Layout::FULL : Layout::COMPATIBLE, accuracy);
 			if(!show_pools)
 				report(best_layout, "New best layout found");
 			if(network)
@@ -813,7 +816,7 @@ void Spire::Worker::main()
 			if(mutated.cost>spire.budget)
 				continue;
 
-			mutated.update(spire.income ? Layout::FULL : Layout::FAST);
+			mutated.update(spire.income ? Layout::FULL : Layout::FAST, spire.accuracy);
 			pool.add_layout(mutated);
 		}
 	}
