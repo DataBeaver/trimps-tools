@@ -85,3 +85,7 @@ Finally, a few options are mostly for debugging purposes:
 
 --show-pools
   Continuously show the top layouts in each population pool while running
+
+--raw-values
+  Print raw, full values of numbers.  These are more difficult to read but
+  may be helpful in debugging suspected accuracy issues.

@@ -66,6 +66,14 @@ private:
 		void main();
 	};
 
+	struct PrintNum
+	{
+		Number num;
+		bool raw;
+
+		PrintNum(Number n, bool r): num(n), raw(r) { }
+	};
+
 	unsigned n_pools;
 	std::vector<Pool *> pools;
 	std::mutex pools_mutex;
@@ -81,6 +89,7 @@ private:
 	std::atomic<unsigned> cycle;
 	bool debug_layout;
 	bool numeric_format;
+	bool raw_values;
 	bool show_pools;
 	Network *network;
 	Network::ConnectionTag connection;
@@ -103,9 +112,12 @@ private:
 	void prune_pools();
 	void report(const Layout &, const std::string &);
 	bool print(const Layout &, unsigned &);
+	PrintNum print_num(Number) const;
 	static Number damage_score(const Layout &);
 	static Number runestones_score(const Layout &);
 	static void sighandler(int);
+
+	friend std::ostream &operator<<(std::ostream &, const PrintNum &);
 };
 
 using namespace std;
@@ -143,6 +155,7 @@ Spire::Spire(int argc, char **argv):
 	cycle(1),
 	debug_layout(false),
 	numeric_format(false),
+	raw_values(false),
 	show_pools(false),
 	network(0),
 	connection(0),
@@ -189,6 +202,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('o', "foreign-rate", foreign_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing from another pool (out of 1000)", "NUM").bind_seen_count(foreign_rate_seen);
 	getopt.add_option('g', "debug-layout", debug_layout, GetOpt::NO_ARG).set_help("Print detailed information about the layout");
 	getopt.add_option("show-pools", show_pools, GetOpt::NO_ARG).set_help("Show population pool contents while running");
+	getopt.add_option("raw-values", raw_values, GetOpt::NO_ARG).set_help("Display raw numeric values");
 	getopt.add_argument("layout", start_layout.data, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
 	getopt(argc, argv);
 
@@ -537,8 +551,8 @@ void Spire::report(const Layout &layout, const string &message)
 	time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	struct tm lt;
 	cout << '[' << put_time(localtime_r(&t, &lt), "%Y-%m-%d %H:%M:%S") << "] "
-		<< message << " (" << NumberIO(layout.damage) << " damage, " << layout.threat << " threat, "
-		<< NumberIO(layout.rs_per_sec) << " Rs/s, cost " << NumberIO(layout.cost) << " Rs, cycle " << layout.cycle << "):" << endl;
+		<< message << " (" << print_num(layout.damage) << " damage, " << layout.threat << " threat, "
+		<< print_num(layout.rs_per_sec) << " Rs/s, cost " << print_num(layout.cost) << " Rs, cycle " << layout.cycle << "):" << endl;
 	unsigned count = 1;
 	cout << "  ";
 	print(layout, count);
@@ -577,6 +591,11 @@ bool Spire::print(const Layout &layout, unsigned &count)
 		cout << descr << endl;
 
 	return (count && --count);
+}
+
+Spire::PrintNum Spire::print_num(Number num) const
+{
+	return PrintNum(num, raw_values);
 }
 
 Number Spire::damage_score(const Layout &layout)
@@ -771,4 +790,13 @@ void Spire::Worker::main()
 			pool.add_layout(mutated);
 		}
 	}
+}
+
+
+ostream &operator<<(ostream &os, const Spire::PrintNum &pn)
+{
+	if(pn.raw)
+		return (os << pn.num);
+	else
+		return (os << NumberIO(pn.num));
 }
