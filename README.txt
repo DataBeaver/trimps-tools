@@ -25,6 +25,10 @@ of the more important options are:
   may be prudent to first find a decent damage-optimized build and use that
   as a base for runestone optization.
 
+--towers
+  Try to use as many towers as possible.  This may produce layouts that have
+  inferior damage or income.
+
 -n, --numeric-format
   Output layouts in numeric format compatible with swaq's TD calculator
   (http://swaqvalley.com/td_calc/)

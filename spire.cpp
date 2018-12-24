@@ -97,6 +97,7 @@ private:
 
 	Number budget;
 	bool income;
+	bool towers;
 	Pool::ScoreFunc *score_func;
 	Layout start_layout;
 
@@ -114,7 +115,10 @@ private:
 	bool print(const Layout &, unsigned &);
 	PrintNum print_num(Number) const;
 	static Number damage_score(const Layout &);
+	static Number damage_towers_score(const Layout &);
 	static Number income_score(const Layout &);
+	static Number income_towers_score(const Layout &);
+	static unsigned get_towers_multiplier(const Layout &);
 	static void sighandler(int);
 
 	friend std::ostream &operator<<(std::ostream &, const PrintNum &);
@@ -162,6 +166,7 @@ Spire::Spire(int argc, char **argv):
 	intr_flag(false),
 	budget(1000000),
 	income(false),
+	towers(false),
 	score_func(damage_score)
 {
 	instance = this;
@@ -189,6 +194,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
 	getopt.add_option('i', "income", income, GetOpt::NO_ARG).set_help("Optimize runestones per second");
+	getopt.add_option("towers", towers, GetOpt::NO_ARG).set_help("Try to use as many towers as possible");
 	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online layout database");
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
@@ -249,7 +255,9 @@ Spire::Spire(int argc, char **argv):
 	if(!n_pools_seen && heterogeneous)
 		n_pools = 21;
 	if(income)
-		score_func = income_score;
+		score_func = (towers ? income_towers_score : income_score);
+	else if(towers)
+		score_func = damage_towers_score;
 	pools.reserve(n_pools);
 	for(unsigned i=0; i<n_pools; ++i)
 		pools.push_back(new Pool(pool_size, score_func));
@@ -603,9 +611,28 @@ Number Spire::damage_score(const Layout &layout)
 	return layout.damage;
 }
 
+Number Spire::damage_towers_score(const Layout &layout)
+{
+	return damage_score(layout)*get_towers_multiplier(layout);
+}
+
 Number Spire::income_score(const Layout &layout)
 {
 	return layout.rs_per_sec;
+}
+
+Number Spire::income_towers_score(const Layout &layout)
+{
+	return income_score(layout)*get_towers_multiplier(layout);
+}
+
+unsigned Spire::get_towers_multiplier(const Layout &layout)
+{
+	unsigned mul = 2;
+	for(char c: layout.data)
+		if(c=='S' || c=='C' || c=='K')
+			mul = mul*3/2;
+	return mul;
 }
 
 void Spire::sighandler(int)
