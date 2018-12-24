@@ -621,6 +621,8 @@ void Layout::update_runestones(const vector<SimResult> &results)
 		steps_taken = max(steps_taken/total_w, capacity);
 		rs_per_sec = runestones*capacity/steps_taken/3;
 	}
+	else
+		rs_per_sec = 0;
 }
 
 void Layout::cross_from(const Layout &other, Random &random)
