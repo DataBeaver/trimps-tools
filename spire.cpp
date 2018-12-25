@@ -73,6 +73,7 @@ Spire::Spire(int argc, char **argv):
 	unsigned floors_seen = 0;
 	unsigned budget_seen = 0;
 	string upgrades;
+	string layout_str;
 	string preset;
 	bool online = false;
 	NumberIO budget_in = budget;
@@ -99,7 +100,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('g', "debug-layout", debug_layout, GetOpt::NO_ARG).set_help("Print detailed information about the layout");
 	getopt.add_option("show-pools", show_pools, GetOpt::NO_ARG).set_help("Show population pool contents while running");
 	getopt.add_option("raw-values", raw_values, GetOpt::NO_ARG).set_help("Display raw numeric values");
-	getopt.add_argument("layout", start_layout.data, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
+	getopt.add_argument("layout", layout_str, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
 	getopt(argc, argv);
 
 	budget = budget_in.value;
@@ -161,13 +162,13 @@ Spire::Spire(int argc, char **argv):
 	if(prune_interval)
 		next_prune = prune_interval;
 
-	if(!start_layout.data.empty())
+	if(!layout_str.empty())
 	{
-		string::size_type plus = start_layout.data.find('+');
+		string::size_type plus = layout_str.find('+');
 		if(plus!=string::npos)
 		{
-			upgrades = start_layout.data.substr(plus+1);
-			start_layout.data.erase(plus);
+			upgrades = layout_str.substr(plus+1);
+			layout_str.erase(plus);
 			plus = upgrades.find('+');
 			if(plus!=string::npos)
 				upgrades.erase(plus);
@@ -178,7 +179,7 @@ Spire::Spire(int argc, char **argv):
 	{
 		try
 		{
-			start_layout.upgrades = upgrades;
+			start_layout.set_upgrades(upgrades);
 		}
 		catch(const exception &)
 		{
@@ -186,20 +187,21 @@ Spire::Spire(int argc, char **argv):
 		}
 	}
 
-	if(start_layout.upgrades.fire>8)
+	const TrapUpgrades &start_upgrades = start_layout.get_upgrades();
+	if(start_upgrades.fire>8)
 		throw usage_error("Invalid fire trap upgrade level");
-	if(start_layout.upgrades.frost>6)
+	if(start_upgrades.frost>6)
 		throw usage_error("Invalid frost trap upgrade level");
-	if(start_layout.upgrades.poison>7)
+	if(start_upgrades.poison>7)
 		throw usage_error("Invalid poison trap upgrade level");
-	if(start_layout.upgrades.lightning>6)
+	if(start_upgrades.lightning>6)
 		throw usage_error("Invalid lightning trap upgrade level");
 
-	if(!start_layout.data.empty())
+	if(!layout_str.empty())
 	{
 		string clean_data;
-		clean_data.reserve(start_layout.data.size());
-		for(char c: start_layout.data)
+		clean_data.reserve(layout_str.size());
+		for(char c: layout_str)
 		{
 			if(c>='0' && c<='7')
 				clean_data += Layout::traps[c-'0'];
@@ -210,41 +212,40 @@ Spire::Spire(int argc, char **argv):
 				clean_data += Layout::traps[i];
 			}
 		}
-		start_layout.data = clean_data;
 
-		if(!floors_seen)
-			floors = max<unsigned>((start_layout.data.size()+4)/5, 1U);
+		start_layout.set_traps(clean_data, (floors_seen ? floors : 0));
+		floors = start_layout.get_traps().size()/5;
 
-		start_layout.data.resize(floors*5, '_');
 		start_layout.update((income || debug_layout) ? Layout::FULL : Layout::COMPATIBLE, accuracy);
 		pools.front()->add_layout(start_layout);
 
 		if(!budget_seen)
-			budget = start_layout.cost;
+			budget = start_layout.get_cost();
 	}
 
 	uint8_t downgrade[4] = { };
 	for(unsigned i=0; i<pools.size(); ++i)
 	{
-		Layout empty;
-		empty.upgrades = start_layout.upgrades;
+		TrapUpgrades pool_upgrades = start_layout.get_upgrades();
 
 		unsigned reduce = 0;
 		for(unsigned j=0; j<sizeof(downgrade); ++j)
 		{
-			if(downgrade[j]==1 && empty.upgrades.fire>1)
-				--empty.upgrades.fire;
-			else if(downgrade[j]==2 && empty.upgrades.frost>1)
-				--empty.upgrades.frost;
-			else if(downgrade[j]==3 && empty.upgrades.poison>1)
-				--empty.upgrades.poison;
-			else if(downgrade[j]==4 && empty.upgrades.lightning>1)
-				--empty.upgrades.lightning;
+			if(downgrade[j]==1 && pool_upgrades.fire>1)
+				--pool_upgrades.fire;
+			else if(downgrade[j]==2 && pool_upgrades.frost>1)
+				--pool_upgrades.frost;
+			else if(downgrade[j]==3 && pool_upgrades.poison>1)
+				--pool_upgrades.poison;
+			else if(downgrade[j]==4 && pool_upgrades.lightning>1)
+				--pool_upgrades.lightning;
 			else if(downgrade[j]==5 && reduce+1<floors)
 				++reduce;
 		}
 
-		empty.data = string((floors-reduce)*5, '_');
+		Layout empty;
+		empty.set_upgrades(pool_upgrades);
+		empty.set_traps(string(), floors-reduce);
 		pools[i]->add_layout(empty);
 
 		if(heterogeneous)
@@ -289,14 +290,14 @@ int Spire::main()
 	{
 		vector<Step> steps;
 		start_layout.build_steps(steps);
-		start_layout.simulate(steps, start_layout.damage, true);
-		cout << "Threat: " << start_layout.threat << endl;
-		cout << "Runestones: " << start_layout.rs_per_sec << "/s" << endl;
+		start_layout.simulate(steps, start_layout.get_damage(), true);
+		cout << "Threat: " << start_layout.get_threat() << endl;
+		cout << "Runestones: " << start_layout.get_runestones_per_second() << "/s" << endl;
 		return 0;
 	}
 
 	Layout best_layout = pools.front()->get_best_layout();
-	if(best_layout.damage && !show_pools)
+	if(best_layout.get_damage() && !show_pools)
 		report(best_layout, "Initial layout");
 
 	if(network)
@@ -304,15 +305,14 @@ int Spire::main()
 		bool submit = (score_func(best_layout)>0);
 
 		cout << "Querying online database for best known layout" << endl;
-		unsigned floors = best_layout.data.size()/5;
-		string reply = network->communicate(connection, format("query %s %s %s %s", best_layout.upgrades.str(), floors, budget, (income ? "income" : "damage")));
+		unsigned floors = best_layout.get_traps().size()/5;
+		string reply = network->communicate(connection, format("query %s %s %s %s", best_layout.get_upgrades().str(), floors, budget, (income ? "income" : "damage")));
 		vector<string> parts = split(reply);
 		if(parts[0]=="ok")
 		{
 			Layout layout;
-			layout.upgrades = best_layout.upgrades;
-			layout.data = parts[2];
-			layout.data.resize(floors*5, '_');
+			layout.set_upgrades(best_layout.get_upgrades());
+			layout.set_traps(parts[2], floors);
 			layout.update(income ? Layout::FULL : Layout::COMPATIBLE, accuracy);
 
 			if(score_func(layout)>score_func(best_layout))
@@ -328,7 +328,7 @@ int Spire::main()
 		}
 
 		if(submit)
-			network->send_message(connection, format("submit %s %s", best_layout.upgrades.str(), best_layout.data));
+			network->send_message(connection, format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps()));
 	}
 
 	signal(SIGINT, sighandler);
@@ -368,7 +368,7 @@ int Spire::main()
 			if(!show_pools)
 				report(best_layout, "New best layout found");
 			if(network)
-				network->send_message(connection, format("submit %s %s", best_layout.upgrades.str(), best_layout.data));
+				network->send_message(connection, format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps()));
 		}
 
 		if(show_pools)
@@ -449,8 +449,9 @@ void Spire::report(const Layout &layout, const string &message)
 	time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	struct tm lt;
 	cout << '[' << put_time(localtime_r(&t, &lt), "%Y-%m-%d %H:%M:%S") << "] "
-		<< message << " (" << print_num(layout.damage) << " damage, " << layout.threat << " threat, "
-		<< print_num(layout.rs_per_sec) << " Rs/s, cost " << print_num(layout.cost) << " Rs, cycle " << layout.cycle << "):" << endl;
+		<< message << " (" << print_num(layout.get_damage()) << " damage, " << layout.get_threat() << " threat, "
+		<< print_num(layout.get_runestones_per_second()) << " Rs/s, cost " << print_num(layout.get_cost())
+		<< " Rs, cycle " << layout.get_cycle() << "):" << endl;
 	unsigned count = 1;
 	cout << "  ";
 	print(layout, count);
@@ -458,33 +459,34 @@ void Spire::report(const Layout &layout, const string &message)
 
 bool Spire::print(const Layout &layout, unsigned &count)
 {
-	unsigned cells = layout.data.size();
+	const string &traps = layout.get_traps();
+	unsigned cells = traps.size();
 	string descr;
 	if(numeric_format)
 	{
 		descr.reserve(cells+8);
 		for(unsigned i=0; i<cells; ++i)
 			for(unsigned j=0; Layout::traps[j]; ++j)
-				if(layout.data[i]==Layout::traps[j])
+				if(traps[i]==Layout::traps[j])
 					descr += '0'+j;
 		descr += '+';
-		descr += layout.upgrades.str();
+		descr += layout.get_upgrades().str();
 		descr += '+';
 		descr += stringify(cells/5);
 	}
 	else
 	{
 		descr.reserve(5+cells+cells/5-1);
-		descr += layout.upgrades.str();
+		descr += layout.get_upgrades().str();
 		for(unsigned i=0; i<cells; i+=5)
 		{
 			descr += ' ';
-			descr.append(layout.data.substr(i, 5));
+			descr.append(traps.substr(i, 5));
 		}
 	}
 
 	if(show_pools)
-		cout << "\033[K" << descr << ' ' << score_func(layout) << ' ' << layout.cost << ' ' << layout.cycle << endl;
+		cout << "\033[K" << descr << ' ' << score_func(layout) << ' ' << layout.get_cost() << ' ' << layout.get_cycle() << endl;
 	else
 		cout << descr << endl;
 
@@ -498,7 +500,7 @@ Spire::PrintNum Spire::print_num(Number num) const
 
 Number Spire::damage_score(const Layout &layout)
 {
-	return layout.damage;
+	return layout.get_damage();
 }
 
 Number Spire::damage_towers_score(const Layout &layout)
@@ -508,7 +510,7 @@ Number Spire::damage_towers_score(const Layout &layout)
 
 Number Spire::income_score(const Layout &layout)
 {
-	return layout.rs_per_sec;
+	return layout.get_runestones_per_second();
 }
 
 Number Spire::income_towers_score(const Layout &layout)
@@ -519,7 +521,7 @@ Number Spire::income_towers_score(const Layout &layout)
 unsigned Spire::get_towers_multiplier(const Layout &layout)
 {
 	unsigned mul = 2;
-	for(char c: layout.data)
+	for(char c: layout.get_traps())
 		if(c=='S' || c=='C' || c=='K')
 			mul = mul*3/2;
 	return mul;
@@ -580,11 +582,7 @@ void Spire::Worker::main()
 			{
 				cross_layout = cross_pool->get_random_layout(random);
 				if(!do_cross)
-				{
-					unsigned cells = base_layout.data.size();
-					base_layout.data = cross_layout.data;
-					base_layout.data.resize(cells, '_');
-				}
+					base_layout.set_traps(cross_layout.get_traps(), base_layout.get_traps().size()/5);
 			}
 		}
 		else
@@ -593,19 +591,18 @@ void Spire::Worker::main()
 		for(unsigned i=0; i<spire.loops_per_cycle; ++i)
 		{
 			Layout mutated = base_layout;
-			mutated.cycle = cycle;
 			if(do_cross)
 				mutated.cross_from(cross_layout, random);
 
-			unsigned cells = mutated.data.size();
+			unsigned cells = mutated.get_traps().size();
 			unsigned mut_count = 1+random()%cells;
 			mut_count = max((mut_count*mut_count)/cells, 1U);
-			mutated.mutate(random()%3, mut_count, random);
+			mutated.mutate(random()%3, mut_count, random, cycle);
 			if(!mutated.is_valid())
 				continue;
 
-			mutated.update_cost();
-			if(mutated.cost>spire.budget)
+			mutated.update(Layout::COST_ONLY);
+			if(mutated.get_cost()>spire.budget)
 				continue;
 
 			mutated.update(spire.income ? Layout::FULL : Layout::FAST, spire.accuracy);

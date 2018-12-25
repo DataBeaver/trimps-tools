@@ -47,10 +47,12 @@ struct Step
 	Step();
 };
 
-struct Layout
+class Layout
 {
+public:
 	enum UpdateMode
 	{
+		COST_ONLY,
 		FAST,
 		COMPATIBLE,
 		FULL
@@ -68,6 +70,9 @@ struct Layout
 		SimResult();
 	};
 
+	static const char traps[];
+
+private:
 	TrapUpgrades upgrades;
 	std::string data;
 	Number damage;
@@ -76,24 +81,36 @@ struct Layout
 	unsigned threat;
 	unsigned cycle;
 
-	static const char traps[];
-
+public:
 	Layout();
 
+	void set_upgrades(const TrapUpgrades &);
+	void set_traps(const std::string &, unsigned = 0);
+	const TrapUpgrades &get_upgrades() const { return upgrades; }
+	const std::string &get_traps() const { return data; }
 	void build_steps(std::vector<Step> &) const;
 	SimResult simulate(const std::vector<Step> &, Number, bool = false) const;
+private:
 	void build_results(const std::vector<Step> &, unsigned, std::vector<SimResult> &) const;
 	template<typename F>
 	unsigned integrate_results_for_threat(const std::vector<SimResult> &, unsigned, const F &) const;
+public:
 	void update(UpdateMode, unsigned = 12);
+private:
 	void update_damage(const std::vector<Step> &, unsigned);
 	void update_damage(const std::vector<Step> &, const std::vector<SimResult> &, unsigned);
 	void refine_damage(const std::vector<Step> &, Number, Number, unsigned);
 	void update_cost();
 	void update_threat(const std::vector<SimResult> &, unsigned);
 	void update_runestones(const std::vector<SimResult> &);
+public:
 	void cross_from(const Layout &, Random &);
-	void mutate(unsigned, unsigned, Random &);
+	void mutate(unsigned, unsigned, Random &, unsigned);
+	Number get_damage() const { return damage; }
+	Number get_cost() const { return cost; }
+	Number get_runestones_per_second() const { return rs_per_sec; }
+	unsigned get_threat() const { return threat; }
+	unsigned get_cycle() const { return cycle; }
 	bool is_valid() const;
 };
 

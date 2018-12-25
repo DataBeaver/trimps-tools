@@ -135,6 +135,19 @@ Layout::Layout():
 	cycle(0)
 { }
 
+void Layout::set_upgrades(const TrapUpgrades &u)
+{
+	upgrades = u;
+}
+
+void Layout::set_traps(const string &t, unsigned floors)
+{
+	data = t;
+	if(!floors)
+		floors = (data.size()+4)/5;
+	data.resize(floors*5, '_');
+}
+
 void Layout::build_steps(vector<Step> &steps) const
 {
 	unsigned cells = data.size();
@@ -433,9 +446,11 @@ unsigned Layout::integrate_results_for_threat(const vector<SimResult> &results, 
 
 void Layout::update(UpdateMode mode, unsigned accuracy)
 {
-	accuracy = max(accuracy, 3U);
-
 	update_cost();
+	if(mode==COST_ONLY)
+		return;
+
+	accuracy = max(accuracy, 3U);
 
 	vector<Step> steps;
 	build_steps(steps);
@@ -617,7 +632,7 @@ void Layout::cross_from(const Layout &other, Random &random)
 			data[i] = other.data[i];
 }
 
-void Layout::mutate(unsigned mode, unsigned count, Random &random)
+void Layout::mutate(unsigned mode, unsigned count, Random &random, unsigned cyc)
 {
 	unsigned cells = data.size();
 	unsigned locality = (cells>=10 ? random()%(cells*2/15) : 0);
@@ -705,6 +720,8 @@ void Layout::mutate(unsigned mode, unsigned count, Random &random)
 			}
 		}
 	}
+
+	cycle = cyc;
 }
 
 bool Layout::is_valid() const

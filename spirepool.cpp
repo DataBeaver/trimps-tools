@@ -18,7 +18,7 @@ void Pool::add_layout(const Layout &layout)
 	Number score = score_func(layout);
 	auto i = layouts.begin();
 	for(; (i!=layouts.end() && score_func(*i)>score); ++i)
-		if(i->cost<=layout.cost)
+		if(i->get_cost()<=layout.get_cost())
 			return;
 	if(i!=layouts.end() && score_func(*i)==score)
 	{
@@ -30,7 +30,7 @@ void Pool::add_layout(const Layout &layout)
 
 	while(i!=layouts.end())
 	{
-		if(i->cost>=layout.cost)
+		if(i->get_cost()>=layout.get_cost())
 			i = layouts.erase(i);
 		else
 			++i;
