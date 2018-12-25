@@ -13,9 +13,6 @@ of the more important options are:
 -b, --budget
   Set an upper limit of runestones to spend
 
---fire, --frost, --poison, --lightning
-  Set upgrade levels of each trap type
-
 -u, --upgrades
   Set upgrade levels of all trap types at once.  The argument should be four
   numbers, one for each trap type.

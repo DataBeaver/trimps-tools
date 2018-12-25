@@ -80,10 +80,6 @@ Spire::Spire(int argc, char **argv):
 	GetOpt getopt;
 	getopt.add_option('b', "budget", budget_in, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM").bind_seen_count(budget_seen);
 	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG).set_help("Number of floors in the spire", "NUM").bind_seen_count(floors_seen);
-	getopt.add_option("fire", start_layout.upgrades.fire, GetOpt::REQUIRED_ARG).set_help("Set fire trap upgrade level", "LEVEL");
-	getopt.add_option("frost", start_layout.upgrades.frost, GetOpt::REQUIRED_ARG).set_help("Set frost trap upgrade level", "LEVEL");
-	getopt.add_option("poison", start_layout.upgrades.poison, GetOpt::REQUIRED_ARG).set_help("Set poison trap upgrade level", "LEVEL");
-	getopt.add_option("lightning", start_layout.upgrades.lightning, GetOpt::REQUIRED_ARG).set_help("Set lightning trap upgrade level", "LEVEL");
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
 	getopt.add_option('i', "income", income, GetOpt::NO_ARG).set_help("Optimize runestones per second");
