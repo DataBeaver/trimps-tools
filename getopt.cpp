@@ -1,6 +1,6 @@
 // Adapted from libmspcore
-#include <algorithm>
 #include "getopt.h"
+#include <algorithm>
 
 using namespace std;
 

@@ -1,7 +1,7 @@
+#include "spirelayout.h"
 #include <cctype>
 #include <iostream>
 #include <iomanip>
-#include "spirelayout.h"
 
 using namespace std;
 

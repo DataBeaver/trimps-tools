@@ -1,3 +1,4 @@
+#include "network.h"
 #ifdef _WIN32
 #define _WIN32_WINNT _WIN32_WINNT_VISTA
 #include <winsock2.h>
@@ -9,7 +10,6 @@
 #include <unistd.h>
 #endif
 #include <future>
-#include "network.h"
 #include "stringutils.h"
 
 using namespace std;

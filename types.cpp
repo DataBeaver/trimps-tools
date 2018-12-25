@@ -1,5 +1,5 @@
-#include "stringutils.h"
 #include "types.h"
+#include "stringutils.h"
 
 using namespace std;
 
