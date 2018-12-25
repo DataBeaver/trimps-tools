@@ -58,6 +58,15 @@ public:
 		FULL
 	};
 
+	enum MutateMode
+	{
+		REPLACE_ONLY,
+		PERMUTE_ONLY,
+		ALL_MUTATIONS
+	};
+
+	static const char traps[];
+
 	struct SimResult
 	{
 		Number max_hp;
@@ -69,8 +78,6 @@ public:
 
 		SimResult();
 	};
-
-	static const char traps[];
 
 private:
 	TrapUpgrades upgrades;
@@ -88,9 +95,9 @@ public:
 	void set_traps(const std::string &, unsigned = 0);
 	const TrapUpgrades &get_upgrades() const { return upgrades; }
 	const std::string &get_traps() const { return data; }
+private:
 	void build_steps(std::vector<Step> &) const;
 	SimResult simulate(const std::vector<Step> &, Number, bool = false) const;
-private:
 	void build_results(const std::vector<Step> &, unsigned, std::vector<SimResult> &) const;
 	template<typename F>
 	unsigned integrate_results_for_threat(const std::vector<SimResult> &, unsigned, const F &) const;
@@ -105,13 +112,14 @@ private:
 	void update_runestones(const std::vector<SimResult> &);
 public:
 	void cross_from(const Layout &, Random &);
-	void mutate(unsigned, unsigned, Random &, unsigned);
+	void mutate(MutateMode, unsigned, Random &, unsigned);
 	Number get_damage() const { return damage; }
 	Number get_cost() const { return cost; }
 	Number get_runestones_per_second() const { return rs_per_sec; }
 	unsigned get_threat() const { return threat; }
 	unsigned get_cycle() const { return cycle; }
 	bool is_valid() const;
+	void debug(Number) const;
 };
 
 #endif

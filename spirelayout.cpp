@@ -632,7 +632,7 @@ void Layout::cross_from(const Layout &other, Random &random)
 			data[i] = other.data[i];
 }
 
-void Layout::mutate(unsigned mode, unsigned count, Random &random, unsigned cyc)
+void Layout::mutate(MutateMode mode, unsigned count, Random &random, unsigned cyc)
 {
 	unsigned cells = data.size();
 	unsigned locality = (cells>=10 ? random()%(cells*2/15) : 0);
@@ -646,10 +646,10 @@ void Layout::mutate(unsigned mode, unsigned count, Random &random, unsigned cyc)
 	unsigned traps_count = (upgrades.lightning>0 ? 7 : 5);
 	for(unsigned i=0; i<count; ++i)
 	{
-		unsigned op = 0;  // replace only
-		if(mode==1)       // permute only
+		unsigned op = 0;  // REPLACE_ONLY
+		if(mode==PERMUTE_ONLY)
 			op = 1+random()%4;
-		else if(mode==2)  // any operation
+		else if(mode==ALL_MUTATIONS)
 			op = random()%8;
 
 		unsigned t = 1+random()%traps_count;
@@ -741,6 +741,13 @@ bool Layout::is_valid() const
 	}
 
 	return true;
+}
+
+void Layout::debug(Number hp) const
+{
+	vector<Step> steps;
+	build_steps(steps);
+	simulate(steps, hp, true);
 }
 
 

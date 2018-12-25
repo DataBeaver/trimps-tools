@@ -288,9 +288,7 @@ int Spire::main()
 {
 	if(debug_layout)
 	{
-		vector<Step> steps;
-		start_layout.build_steps(steps);
-		start_layout.simulate(steps, start_layout.get_damage(), true);
+		start_layout.debug(start_layout.get_damage());
 		cout << "Threat: " << start_layout.get_threat() << endl;
 		cout << "Runestones: " << start_layout.get_runestones_per_second() << "/s" << endl;
 		return 0;
@@ -597,7 +595,7 @@ void Spire::Worker::main()
 			unsigned cells = mutated.get_traps().size();
 			unsigned mut_count = 1+random()%cells;
 			mut_count = max((mut_count*mut_count)/cells, 1U);
-			mutated.mutate(random()%3, mut_count, random, cycle);
+			mutated.mutate(static_cast<Layout::MutateMode>(random()%3), mut_count, random, cycle);
 			if(!mutated.is_valid())
 				continue;
 
