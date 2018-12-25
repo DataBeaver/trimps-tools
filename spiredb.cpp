@@ -1,43 +1,14 @@
+#include "spiredb.h"
 #include <chrono>
 #include <functional>
 #include <iostream>
 #include <fstream>
 #include <thread>
-#define PQXX_HIDE_EXP_OPTIONAL
-#include <pqxx/connection>
 #include <pqxx/result>
 #include <pqxx/transaction>
 #include "getopt.h"
-#include "network.h"
 #include "spirelayout.h"
 #include "stringutils.h"
-
-class SpireDB
-{
-private:
-	enum SubmitResult
-	{
-		ACCEPTED,
-		DUPLICATE,
-		OBSOLETE
-	};
-
-	Network network;
-	pqxx::connection *pq_conn;
-
-	static const unsigned current_version;
-
-public:
-	SpireDB(int, char **);
-	~SpireDB();
-
-	int main();
-private:
-	void update_layouts();
-	void serve(Network::ConnectionTag, const std::string &);
-	Layout query_layout(const std::string &, unsigned, Number, bool);
-	SubmitResult submit_layout(const std::string &, const std::string &, const std::string &);
-};
 
 using namespace std;
 using namespace std::placeholders;

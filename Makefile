@@ -17,8 +17,8 @@ spiredb: getopt.o network.o spiredb.o spirelayout.o stringutils.o
 
 getopt.o: getopt.h stringutils.h
 network.o: network.h
-spire.o: getopt.h network.h spirelayout.h spirepool.h stringutils.h types.h
-spiredb.o: getopt.h network.h spirelayout.h stringutils.h types.h
+spire.o: getopt.h network.h spire.h spirelayout.h spirepool.h stringutils.h types.h
+spiredb.o: getopt.h network.h spiredb.h spirelayout.h stringutils.h types.h
 spiredb.o: EXTRA_CXXFLAGS = $(PQXX_CFLAGS)
 spirelayout.o: spirelayout.h types.h
 stringutils.o: stringutils.h

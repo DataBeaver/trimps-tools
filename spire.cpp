@@ -1,17 +1,14 @@
+#include "spire.h"
 #include <signal.h>
-#include <atomic>
 #include <chrono>
-#include <cstdint>
 #include <functional>
 #include <iomanip>
 #include <iostream>
-#include <mutex>
-#include <random>
-#include <thread>
 #include "getopt.h"
-#include "network.h"
 #include "spirepool.h"
-#include "spirelayout.h"
+
+using namespace std;
+using namespace std::placeholders;
 
 #ifdef _WIN32
 struct tm *localtime_r(const time_t *timep, struct tm *result)
@@ -21,89 +18,6 @@ struct tm *localtime_r(const time_t *timep, struct tm *result)
 	return 0;
 }
 #endif
-
-class Spire
-{
-private:
-	class Worker
-	{
-	private:
-		Spire &spire;
-		Random random;
-		bool intr_flag;
-		std::thread thread;
-
-	public:
-		Worker(Spire &, unsigned);
-
-		void interrupt();
-		void join();
-
-	private:
-		void main();
-	};
-
-	struct PrintNum
-	{
-		Number num;
-		bool raw;
-
-		PrintNum(Number n, bool r): num(n), raw(r) { }
-	};
-
-	unsigned n_pools;
-	std::vector<Pool *> pools;
-	std::mutex pools_mutex;
-	unsigned prune_interval;
-	unsigned next_prune;
-	unsigned prune_limit;
-	unsigned cross_rate;
-	unsigned foreign_rate;
-	bool heterogeneous;
-	unsigned n_workers;
-	std::list<Worker *> workers;
-	unsigned loops_per_cycle;
-	std::atomic<unsigned> cycle;
-	unsigned accuracy;
-	bool debug_layout;
-	bool numeric_format;
-	bool raw_values;
-	bool show_pools;
-	Network *network;
-	Network::ConnectionTag connection;
-	bool intr_flag;
-
-	Number budget;
-	bool income;
-	bool towers;
-	Pool::ScoreFunc *score_func;
-	Layout start_layout;
-
-	static Spire *instance;
-
-public:
-	Spire(int, char **);
-	~Spire();
-
-	int main();
-private:
-	unsigned get_next_cycle();
-	void prune_pools();
-	void report(const Layout &, const std::string &);
-	bool print(const Layout &, unsigned &);
-	PrintNum print_num(Number) const;
-	static Number damage_score(const Layout &);
-	static Number damage_towers_score(const Layout &);
-	static Number income_score(const Layout &);
-	static Number income_towers_score(const Layout &);
-	static unsigned get_towers_multiplier(const Layout &);
-	static void sighandler(int);
-
-	friend std::ostream &operator<<(std::ostream &, const PrintNum &);
-};
-
-using namespace std;
-using namespace std::placeholders;
 
 int main(int argc, char **argv)
 {
