@@ -32,6 +32,17 @@ struct TrapEffects
 	TrapEffects(const TrapUpgrades &);
 };
 
+struct CellInfo
+{
+	char trap;
+	std::uint8_t steps;
+	std::uint8_t shocked_steps;
+	Number damage_taken;
+	Number hp_left;
+
+	CellInfo();
+};
+
 class Layout
 {
 public:
@@ -127,6 +138,7 @@ public:
 	unsigned get_cycle() const { return cycle; }
 	bool is_valid() const;
 	void debug(Number) const;
+	void build_cell_info(std::vector<CellInfo> &, Number) const;
 };
 
 #endif

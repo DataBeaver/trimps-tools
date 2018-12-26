@@ -113,6 +113,15 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades):
 }
 
 
+CellInfo::CellInfo():
+	trap(0),
+	steps(0),
+	shocked_steps(0),
+	damage_taken(0),
+	hp_left(0)
+{ }
+
+
 const char Layout::traps[] = "_FZPLSCK";
 
 Layout::Layout():
@@ -756,6 +765,29 @@ void Layout::debug(Number hp) const
 	}
 
 	cout << "Total damage: " << result.damage << endl;
+}
+
+void Layout::build_cell_info(vector<CellInfo> &info, Number hp) const
+{
+	vector<Step> steps;
+	build_steps(steps);
+	vector<SimDetail> detail;
+	simulate(steps, hp, &detail);
+
+	info.clear();
+	info.resize(data.size());
+	for(unsigned i=0; i<steps.size(); ++i)
+	{
+		const Step &s = steps[i];
+		const SimDetail &d = detail[i];
+
+		info[s.cell].trap = s.trap;
+		++info[s.cell].steps;
+		if(s.shock)
+			++info[s.cell].shocked_steps;
+		info[s.cell].damage_taken += d.damage_taken;
+		info[s.cell].hp_left = d.hp_left;
+	}
 }
 
 
