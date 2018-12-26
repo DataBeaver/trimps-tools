@@ -378,8 +378,10 @@ int Spire::main()
 			period_start_time = period_end_time;
 			period_start_cycle = period_end_cycle;
 
+			unsigned console_w, console_h;
+			get_console_size(console_w, console_h);
 			set_cursor_position(0, 0);
-			unsigned n_print = 100/n_pools-1;
+			unsigned n_print = (console_h-2)/n_pools-1;
 			for(unsigned i=0; i<n_pools; ++i)
 			{
 				unsigned count = n_print;
