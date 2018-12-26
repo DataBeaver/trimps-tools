@@ -4,6 +4,7 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include "console.h"
 #include "getopt.h"
 #include "spirepool.h"
 
@@ -336,7 +337,7 @@ int Spire::main()
 		workers.push_back(new Worker(*this, random()));
 
 	if(show_pools)
-		cout << "\033[1;1H\033[2J";
+		clear_screen();
 
 	chrono::steady_clock::time_point period_start_time = chrono::steady_clock::now();
 	unsigned period_start_cycle = cycle;
@@ -377,7 +378,7 @@ int Spire::main()
 			period_start_time = period_end_time;
 			period_start_cycle = period_end_cycle;
 
-			cout << "\033[1;1H";
+			set_cursor_position(0, 0);
 			unsigned n_print = 100/n_pools-1;
 			for(unsigned i=0; i<n_pools; ++i)
 			{
@@ -386,11 +387,15 @@ int Spire::main()
 				if(n_print>1)
 				{
 					for(++count; count>0; --count)
-						cout << "\033[K" << endl;
+					{
+						clear_current_line();
+						cout << endl;
+					}
 				}
 			}
 
-			cout << "\033[K" << loops_per_sec << " loops/sec" << endl;
+			clear_current_line();
+			cout << loops_per_sec << " loops/sec" << endl;
 		}
 
 		if(next_prune && cycle>=next_prune)
@@ -484,7 +489,10 @@ bool Spire::print(const Layout &layout, unsigned &count)
 	}
 
 	if(show_pools)
-		cout << "\033[K" << descr << ' ' << score_func(layout) << ' ' << layout.get_cost() << ' ' << layout.get_cycle() << endl;
+	{
+		clear_current_line();
+		cout << descr << ' ' << score_func(layout) << ' ' << layout.get_cost() << ' ' << layout.get_cycle() << endl;
+	}
 	else
 		cout << descr << endl;
 
