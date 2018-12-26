@@ -8,6 +8,14 @@
 #include "getopt.h"
 #include "spirepool.h"
 
+struct FancyCell
+{
+	Color bg_color;
+	Color text_color;
+	std::string line1;
+	std::string line2;
+};
+
 using namespace std;
 using namespace std::placeholders;
 
@@ -54,6 +62,7 @@ Spire::Spire(int argc, char **argv):
 	debug_layout(false),
 	numeric_format(false),
 	raw_values(false),
+	fancy_output(false),
 	show_pools(false),
 	network(0),
 	connection(0),
@@ -88,6 +97,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("towers", towers, GetOpt::NO_ARG).set_help("Try to use as many towers as possible");
 	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online layout database");
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on", "NAME");
+	getopt.add_option("fancy", fancy_output, GetOpt::NO_ARG).set_help("Produce fancy output");
 	getopt.add_option('a', "accuracy", accuracy, GetOpt::REQUIRED_ARG).set_help("Set simulation accuracy", "NUM");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
 	getopt.add_option('l', "loops", loops_per_cycle, GetOpt::REQUIRED_ARG).set_help("Number of loops per cycle", "NUM");
@@ -295,6 +305,12 @@ int Spire::main()
 		return 0;
 	}
 
+	if(show_pools || fancy_output)
+	{
+		clear_screen();
+		set_cursor_position(0, 0);
+	}
+
 	Layout best_layout = pools.front()->get_best_layout();
 	if(best_layout.get_damage() && !show_pools)
 		report(best_layout, "Initial layout");
@@ -336,14 +352,17 @@ int Spire::main()
 	for(unsigned i=0; i<n_workers; ++i)
 		workers.push_back(new Worker(*this, random()));
 
-	if(show_pools)
-		clear_screen();
-
 	chrono::steady_clock::time_point period_start_time = chrono::steady_clock::now();
 	unsigned period_start_cycle = cycle;
 	while(!intr_flag)
 	{
 		this_thread::sleep_for(chrono::milliseconds(500));
+
+		chrono::steady_clock::time_point period_end_time = chrono::steady_clock::now();
+		unsigned period_end_cycle = cycle;
+		unsigned loops_per_sec = loops_per_cycle*(period_end_cycle-period_start_cycle)/chrono::duration<float>(period_end_time-period_start_time).count();
+		period_start_time = period_end_time;
+		period_start_cycle = period_end_cycle;
 
 		if(intr_flag)
 		{
@@ -369,15 +388,17 @@ int Spire::main()
 			if(network)
 				network->send_message(connection, format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps()));
 		}
+		else if(fancy_output)
+		{
+			set_cursor_position(69, 10);
+			cout << cycle;
+			set_cursor_position(69, 11);
+			cout << NumberIO(loops_per_sec) << "    ";
+			cout.flush();
+		}
 
 		if(show_pools)
 		{
-			chrono::steady_clock::time_point period_end_time = chrono::steady_clock::now();
-			unsigned period_end_cycle = cycle;
-			unsigned loops_per_sec = loops_per_cycle*(period_end_cycle-period_start_cycle)/chrono::duration<float>(period_end_time-period_start_time).count();
-			period_start_time = period_end_time;
-			period_start_cycle = period_end_cycle;
-
 			unsigned console_w, console_h;
 			get_console_size(console_w, console_h);
 			set_cursor_position(0, 0);
@@ -406,6 +427,14 @@ int Spire::main()
 
 	for(auto w: workers)
 		delete w;
+
+	if(show_pools || fancy_output)
+	{
+		unsigned console_w, console_h;
+		get_console_size(console_w, console_h);
+		set_cursor_position(0, console_h-1);
+		cout.flush();
+	}
 
 	return 0;
 }
@@ -451,15 +480,39 @@ void Spire::prune_pools()
 
 void Spire::report(const Layout &layout, const string &message)
 {
+	if(fancy_output)
+		set_cursor_position(0, 0);
+
 	time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	struct tm lt;
-	cout << '[' << put_time(localtime_r(&t, &lt), "%Y-%m-%d %H:%M:%S") << "] "
-		<< message << " (" << print_num(layout.get_damage()) << " damage, " << layout.get_threat() << " threat, "
-		<< print_num(layout.get_runestones_per_second()) << " Rs/s, cost " << print_num(layout.get_cost())
-		<< " Rs, cycle " << layout.get_cycle() << "):" << endl;
+	cout << '[' << put_time(localtime_r(&t, &lt), "%Y-%m-%d %H:%M:%S") << "] " << message;
+	if(!fancy_output)
+		cout << " (" << print_num(layout.get_damage()) << " damage, " << layout.get_threat() << " threat, "
+			<< print_num(layout.get_runestones_per_second()) << " Rs/s, cost " << print_num(layout.get_cost())
+			<< " Rs, cycle " << layout.get_cycle() << "):";
+	cout << endl << "  ";
 	unsigned count = 1;
-	cout << "  ";
 	print(layout, count);
+
+	if(fancy_output)
+	{
+		print_fancy(layout);
+		set_cursor_position(58, 4);
+		cout << "Damage: " << print_num(layout.get_damage()) << "    ";
+		set_cursor_position(58, 5);
+		cout << "Threat: " << layout.get_threat();
+		set_cursor_position(58, 6);
+		cout << "Income: " << print_num(layout.get_runestones_per_second()) << " Rs/s    ";
+		set_cursor_position(58, 7);
+		cout << "Cost:   " << print_num(layout.get_cost()) << " Rs    ";
+		set_cursor_position(58, 8);
+		cout << "Cycle:  " << layout.get_cycle();
+		set_cursor_position(58, 10);
+		cout << "Cycle now: " << cycle;
+		set_cursor_position(58, 11);
+		cout << "Speed:     ";
+		cout << endl;
+	}
 }
 
 bool Spire::print(const Layout &layout, unsigned &count)
@@ -499,6 +552,101 @@ bool Spire::print(const Layout &layout, unsigned &count)
 		cout << descr << endl;
 
 	return (count && --count);
+}
+
+void Spire::print_fancy(const Layout &layout)
+{
+	static const Color trap_colors[] = { BLACK, RED, BLUE, GREEN, YELLOW, BLACK, WHITE, MAGENTA };
+	static const Color text_colors[] = { WHITE, WHITE, WHITE, BLACK, BLACK, WHITE, BLACK, WHITE };
+	const string &traps = layout.get_traps();
+	unsigned floors = traps.size()/5;
+
+	unsigned console_w, console_h;
+	get_console_size(console_w, console_h);
+	unsigned lines_per_floor = min((console_h-4)/floors, 3U);
+
+	Number max_hp = layout.get_damage();
+	vector<CellInfo> cells;
+	layout.build_cell_info(cells, max_hp);
+
+	vector<FancyCell> fancy;
+	fancy.reserve(cells.size());
+	Number hp = max_hp;
+	for(const auto &c: cells)
+	{
+		unsigned j;
+		for(j=0; Layout::traps[j]!=c.trap; ++j) ;
+
+		FancyCell fc;
+		fc.bg_color = trap_colors[j];
+		fc.text_color = text_colors[j];
+
+		fc.line1.reserve(10);
+		fc.line1 += ' ';
+		fc.line1 += (c.trap=='_' ? ' ' : c.trap);
+		string damage_str = stringify(NumberIO(c.damage_taken));
+		fc.line1.append(7-damage_str.size(), ' ');
+		fc.line1 += damage_str;
+		fc.line1 += ' ';
+
+		fc.line2.reserve(10);
+		fc.line2 += ' ';
+		fc.line2 += (c.steps>1 ? '0'+c.steps : ' ');
+		fc.line2.append(c.shocked_steps, '!');
+		fc.line2.append(3-c.shocked_steps, ' ');
+		string hp_pct_str = stringify(hp*100/max_hp);
+		fc.line2.append(3-hp_pct_str.size(), ' ');
+		fc.line2 += hp_pct_str;
+		fc.line2 += "% ";
+
+		fancy.push_back(fc);
+		hp = c.hp_left;
+	}
+
+	static const char topleft[] = "▗";
+	static const char topline[] = "▄▄▄▄▄▄▄▄▄▄▄";
+	static const char hsep[] = "▄▄▄▄▄▄▄▄▄▄▟";
+	static const char vsep[] = "▐";
+
+	if(lines_per_floor>=3)
+	{
+		set_text_color(WHITE, BLACK);
+		cout << topleft;
+		for(unsigned i=0; i<5; ++i)
+			cout << topline;
+		cout << endl;
+	}
+
+	for(unsigned i=floors*lines_per_floor; i-->0; )
+	{
+		set_text_color(WHITE, BLACK);
+		cout << vsep;
+
+		unsigned line = lines_per_floor-1-i%lines_per_floor;
+		for(unsigned j=0; j<5; ++j)
+		{
+			const FancyCell &fc = fancy[(i/lines_per_floor)*5+j];
+			if(line==2)
+			{
+				set_text_color(WHITE, fc.bg_color);
+				cout << hsep;
+			}
+			else
+			{
+				set_text_color(fc.text_color, fc.bg_color);
+				cout << (line==0 ? fc.line1 : fc.line2);
+				set_text_color(WHITE, fc.bg_color);
+				cout << vsep;
+			}
+		}
+
+		cout << endl;
+	}
+
+	restore_default_text_color();
+
+	if(lines_per_floor<3)
+		cout  << "Note: incerase window height for even fancier output!" << endl;
 }
 
 Spire::PrintNum Spire::print_num(Number num) const

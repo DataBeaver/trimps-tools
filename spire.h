@@ -57,6 +57,7 @@ private:
 	bool debug_layout;
 	bool numeric_format;
 	bool raw_values;
+	bool fancy_output;
 	bool show_pools;
 	Network *network;
 	Network::ConnectionTag connection;
@@ -80,6 +81,7 @@ private:
 	void prune_pools();
 	void report(const Layout &, const std::string &);
 	bool print(const Layout &, unsigned &);
+	void print_fancy(const Layout &);
 	PrintNum print_num(Number) const;
 	static Number damage_score(const Layout &);
 	static Number damage_towers_score(const Layout &);
