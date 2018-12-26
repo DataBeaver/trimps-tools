@@ -172,6 +172,8 @@ void Layout::build_steps(vector<Step> &steps) const
 		Step step;
 		step.cell = i;
 		step.trap = t;
+		step.slow = (frozen ? 2 : chilled ? 1 : 0);
+		step.shock = (shocked!=0);
 
 		if(t=='Z')
 		{
@@ -236,8 +238,6 @@ void Layout::build_steps(vector<Step> &steps) const
 		else if(t=='C')
 			step.toxic_pct = 25*special_multi;
 
-		step.slow = (frozen ? 2 : chilled ? 1 : 0);
-		step.shock = (shocked!=0);
 		if(repeat>1 && upgrades.frost>=5)
 			step.rs_bonus = 2;
 		steps.push_back(step);
