@@ -260,16 +260,17 @@ void Layout::build_steps(vector<Step> &steps) const
 	}
 }
 
-Layout::SimResult Layout::simulate(const vector<Step> &steps, Number max_hp, bool debug) const
+Layout::SimResult Layout::simulate(const vector<Step> &steps, Number max_hp, vector<SimDetail> *detail) const
 {
 	SimResult result;
 	result.max_hp = max_hp;
 
-	if(debug && max_hp)
-		cout << "Enemy HP: " << max_hp << endl;
+	if(detail)
+	{
+		detail->clear();
+		detail->reserve(steps.size());
+	}
 
-	unsigned last_cell = 0;
-	unsigned repeat = 0;
 	Number kill_damage = 0;
 	Number toxicity = 0;
 	unsigned rs_pct = 100;
@@ -286,6 +287,18 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number max_hp, boo
 		rs_pct += s.rs_bonus;
 		kill_damage = max(kill_damage, result.damage);
 
+		if(detail)
+		{
+			SimDetail sd;
+			sd.damage_taken = s.direct_damage+toxicity;
+			sd.toxicity = toxicity;
+			if(kill_damage>=max_hp)
+				sd.hp_left = 0;
+			else
+				sd.hp_left = max_hp-result.damage;
+			detail->push_back(sd);
+		}
+
 		if(result.kill_cell<0)
 		{
 			++result.steps_taken;
@@ -297,33 +310,7 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number max_hp, boo
 					result.runestone_pct = result.runestone_pct*6/5;
 			}
 		}
-
-		if(debug)
-		{
-			repeat = (s.cell==last_cell ? repeat+1 : 0);
-
-			cout << setw(2) << s.cell << ':' << repeat << ": " << s.trap << ' ' << setw(9) << result.damage;
-			if(max_hp && upgrades.poison>=5)
-			{
-				if(result.damage>max_hp)
-					cout << "  0%";
-				else if(result.damage)
-					cout << ' ' << setw(2) << (max_hp-result.damage)*100/max_hp << '%';
-				else
-					cout << " **%";
-			}
-			if(toxicity)
-				cout << " P" << setw(6) << toxicity;
-			else
-				cout << "        ";
-			cout << ' ' << (s.slow==1 ? 'C' : ' ') << (s.slow==2 ? 'F' : ' ') << (s.shock ? 'S' : ' ') << endl;
-		}
-
-		last_cell = s.cell;
 	}
-
-	if(debug)
-		cout << "Kill damage: " << kill_damage << endl;
 
 	result.toxicity = toxicity;
 	if(kill_damage>=max_hp)
@@ -735,7 +722,40 @@ void Layout::debug(Number hp) const
 {
 	vector<Step> steps;
 	build_steps(steps);
-	simulate(steps, hp, true);
+	vector<SimDetail> detail;
+	SimResult result = simulate(steps, hp, &detail);
+
+	cout << "Enemy HP: " << hp << endl;
+
+	unsigned last_cell = 0;
+	unsigned repeat = 0;
+	Number total_damage = 0;
+	for(unsigned i=0; i<steps.size(); ++i)
+	{
+		const Step &s = steps[i];
+		const SimDetail &d = detail[i];
+
+		total_damage += d.damage_taken;
+		repeat = (s.cell==last_cell ? repeat+1 : 0);
+
+		cout << setw(2) << s.cell << ':' << repeat << ": " << s.trap << ' ' << setw(9) << total_damage;
+		if(upgrades.poison>=5)
+		{
+			if(d.hp_left<hp)
+				cout << ' ' << setw(2) << d.hp_left*100/hp << '%';
+			else
+				cout << " **%";
+		}
+		if(d.toxicity)
+			cout << " P" << setw(6) << d.toxicity;
+		else
+			cout << "        ";
+		cout << ' ' << (s.slow==1 ? 'C' : ' ') << (s.slow==2 ? 'F' : ' ') << (s.shock ? 'S' : ' ') << endl;
+
+		last_cell = s.cell;
+	}
+
+	cout << "Total damage: " << result.damage << endl;
 }
 
 

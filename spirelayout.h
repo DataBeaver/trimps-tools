@@ -80,6 +80,13 @@ private:
 		Step();
 	};
 
+	struct SimDetail
+	{
+		Number damage_taken;
+		Number toxicity;
+		Number hp_left;
+	};
+
 	TrapUpgrades upgrades;
 	std::string data;
 	Number damage;
@@ -97,7 +104,7 @@ public:
 	const std::string &get_traps() const { return data; }
 private:
 	void build_steps(std::vector<Step> &) const;
-	SimResult simulate(const std::vector<Step> &, Number, bool = false) const;
+	SimResult simulate(const std::vector<Step> &, Number, std::vector<SimDetail> * = 0) const;
 	void build_results(const std::vector<Step> &, unsigned, std::vector<SimResult> &) const;
 	template<typename F>
 	unsigned integrate_results_for_threat(const std::vector<SimResult> &, unsigned, const F &) const;
