@@ -113,18 +113,6 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades):
 }
 
 
-Step::Step():
-	trap(0),
-	slow(0),
-	shock(false),
-	kill_pct(0),
-	toxic_pct(0),
-	rs_bonus(0),
-	direct_damage(0),
-	toxicity(0)
-{ }
-
-
 const char Layout::traps[] = "_FZPLSCK";
 
 Layout::Layout():
@@ -749,6 +737,18 @@ void Layout::debug(Number hp) const
 	build_steps(steps);
 	simulate(steps, hp, true);
 }
+
+
+Layout::Step::Step():
+	trap(0),
+	slow(0),
+	shock(false),
+	kill_pct(0),
+	toxic_pct(0),
+	rs_bonus(0),
+	direct_damage(0),
+	toxicity(0)
+{ }
 
 
 Layout::SimResult::SimResult():

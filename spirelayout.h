@@ -32,21 +32,6 @@ struct TrapEffects
 	TrapEffects(const TrapUpgrades &);
 };
 
-struct Step
-{
-	std::uint16_t cell;
-	char trap;
-	std::uint8_t slow;
-	bool shock;
-	std::uint8_t kill_pct;
-	std::uint8_t toxic_pct;
-	std::uint8_t rs_bonus;
-	Number direct_damage;
-	Number toxicity;
-
-	Step();
-};
-
 class Layout
 {
 public:
@@ -65,8 +50,6 @@ public:
 		ALL_MUTATIONS
 	};
 
-	static const char traps[];
-
 	struct SimResult
 	{
 		Number max_hp;
@@ -79,7 +62,24 @@ public:
 		SimResult();
 	};
 
+	static const char traps[];
+
 private:
+	struct Step
+	{
+		std::uint16_t cell;
+		char trap;
+		std::uint8_t slow;
+		bool shock;
+		std::uint8_t kill_pct;
+		std::uint8_t toxic_pct;
+		std::uint8_t rs_bonus;
+		Number direct_damage;
+		Number toxicity;
+
+		Step();
+	};
+
 	TrapUpgrades upgrades;
 	std::string data;
 	Number damage;
