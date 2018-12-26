@@ -34,3 +34,13 @@ void clear_current_line()
 {
 	cout << "\033[K";
 }
+
+void set_text_color(Color fore, Color back)
+{
+	cout << "\033[" << 30+fore << ';' << 40+back << 'm';
+}
+
+void restore_default_text_color()
+{
+	cout << "\033[0m";
+}
