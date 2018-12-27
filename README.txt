@@ -30,6 +30,10 @@ of the more important options are:
   Output layouts in numeric format compatible with swaq's TD calculator
   (http://swaqvalley.com/td_calc/)
 
+--fancy
+  Produces fancy pseudographical output.  For best result use a 256-color
+  xterm or compatible terminal.
+
 --online
   Use the online layout database.  On startup the database is queried for the
   best known layout.  As better layouts are found they are submitted to the
