@@ -21,6 +21,7 @@ private:
 
 	Network network;
 	pqxx::connection *pq_conn;
+	bool force_update;
 
 	static const unsigned current_version;
 

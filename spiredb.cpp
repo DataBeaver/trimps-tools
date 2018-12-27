@@ -21,12 +21,15 @@ int main(int argc, char **argv)
 
 const unsigned SpireDB::current_version = 5;
 
-SpireDB::SpireDB(int argc, char **argv)
+SpireDB::SpireDB(int argc, char **argv):
+	pq_conn(0),
+	force_update(false)
 {
 	string dbopts;
 
 	GetOpt getopt;
 	getopt.add_option("dbopts", dbopts, GetOpt::REQUIRED_ARG);
+	getopt.add_option("force-update", force_update, GetOpt::NO_ARG);
 	getopt(argc, argv);
 
 	if(dbopts.size()>=2 && dbopts[0]=='<')
@@ -41,6 +44,7 @@ SpireDB::SpireDB(int argc, char **argv)
 	}
 
 	pq_conn = new pqxx::connection(dbopts);
+	pq_conn->prepare("select_all", "SELECT id, fire, frost, poison, lightning, traps FROM layouts");
 	pq_conn->prepare("select_old", "SELECT id, fire, frost, poison, lightning, traps FROM layouts WHERE version<$1");
 	pq_conn->prepare("update_values", "UPDATE layouts SET damage=$2, threat=$3, rs_per_sec=$4, cost=$5, version=$6 WHERE id=$1");
 	pq_conn->prepare("insert_layout", "INSERT INTO layouts (floors, fire, frost, poison, lightning, traps, damage, threat, rs_per_sec, cost, submitter, version) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)");
@@ -83,7 +87,11 @@ int SpireDB::main()
 void SpireDB::update_layouts()
 {
 	pqxx::work xact(*pq_conn);
-	pqxx::result result = xact.exec_prepared("select_old", current_version);
+	pqxx::result result;
+	if(force_update)
+		result = xact.exec_prepared("select_all");
+	else
+		result = xact.exec_prepared("select_old", current_version);
 	if(!result.empty())
 		cout << "Updating " << result.size() << " layouts" << endl;
 	for(const auto &row: result)
