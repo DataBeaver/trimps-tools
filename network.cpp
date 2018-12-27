@@ -1,6 +1,6 @@
+#define _WIN32_WINNT _WIN32_WINNT_VISTA
 #include "network.h"
 #ifdef _WIN32
-#define _WIN32_WINNT _WIN32_WINNT_VISTA
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
