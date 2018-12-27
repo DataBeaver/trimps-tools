@@ -50,6 +50,11 @@ the genetic algorithm:
   diverse and advanced.  This option is relatively safe to use even if you
   have no clue what the following ones are for.
 
+-a, --accuracy
+  Set the accuracy of calculations.  Roughly corresponds to the number of
+  significant bits in damage values.  Affects other numbers to a varying
+  degree.  Higher accuracy will make the program run slower.
+
 -w, --workers
   Set the number of worker threads to use
 
