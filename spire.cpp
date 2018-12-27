@@ -613,24 +613,6 @@ void Spire::print_fancy(const Layout &layout)
 		hp = c.hp_left;
 	}
 
-	for(unsigned i=0; i<cells.size(); ++i)
-	{
-		if(cells[i].trap=='S')
-		{
-			unsigned b = i-i%5;
-			for(unsigned j=0; j<5; ++j)
-				if(cells[b+j].trap=='F')
-					fancy[b+j].bg_color[2] = trap_colors[5];
-		}
-		else if(cells[i].trap=='Z' && i>0 && cells[i-1].trap=='P')
-			fancy[i-1].bg_color[2] = trap_colors[2];
-		else if(cells[i].trap=='P' && i>0 && cells[i-1].trap=='P')
-		{
-			fancy[i-1].bg_color[0] = 6;
-			fancy[i].bg_color[0] = 6;
-		}
-	}
-
 #ifdef _WIN32
 	static const char topleft[] = "_";
 	static const char topline[] = "___________";
@@ -645,6 +627,24 @@ void Spire::print_fancy(const Layout &layout)
 
 	if(lines_per_floor>=3)
 	{
+		for(unsigned i=0; i<cells.size(); ++i)
+		{
+			if(cells[i].trap=='S')
+			{
+				unsigned b = i-i%5;
+				for(unsigned j=0; j<5; ++j)
+					if(cells[b+j].trap=='F')
+						fancy[b+j].bg_color[2] = trap_colors[5];
+			}
+			else if(cells[i].trap=='Z' && i>0 && cells[i-1].trap=='P')
+				fancy[i-1].bg_color[2] = trap_colors[2];
+			else if(cells[i].trap=='P' && i>0 && cells[i-1].trap=='P')
+			{
+				fancy[i-1].bg_color[0] = 6;
+				fancy[i].bg_color[0] = 6;
+			}
+		}
+
 		console.set_text_color(border_color, 0);
 		cout << topleft;
 		for(unsigned i=0; i<5; ++i)
