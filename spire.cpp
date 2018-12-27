@@ -19,7 +19,7 @@ struct FancyCell
 using namespace std;
 using namespace std::placeholders;
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_POSIX_THREAD_SAFE_FUNCTIONS)
 struct tm *localtime_r(const time_t *timep, struct tm *result)
 {
 	if(!localtime_s(result, timep))
