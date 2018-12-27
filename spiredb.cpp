@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 	return spiredb.main();
 }
 
-const unsigned SpireDB::current_version = 4;
+const unsigned SpireDB::current_version = 5;
 
 SpireDB::SpireDB(int argc, char **argv)
 {
@@ -193,7 +193,7 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 	const TrapUpgrades &upgrades = layout.get_upgrades();
 	Number damage = layout.get_damage();
 	Number rs_per_sec = layout.get_runestones_per_second();
-	unsigned cost = layout.get_cost();
+	Number cost = layout.get_cost();
 
 	cout << "submit " << upgrades.str() << ' ' << layout.get_traps() << ' ' << damage << ' ' << cost << ' ' << submitter << endl;
 
