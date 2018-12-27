@@ -393,9 +393,9 @@ int Spire::main()
 		}
 		else if(fancy_output)
 		{
-			set_cursor_position(69, 10);
+			set_cursor_position(69, 13);
 			cout << cycle;
-			set_cursor_position(69, 11);
+			set_cursor_position(69, 14);
 			cout << NumberIO(loops_per_sec) << "    ";
 			cout.flush();
 		}
@@ -501,18 +501,24 @@ void Spire::report(const Layout &layout, const string &message)
 	{
 		print_fancy(layout);
 		set_cursor_position(58, 4);
-		cout << "Damage: " << print_num(layout.get_damage()) << "    ";
+		cout << "Mode:   " << (income ? "income" : "damage");
+		if(towers)
+			cout << "+towers";
 		set_cursor_position(58, 5);
-		cout << "Threat: " << layout.get_threat();
-		set_cursor_position(58, 6);
-		cout << "Income: " << print_num(layout.get_runestones_per_second()) << " Rs/s    ";
+		cout << "Budget: " << print_num(budget);
 		set_cursor_position(58, 7);
-		cout << "Cost:   " << print_num(layout.get_cost()) << " Rs    ";
+		cout << "Damage: " << print_num(layout.get_damage()) << "    ";
 		set_cursor_position(58, 8);
-		cout << "Cycle:  " << layout.get_cycle();
+		cout << "Threat: " << layout.get_threat();
+		set_cursor_position(58, 9);
+		cout << "Income: " << print_num(layout.get_runestones_per_second()) << " Rs/s    ";
 		set_cursor_position(58, 10);
-		cout << "Cycle now: " << cycle;
+		cout << "Cost:   " << print_num(layout.get_cost()) << " Rs    ";
 		set_cursor_position(58, 11);
+		cout << "Cycle:  " << layout.get_cycle();
+		set_cursor_position(58, 13);
+		cout << "Cycle now: " << cycle;
+		set_cursor_position(58, 14);
 		cout << "Speed:     ";
 		cout << endl;
 	}
