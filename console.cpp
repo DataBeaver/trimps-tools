@@ -1,13 +1,17 @@
 #include "console.h"
 #include <stdexcept>
 #include <cstdint>
+#include <iostream>
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <cstring>
-#include <iostream>
 #include <sys/ioctl.h>
 #include <termios.h>
+#endif
+
+#if defined(_WIN32) && !defined(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
 #endif
 
 using namespace std;
@@ -64,7 +68,6 @@ uint8_t colormap[] =
 	14, 14, 14, 15, 15, 15
 };
 
-#ifndef _WIN32
 uint8_t colormap_dimonly[] =
 {
 	 0,  0,  1,  1,  1,  1,
@@ -114,12 +117,12 @@ inline unsigned swap_bits(unsigned c)
 {
 	return ((c&4)>>2) | (c&2) | ((c&1)<<2);
 }
-#endif
 
 }
 
 Console::Console():
 	stdout_handle(0),
+	has_ansi(false),
 	has_256color(false),
 	width(80),
 	height(25),
@@ -127,8 +130,13 @@ Console::Console():
 {
 #ifdef _WIN32
 	stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+	DWORD mode = 0;
+	GetConsoleMode(stdout_handle, &mode);
+	has_ansi = SetConsoleMode(stdout_handle, mode|ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+	has_256color = has_ansi;
 #else
 	const char *term = getenv("TERM");
+	has_ansi = true;
 	has_256color = !strcmp(term, "xterm-256color");
 #endif
 	update_size();
@@ -153,45 +161,57 @@ void Console::update_size()
 void Console::set_cursor_position(unsigned x, unsigned y)
 {
 #ifdef _WIN32
-	COORD pos;
-	pos.X = x;
-	pos.Y = top+y;
-	SetConsoleCursorPosition(stdout_handle, pos);
-#else
-	cout << "\033[" << y+1 << ';' << x+1 << 'H';
+	if(!has_ansi)
+	{
+		COORD pos;
+		pos.X = x;
+		pos.Y = top+y;
+		SetConsoleCursorPosition(stdout_handle, pos);
+		return;
+	}
 #endif
+
+	cout << "\033[" << y+1 << ';' << x+1 << 'H';
 }
 
 void Console::clear_screen()
 {
 #ifdef _WIN32
-	CONSOLE_SCREEN_BUFFER_INFO info;
-	GetConsoleScreenBufferInfo(stdout_handle, &info);
-	COORD start_pos;
-	start_pos.X = 0;
-	start_pos.Y = top;
-	unsigned screen_size = width*height;
-	DWORD n_filled = 0;
-	FillConsoleOutputCharacter(stdout_handle, ' ', screen_size, start_pos, &n_filled);
-	FillConsoleOutputAttribute(stdout_handle, info.wAttributes, screen_size, start_pos, &n_filled);
-#else
-	cout << "\033[2J";
+	if(!has_ansi)
+	{
+		CONSOLE_SCREEN_BUFFER_INFO info;
+		GetConsoleScreenBufferInfo(stdout_handle, &info);
+		COORD start_pos;
+		start_pos.X = 0;
+		start_pos.Y = top;
+		unsigned screen_size = width*height;
+		DWORD n_filled = 0;
+		FillConsoleOutputCharacter(stdout_handle, ' ', screen_size, start_pos, &n_filled);
+		FillConsoleOutputAttribute(stdout_handle, info.wAttributes, screen_size, start_pos, &n_filled);
+		return;
+	}
 #endif
+
+	cout << "\033[2J";
 }
 
 void Console::clear_current_line()
 {
 #ifdef _WIN32
-	CONSOLE_SCREEN_BUFFER_INFO info;
-	GetConsoleScreenBufferInfo(stdout_handle, &info);
-	COORD start_pos;
-	start_pos.X = 0;
-	start_pos.Y = info.dwCursorPosition.Y;
-	DWORD n_filled = 0;
-	FillConsoleOutputCharacter(stdout_handle, ' ', width, start_pos, &n_filled);
-#else
-	cout << "\033[2K";
+	if(!has_ansi)
+	{
+		CONSOLE_SCREEN_BUFFER_INFO info;
+		GetConsoleScreenBufferInfo(stdout_handle, &info);
+		COORD start_pos;
+		start_pos.X = 0;
+		start_pos.Y = info.dwCursorPosition.Y;
+		DWORD n_filled = 0;
+		FillConsoleOutputCharacter(stdout_handle, ' ', width, start_pos, &n_filled);
+		return;
+	}
 #endif
+
+	cout << "\033[2K";
 }
 
 void Console::set_text_color(unsigned fore, unsigned back)
@@ -200,10 +220,15 @@ void Console::set_text_color(unsigned fore, unsigned back)
 		throw invalid_argument("set_text_color");
 
 #ifdef _WIN32
-	fore = colormap[fore];
-	back = colormap[back];
-	SetConsoleTextAttribute(stdout_handle, fore|(back<<4));
-#else
+	if(!has_ansi)
+	{
+		fore = colormap[fore];
+		back = colormap[back];
+		SetConsoleTextAttribute(stdout_handle, fore|(back<<4));
+		return;
+	}
+#endif
+
 	if(has_256color)
 		cout << "\033[38;5;" << 16+fore << ";48;5;" << 16+back << 'm';
 	else
@@ -214,14 +239,14 @@ void Console::set_text_color(unsigned fore, unsigned back)
 			cout << ";1";
 		cout << 'm';
 	}
-#endif
 }
 
 void Console::restore_default_text_color()
 {
 #ifdef _WIN32
-	set_text_color(129, 0);
-#else
-	cout << "\033[0m";
+	if(!has_ansi)
+		return set_text_color(129, 0);
 #endif
+
+	cout << "\033[0m";
 }

@@ -5,6 +5,7 @@ class Console
 {
 private:
 	void *stdout_handle;
+	bool has_ansi;
 	bool has_256color;
 	unsigned width;
 	unsigned height;
