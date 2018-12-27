@@ -354,7 +354,8 @@ int Spire::main()
 
 	chrono::steady_clock::time_point period_start_time = chrono::steady_clock::now();
 	unsigned period_start_cycle = cycle;
-	while(!intr_flag)
+	bool leave_loop = false;
+	while(!leave_loop)
 	{
 		this_thread::sleep_for(chrono::milliseconds(500));
 
@@ -370,6 +371,8 @@ int Spire::main()
 				w->interrupt();
 			for(auto w: workers)
 				w->join();
+
+			leave_loop = true;
 		}
 
 		Number best_score = score_func(best_layout);
