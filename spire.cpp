@@ -603,10 +603,17 @@ void Spire::print_fancy(const Layout &layout)
 		hp = c.hp_left;
 	}
 
+#ifdef _WIN32
+	static const char topleft[] = "_";
+	static const char topline[] = "___________";
+	static const char hsep[] = "__________|";
+	static const char vsep[] = "|";
+#else
 	static const char topleft[] = "▗";
 	static const char topline[] = "▄▄▄▄▄▄▄▄▄▄▄";
 	static const char hsep[] = "▄▄▄▄▄▄▄▄▄▄▟";
 	static const char vsep[] = "▐";
+#endif
 
 	if(lines_per_floor>=3)
 	{
