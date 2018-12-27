@@ -10,8 +10,8 @@
 
 struct FancyCell
 {
-	unsigned bg_color;
-	unsigned text_color;
+	uint8_t bg_color;
+	uint8_t text_color;
 	std::string line1;
 	std::string line2;
 };
@@ -559,9 +559,9 @@ bool Spire::print(const Layout &layout, unsigned &count)
 
 void Spire::print_fancy(const Layout &layout)
 {
-	static const unsigned border_color = 172;
-	static const unsigned trap_colors[] = {   0, 108,   9,  13, 126 , 78,  43,  38 };
-	static const unsigned text_colors[] = {  86, 215, 215, 215,   0,   0, 215, 215 };
+	static const uint8_t border_color = 172;
+	static const uint8_t trap_colors[] = {   0, 108,   9,  13, 126 , 78,  43,  38 };
+	static const uint8_t text_colors[] = {  86, 215, 215, 215,   0,   0, 215, 215 };
 	const string &traps = layout.get_traps();
 	unsigned floors = traps.size()/5;
 
