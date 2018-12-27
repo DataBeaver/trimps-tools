@@ -307,8 +307,8 @@ int Spire::main()
 
 	if(show_pools || fancy_output)
 	{
-		clear_screen();
-		set_cursor_position(0, 0);
+		console.clear_screen();
+		console.set_cursor_position(0, 0);
 	}
 
 	Layout best_layout = pools.front()->get_best_layout();
@@ -393,19 +393,18 @@ int Spire::main()
 		}
 		else if(fancy_output)
 		{
-			set_cursor_position(69, 13);
+			console.set_cursor_position(69, 13);
 			cout << cycle;
-			set_cursor_position(69, 14);
+			console.set_cursor_position(69, 14);
 			cout << NumberIO(loops_per_sec) << "    ";
 			cout.flush();
 		}
 
 		if(show_pools)
 		{
-			unsigned console_w, console_h;
-			get_console_size(console_w, console_h);
-			set_cursor_position(0, 0);
-			unsigned n_print = (console_h-2)/n_pools-1;
+			console.update_size();
+			console.set_cursor_position(0, 0);
+			unsigned n_print = (console.get_height()-2)/n_pools-1;
 			for(unsigned i=0; i<n_pools; ++i)
 			{
 				unsigned count = n_print;
@@ -414,13 +413,13 @@ int Spire::main()
 				{
 					for(++count; count>0; --count)
 					{
-						clear_current_line();
+						console.clear_current_line();
 						cout << endl;
 					}
 				}
 			}
 
-			clear_current_line();
+			console.clear_current_line();
 			cout << loops_per_sec << " loops/sec" << endl;
 		}
 
@@ -433,9 +432,7 @@ int Spire::main()
 
 	if(show_pools || fancy_output)
 	{
-		unsigned console_w, console_h;
-		get_console_size(console_w, console_h);
-		set_cursor_position(0, console_h-1);
+		console.set_cursor_position(0, console.get_height()-1);
 		cout.flush();
 	}
 
@@ -485,8 +482,8 @@ void Spire::report(const Layout &layout, const string &message)
 {
 	if(fancy_output)
 	{
-		set_cursor_position(0, 0);
-		clear_current_line();
+		console.set_cursor_position(0, 0);
+		console.clear_current_line();
 	}
 
 	time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());
@@ -503,25 +500,25 @@ void Spire::report(const Layout &layout, const string &message)
 	if(fancy_output)
 	{
 		print_fancy(layout);
-		set_cursor_position(58, 4);
+		console.set_cursor_position(58, 4);
 		cout << "Mode:   " << (income ? "income" : "damage");
 		if(towers)
 			cout << "+towers";
-		set_cursor_position(58, 5);
+		console.set_cursor_position(58, 5);
 		cout << "Budget: " << print_num(budget);
-		set_cursor_position(58, 7);
+		console.set_cursor_position(58, 7);
 		cout << "Damage: " << print_num(layout.get_damage()) << "    ";
-		set_cursor_position(58, 8);
+		console.set_cursor_position(58, 8);
 		cout << "Threat: " << layout.get_threat();
-		set_cursor_position(58, 9);
+		console.set_cursor_position(58, 9);
 		cout << "Income: " << print_num(layout.get_runestones_per_second()) << " Rs/s    ";
-		set_cursor_position(58, 10);
+		console.set_cursor_position(58, 10);
 		cout << "Cost:   " << print_num(layout.get_cost()) << " Rs    ";
-		set_cursor_position(58, 11);
+		console.set_cursor_position(58, 11);
 		cout << "Cycle:  " << layout.get_cycle();
-		set_cursor_position(58, 13);
+		console.set_cursor_position(58, 13);
 		cout << "Cycle now: " << cycle;
-		set_cursor_position(58, 14);
+		console.set_cursor_position(58, 14);
 		cout << "Speed:     ";
 		cout << endl;
 	}
@@ -557,7 +554,7 @@ bool Spire::print(const Layout &layout, unsigned &count)
 
 	if(show_pools)
 	{
-		clear_current_line();
+		console.clear_current_line();
 		cout << descr << ' ' << score_func(layout) << ' ' << layout.get_cost() << ' ' << layout.get_cycle() << endl;
 	}
 	else
@@ -574,9 +571,8 @@ void Spire::print_fancy(const Layout &layout)
 	const string &traps = layout.get_traps();
 	unsigned floors = traps.size()/5;
 
-	unsigned console_w, console_h;
-	get_console_size(console_w, console_h);
-	unsigned lines_per_floor = min((console_h-4)/floors, 3U);
+	console.update_size();
+	unsigned lines_per_floor = min((console.get_height()-4)/floors, 3U);
 
 	Number max_hp = layout.get_damage();
 	vector<CellInfo> cells;
@@ -649,7 +645,7 @@ void Spire::print_fancy(const Layout &layout)
 
 	if(lines_per_floor>=3)
 	{
-		set_text_color(border_color, 0);
+		console.set_text_color(border_color, 0);
 		cout << topleft;
 		for(unsigned i=0; i<5; ++i)
 			cout << topline;
@@ -658,7 +654,7 @@ void Spire::print_fancy(const Layout &layout)
 
 	for(unsigned i=floors*lines_per_floor; i-->0; )
 	{
-		set_text_color(border_color, 0);
+		console.set_text_color(border_color, 0);
 		cout << vsep;
 
 		unsigned line = lines_per_floor-1-i%lines_per_floor;
@@ -667,14 +663,14 @@ void Spire::print_fancy(const Layout &layout)
 			const FancyCell &fc = fancy[(i/lines_per_floor)*5+j];
 			if(line==2)
 			{
-				set_text_color(border_color, fc.bg_color[line]);
+				console.set_text_color(border_color, fc.bg_color[line]);
 				cout << hsep;
 			}
 			else
 			{
-				set_text_color(fc.text_color, fc.bg_color[line]);
+				console.set_text_color(fc.text_color, fc.bg_color[line]);
 				cout << (line==0 ? fc.line1 : fc.line2);
-				set_text_color(border_color, fc.bg_color[line]);
+				console.set_text_color(border_color, fc.bg_color[line]);
 				cout << vsep;
 			}
 		}
@@ -682,7 +678,7 @@ void Spire::print_fancy(const Layout &layout)
 		cout << endl;
 	}
 
-	restore_default_text_color();
+	console.restore_default_text_color();
 
 	if(lines_per_floor<3)
 		cout  << "Note: incerase window height for even fancier output!" << endl;

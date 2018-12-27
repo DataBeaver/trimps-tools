@@ -110,9 +110,6 @@ uint8_t colormap_dimonly[] =
 	 6,  6,  7,  7,  7,  7
 };
 
-bool term_checked = false;
-bool has_256color = false;
-
 inline unsigned swap_bits(unsigned c)
 {
 	return ((c&4)>>2) | (c&2) | ((c&1)<<2);
@@ -121,46 +118,59 @@ inline unsigned swap_bits(unsigned c)
 
 }
 
-void get_console_size(unsigned &w, unsigned &h)
+Console::Console():
+	stdout_handle(0),
+	has_256color(false),
+	width(80),
+	height(25),
+	top(0)
+{
+#ifdef _WIN32
+	stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+#else
+	const char *term = getenv("TERM");
+	has_256color = !strcmp(term, "xterm-256color");
+#endif
+	update_size();
+}
+
+void Console::update_size()
 {
 #ifdef _WIN32
 	CONSOLE_SCREEN_BUFFER_INFO info;
-	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info);
-	w = info.dwSize.X;
-	h = info.srWindow.Bottom+1-info.srWindow.Top;
+	GetConsoleScreenBufferInfo(stdout_handle, &info);
+	width = info.dwSize.X;
+	height = info.srWindow.Bottom+1-info.srWindow.Top;
+	top = info.srWindow.Top;
 #else
 	winsize size;
 	ioctl(0, TIOCGWINSZ, &size);
-	w = size.ws_col;
-	h = size.ws_row;
+	width = size.ws_col;
+	height = size.ws_row;
 #endif
 }
 
-void set_cursor_position(unsigned x, unsigned y)
+void Console::set_cursor_position(unsigned x, unsigned y)
 {
 #ifdef _WIN32
-	HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-	CONSOLE_SCREEN_BUFFER_INFO info;
-	GetConsoleScreenBufferInfo(stdout_handle, &info);
 	COORD pos;
 	pos.X = x;
-	pos.Y = info.srWindow.Top+y;
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
+	pos.Y = top+y;
+	SetConsoleCursorPosition(stdout_handle, pos);
 #else
 	cout << "\033[" << y+1 << ';' << x+1 << 'H';
 #endif
 }
 
-void clear_screen()
+void Console::clear_screen()
 {
 #ifdef _WIN32
-	HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(stdout_handle, &info);
 	COORD start_pos;
 	start_pos.X = 0;
-	start_pos.Y = info.srWindow.Top;
-	unsigned screen_size = info.dwSize.X*info.dwSize.Y;
+	start_pos.Y = top;
+	unsigned screen_size = width*height;
 	DWORD n_filled = 0;
 	FillConsoleOutputCharacter(stdout_handle, ' ', screen_size, start_pos, &n_filled);
 	FillConsoleOutputAttribute(stdout_handle, info.wAttributes, screen_size, start_pos, &n_filled);
@@ -169,39 +179,31 @@ void clear_screen()
 #endif
 }
 
-void clear_current_line()
+void Console::clear_current_line()
 {
 #ifdef _WIN32
-	HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO info;
 	GetConsoleScreenBufferInfo(stdout_handle, &info);
 	COORD start_pos;
-	start_pos.X = 1;
+	start_pos.X = 0;
 	start_pos.Y = info.dwCursorPosition.Y;
 	DWORD n_filled = 0;
-	FillConsoleOutputCharacter(stdout_handle, ' ', info.dwSize.X, start_pos, &n_filled);
+	FillConsoleOutputCharacter(stdout_handle, ' ', width, start_pos, &n_filled);
 #else
 	cout << "\033[2K";
 #endif
 }
 
-void set_text_color(unsigned fore, unsigned back)
+void Console::set_text_color(unsigned fore, unsigned back)
 {
 	if(fore>216 || back>216)
 		throw invalid_argument("set_text_color");
 
 #ifdef _WIN32
-	HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 	fore = colormap[fore];
 	back = colormap[back];
 	SetConsoleTextAttribute(stdout_handle, fore|(back<<4));
 #else
-	if(!term_checked)
-	{
-		term_checked = true;
-		const char *term = getenv("TERM");
-		has_256color = !strcmp(term, "xterm-256color");
-	}
 	if(has_256color)
 		cout << "\033[38;5;" << 16+fore << ";48;5;" << 16+back << 'm';
 	else
@@ -215,7 +217,7 @@ void set_text_color(unsigned fore, unsigned back)
 #endif
 }
 
-void restore_default_text_color()
+void Console::restore_default_text_color()
 {
 #ifdef _WIN32
 	set_text_color(129, 0);

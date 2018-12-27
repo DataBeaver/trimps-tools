@@ -6,6 +6,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include "console.h"
 #include "network.h"
 #include "spirelayout.h"
 #include "spirepool.h"
@@ -68,6 +69,8 @@ private:
 	bool towers;
 	Pool::ScoreFunc *score_func;
 	Layout start_layout;
+
+	Console console;
 
 	static Spire *instance;
 
