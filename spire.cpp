@@ -484,7 +484,10 @@ void Spire::prune_pools()
 void Spire::report(const Layout &layout, const string &message)
 {
 	if(fancy_output)
+	{
 		set_cursor_position(0, 0);
+		clear_current_line();
+	}
 
 	time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	struct tm lt;
