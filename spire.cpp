@@ -10,7 +10,7 @@
 
 struct FancyCell
 {
-	uint8_t bg_color;
+	uint8_t bg_color[3];
 	uint8_t text_color;
 	std::string line1;
 	std::string line2;
@@ -582,7 +582,8 @@ void Spire::print_fancy(const Layout &layout)
 		for(j=0; Layout::traps[j]!=c.trap; ++j) ;
 
 		FancyCell fc;
-		fc.bg_color = trap_colors[j];
+		for(unsigned k=0; k<3; ++k)
+			fc.bg_color[k] = trap_colors[j];
 		fc.text_color = text_colors[j];
 
 		fc.line1.reserve(10);
@@ -605,6 +606,24 @@ void Spire::print_fancy(const Layout &layout)
 
 		fancy.push_back(fc);
 		hp = c.hp_left;
+	}
+
+	for(unsigned i=0; i<cells.size(); ++i)
+	{
+		if(cells[i].trap=='S')
+		{
+			unsigned b = i-i%5;
+			for(unsigned j=0; j<5; ++j)
+				if(cells[b+j].trap=='F')
+					fancy[b+j].bg_color[2] = trap_colors[5];
+		}
+		else if(cells[i].trap=='Z' && i>0 && cells[i-1].trap=='P')
+			fancy[i-1].bg_color[2] = trap_colors[2];
+		else if(cells[i].trap=='P' && i>0 && cells[i-1].trap=='P')
+		{
+			fancy[i-1].bg_color[0] = 6;
+			fancy[i].bg_color[0] = 6;
+		}
 	}
 
 #ifdef _WIN32
@@ -639,14 +658,14 @@ void Spire::print_fancy(const Layout &layout)
 			const FancyCell &fc = fancy[(i/lines_per_floor)*5+j];
 			if(line==2)
 			{
-				set_text_color(border_color, fc.bg_color);
+				set_text_color(border_color, fc.bg_color[line]);
 				cout << hsep;
 			}
 			else
 			{
-				set_text_color(fc.text_color, fc.bg_color);
+				set_text_color(fc.text_color, fc.bg_color[line]);
 				cout << (line==0 ? fc.line1 : fc.line2);
-				set_text_color(border_color, fc.bg_color);
+				set_text_color(border_color, fc.bg_color[line]);
 				cout << vsep;
 			}
 		}
