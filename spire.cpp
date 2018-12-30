@@ -347,7 +347,8 @@ int Spire::main()
 
 	if(network)
 	{
-		cout << "Querying online database for best known layout" << endl;
+		if(!fancy_output)
+			cout << "Querying online database for best known layout" << endl;
 		if(query_network())
 		{
 			if(!show_pools)
@@ -355,7 +356,8 @@ int Spire::main()
 		}
 		else
 		{
-			cout << "Database returned no better layout" << endl;
+			if(!fancy_output)
+				cout << "Database returned no better layout" << endl;
 
 			if(score_func(best_layout)>0)
 				network->send_message(connection, format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps()));
@@ -562,7 +564,7 @@ void Spire::report(const Layout &layout, const string &message)
 		if(towers)
 			cout << "+towers";
 		console.set_cursor_position(58, 5);
-		cout << "Budget: " << print_num(budget);
+		cout << "Budget: " << print_num(budget) << " Rs";
 		console.set_cursor_position(58, 7);
 		cout << "Damage: " << print_num(layout.get_damage()) << "    ";
 		console.set_cursor_position(58, 8);
@@ -576,7 +578,7 @@ void Spire::report(const Layout &layout, const string &message)
 		console.set_cursor_position(58, 13);
 		cout << "Cycle now: " << cycle;
 		console.set_cursor_position(58, 14);
-		cout << "Speed:     ";
+		cout << "Speed:     " << NumberIO(loops_per_second);
 		cout << endl;
 	}
 }
