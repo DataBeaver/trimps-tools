@@ -54,6 +54,7 @@ private:
 	std::list<Worker *> workers;
 	unsigned loops_per_cycle;
 	std::atomic<unsigned> cycle;
+	unsigned loops_per_second;
 	unsigned accuracy;
 	bool debug_layout;
 	bool numeric_format;
@@ -69,6 +70,7 @@ private:
 	bool towers;
 	Pool::ScoreFunc *score_func;
 	Layout start_layout;
+	Layout best_layout;
 
 	Console console;
 
@@ -76,10 +78,18 @@ private:
 
 public:
 	Spire(int, char **);
+private:
+	void init_start_layout(const std::string &, const std::string &, unsigned);
+	void init_pools(unsigned);
+	void init_network(unsigned);
+public:
 	~Spire();
 
 	int main();
 private:
+	bool query_network();
+	bool check_results();
+	void update_output(bool);
 	unsigned get_next_cycle();
 	void prune_pools();
 	void report(const Layout &, const std::string &);
