@@ -5,8 +5,10 @@ using namespace std;
 
 namespace {
 
-const char suffixes[][3] = { "", "k", "M", "B", "T", "Qa", "Qi" };
-constexpr unsigned n_suffixes = sizeof(suffixes)/sizeof(suffixes[0]);
+const char suffixes[][3] = { "", "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No" };
+const char suffixes2[][4] = { "", "Dc", "V", "Tg", "Qaa", "Qia" };
+const char suffixes3[][3] = { "", "U", "D", "T", "Qa", "Qi", "Sx", "Sp", "O", "N" };
+const char suffixes4[][3] = { "", "d", "v", "tg", "qa", "qi" };
 
 }
 
@@ -18,14 +20,24 @@ ostream &operator<<(ostream &os, const NumericIO<T> &num)
 		return (os << value);
 
 	unsigned i = 0;
-	for(; (i+1<n_suffixes && value>=1000); ++i)
+	for(; (i<59 && value>=1000); ++i)
 		value /= 1000;
 
 	ios::fmtflags flags = os.flags();
 	streamsize precision = os.precision();
 	os.unsetf(ios_base::floatfield);
 	os.precision(3);
-	os << value << suffixes[i];
+	os << value;
+	if(i<=10)
+		os << suffixes[i];
+	else
+	{
+		--i;
+		if(i%10==0)
+			os << suffixes2[i/10];
+		else
+			os << suffixes3[i%10] << suffixes4[i/10];
+	}
 	os.flags(flags);
 	os.precision(precision);
 
@@ -52,7 +64,7 @@ istream &operator>>(istream &is, NumericIO<T> &num)
 	{
 		double value = parse_value<double>(word.substr(0, letter));
 		bool found = false;
-		for(unsigned i=1; (!found && i<7); ++i)
+		for(unsigned i=1; (!found && i<11); ++i)
 		{
 			value *= 1000;
 			found = !word.compare(letter, string::npos, suffixes[i]);
