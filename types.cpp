@@ -10,7 +10,8 @@ constexpr unsigned n_suffixes = sizeof(suffixes)/sizeof(suffixes[0]);
 
 }
 
-ostream &operator<<(ostream &os, const NumberIO &num)
+template<typename T>
+ostream &operator<<(ostream &os, const NumericIO<T> &num)
 {
 	double value = num.value;
 	if(value<10000)
@@ -31,7 +32,11 @@ ostream &operator<<(ostream &os, const NumberIO &num)
 	return os;
 }
 
-istream &operator>>(istream &is, NumberIO &num)
+template ostream &operator<<(ostream &, const NumericIO<Number> &);
+template ostream &operator<<(ostream &, const NumericIO<double> &);
+
+template<typename T>
+istream &operator>>(istream &is, NumericIO<T> &num)
 {
 	string word;
 	is >> word;
@@ -40,7 +45,7 @@ istream &operator>>(istream &is, NumberIO &num)
 	for(; (letter<word.size() && !isalpha(word[letter])); ++letter) ;
 
 	if(letter>=word.size())
-		num.value = parse_value<Number>(word);
+		num.value = parse_value<T>(word);
 	else if(word[letter]=='e')
 		num.value = parse_value<double>(word);
 	else
@@ -61,3 +66,6 @@ istream &operator>>(istream &is, NumberIO &num)
 
 	return is;
 }
+
+template istream &operator>>(istream &, NumericIO<Number> &);
+template istream &operator>>(istream &, NumericIO<double> &);

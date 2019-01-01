@@ -8,18 +8,25 @@
 
 typedef std::uint64_t Number;
 
-struct NumberIO
+template<typename T>
+struct NumericIO
 {
-	Number value;
+	T value;
 
-	NumberIO() { }
-	NumberIO(Number v): value(v) { }
+	NumericIO() { }
+	NumericIO(T v): value(v) { }
 
-	operator Number() const { return value; }
+	operator T() const { return value; }
 };
 
-std::ostream &operator<<(std::ostream &, const NumberIO &);
-std::istream &operator>>(std::istream &, NumberIO &);
+typedef NumericIO<Number> NumberIO;
+typedef NumericIO<double> DoubleIO;
+
+template<typename T>
+std::ostream &operator<<(std::ostream &, const NumericIO<T> &);
+
+template<typename T>
+std::istream &operator>>(std::istream &, NumericIO<T> &);
 
 typedef std::minstd_rand Random;
 
