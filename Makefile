@@ -12,12 +12,15 @@ spire: console.o getopt.o network.o spire.o spirelayout.o spirepool.o stringutil
 spiredb: getopt.o network.o spiredb.o spirelayout.o stringutils.o
 	$(CXX) $(LDFLAGS) $(PQXX_LDFLAGS) $^ -o $@
 
+perks: getopt.o perks.o stringutils.o types.o
+
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $(EXTRA_CXXFLAGS) -c $< -o $@
 
 console.o: console.h
 getopt.o: getopt.h stringutils.h
 network.o: network.h
+perks.o: getopt.h stringutils.h types.h
 spire.o: console.h getopt.h network.h spire.h spirelayout.h spirepool.h stringutils.h types.h
 spiredb.o: getopt.h network.h spiredb.h spirelayout.h stringutils.h types.h
 spiredb.o: EXTRA_CXXFLAGS = $(PQXX_CFLAGS)
