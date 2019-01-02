@@ -106,7 +106,7 @@ const PerkInfo Perks::perk_info[] =
 	{ "range", 1, PerkInfo::MULTIPLICATIVE, 1.3, 10 },
 	{ "artisanistry", 15, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "carpentry", 25, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
-	{ "relentlessness", 75, PerkInfo::MULTIPLICATIVE, 1.3, 20 },
+	{ "relentlessness", 75, PerkInfo::MULTIPLICATIVE, 1.3, 10 },
 	{ "meditation", 75, PerkInfo::MULTIPLICATIVE, 1.3, 7 },
 	{ "resilience", 100, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "anticipation", 1000, PerkInfo::MULTIPLICATIVE, 1.3, 10 },
