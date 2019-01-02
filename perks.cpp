@@ -154,6 +154,8 @@ Perks::Perks(int argc, char **argv):
 	GetOpt getopt;
 	for(unsigned i=0; perk_info[i].name; ++i)
 		getopt.add_option(perk_info[i].name, base_levels[perk_info[i].name], GetOpt::REQUIRED_ARG);
+	getopt.add_option("breed-time", target_breed_time, GetOpt::REQUIRED_ARG);
+	getopt.add_option("equip-time", equip_time, GetOpt::REQUIRED_ARG);
 	getopt.add_option("achievements", achievements, GetOpt::REQUIRED_ARG);
 	getopt.add_option("challenge2", challenge2, GetOpt::REQUIRED_ARG);
 	getopt.add_option("heirloom-attack", heirloom.attack, GetOpt::REQUIRED_ARG);
