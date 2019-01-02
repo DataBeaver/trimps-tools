@@ -55,6 +55,8 @@ private:
 	unsigned achievements;
 	unsigned challenge2;
 	Heirloom heirloom;
+	unsigned large;
+	unsigned famine;
 	double attack_weight;
 	double health_weight;
 	double helium_weight;
@@ -131,6 +133,8 @@ Perks::Perks(int argc, char **argv):
 	helium_budget(0),
 	achievements(0),
 	challenge2(0),
+	large(0),
+	famine(0),
 	attack_weight(1),
 	health_weight(1),
 	helium_weight(0),
@@ -155,6 +159,8 @@ Perks::Perks(int argc, char **argv):
 	getopt.add_option("heirloom-crit-chance", heirloom.crit_chance, GetOpt::REQUIRED_ARG);
 	getopt.add_option("heirloom-crit-damage", heirloom.crit_damage, GetOpt::REQUIRED_ARG);
 	getopt.add_option("heirloom-miner", heirloom.miner, GetOpt::REQUIRED_ARG);
+	getopt.add_option("large", large, GetOpt::REQUIRED_ARG);
+	getopt.add_option("famine", famine, GetOpt::REQUIRED_ARG);
 	getopt.add_option("attack", attack_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_option("health", health_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_option("helium", helium_weight, GetOpt::REQUIRED_ARG);
@@ -306,6 +312,7 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.population = base_pop;
 	stats.population *= pow(1.1, get_perk("carpentry"));
 	stats.population *= 1+0.0025*get_perk("carpentry2");
+	stats.population *= 1-0.01*large;
 
 	unsigned max_coords = target_zone-1;
 	if(target_zone>=230)
@@ -334,6 +341,7 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.production *= 1+0.01*get_perk("motivation2");
 	stats.production *= 1+0.07*get_perk("meditation");
 	stats.production *= 1+0.01*heirloom.miner;
+	stats.production *= 1-0.01*famine;
 	// Speed books
 	stats.production *= pow(1.25, min(target_zone, 59U));
 	// Mega books
