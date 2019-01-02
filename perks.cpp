@@ -28,6 +28,7 @@ struct EvalStats
 	double army;
 	unsigned prestige_level;
 	unsigned equipment_level;
+	unsigned geneticists;
 	double health;
 	double attack;
 };
@@ -39,6 +40,7 @@ private:
 
 	double base_pop;
 	unsigned target_zone;
+	double target_breed_time;
 	double equip_time;
 	double helium_budget;
 	LevelMap perk_levels;
@@ -106,6 +108,7 @@ const PerkInfo Perks::perk_info[] =
 Perks::Perks(int argc, char **argv):
 	base_pop(1),
 	target_zone(10),
+	target_breed_time(45),
 	equip_time(120),
 	helium_budget(0)
 {
@@ -206,6 +209,7 @@ void Perks::print_perks() const
 	cout << "Helium spent: " << DoubleIO(helium_spent) << endl;
 	cout << "Population: " << DoubleIO(stats.population) << endl;
 	cout << "Army size: " << DoubleIO(stats.army) << endl;
+	cout << "Geneticists: " << stats.geneticists << endl;
 }
 
 unsigned Perks::get_perk(const string &name) const
@@ -286,7 +290,19 @@ double Perks::evaluate(EvalStats &stats) const
 
 	double coord_stats = pow(1.25, coords);
 
-	double extra_genes = log(1+0.1*get_perk("pheromones"))/log(1/0.98);
+	double breed_rate = 0.0085;
+	breed_rate *= 1+0.1*get_perk("pheromones");
+	if(target_zone>=60)
+		breed_rate /= 10;
+	// Potency upgrades
+	breed_rate *= pow(1.1, target_zone/5);
+	// Venimp
+	breed_rate *= pow(1.003, target_zone*3);
+
+	double breed_time = -log(1-stats.army*2/stats.population)/breed_rate;
+	stats.geneticists = 0;
+	if(breed_time<target_breed_time)
+		stats.geneticists = ceil(log(target_breed_time/breed_time)/log(1/0.98));
 
 	double overheat = 1;
 	if(target_zone>=230)
@@ -295,7 +311,7 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.health = 50;
 	stats.health += (4+6+10+14+23+35+60)*pow(1.19, 14*stats.prestige_level)*affordable_level;
 	stats.health *= coord_stats;
-	stats.health *= pow(1.01, extra_genes);
+	stats.health *= pow(1.01, stats.geneticists);
 	stats.health *= 1+0.05*get_perk("toughness");
 	stats.health *= 1+0.01*get_perk("toughness2");
 	stats.health *= pow(1.1, get_perk("resilience"));
