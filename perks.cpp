@@ -253,6 +253,8 @@ double Perks::evaluate(EvalStats &stats) const
 		stats.army = ceil(stats.army*coord_factor);
 	}
 
+	double imp_ort = pow(1.003, target_zone*3);
+
 	stats.production = stats.population/4;
 	stats.production *= 1+0.05*get_perk("motivation");
 	stats.production *= 1+0.01*get_perk("motivation2");
@@ -266,7 +268,7 @@ double Perks::evaluate(EvalStats &stats) const
 	if(target_zone>=15)
 		stats.production *= 2;
 	// Whipimp
-	stats.production *= pow(1.003, target_zone*3);
+	stats.production *= imp_ort;
 
 	double speed = 1/pow(0.95, get_perk("agility"));
 
@@ -275,7 +277,7 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.loot *= 1+0.05*get_perk("looting");
 	stats.loot *= 1+0.0025*get_perk("looting2");
 	// Magnimp
-	stats.loot *= pow(1.003, target_zone*3);
+	stats.loot *= imp_ort;
 
 	double income = stats.production+stats.loot;
 
@@ -300,7 +302,7 @@ double Perks::evaluate(EvalStats &stats) const
 	// Potency upgrades
 	breed_rate *= pow(1.1, target_zone/5);
 	// Venimp
-	breed_rate *= pow(1.003, target_zone*3);
+	breed_rate *= imp_ort;
 
 	double breed_time = -log(1-stats.army*2/stats.population)/breed_rate;
 	stats.geneticists = 0;
