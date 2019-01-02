@@ -277,12 +277,14 @@ void Network::Worker::accept_connection()
 
 void Network::Worker::process_connection(Connection *conn)
 {
+	ReceiveFunc *func = (conn->recv_func ? conn->recv_func : network.serve_func);
+
 	char buf[16384];
 	int res = recv(conn->sock, buf, sizeof(buf), 0);
 	if(res<=0)
 	{
-		if(conn->recv_func)
-			receive_queue.emplace_back(conn->tag, string(), conn->recv_func);
+		if(func)
+			receive_queue.emplace_back(conn->tag, string(), func);
 
 		closesocket(conn->sock);
 		stale_connections.push_back(conn);
@@ -297,7 +299,6 @@ void Network::Worker::process_connection(Connection *conn)
 		if(newline==string::npos)
 			break;
 
-		ReceiveFunc *func = (conn->recv_func ? conn->recv_func : network.serve_func);
 		if(func)
 			receive_queue.emplace_back(conn->tag, conn->received_data.substr(0, newline), func);
 		conn->received_data.erase(0, newline+1);
