@@ -90,6 +90,7 @@ const PerkInfo Perks::perk_info[] =
 	{ "relentlessness", 75, PerkInfo::MULTIPLICATIVE, 1.3, 20 },
 	{ "meditation", 75, PerkInfo::MULTIPLICATIVE, 1.3, 7 },
 	{ "resilience", 100, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "anticipation", 1000, PerkInfo::MULTIPLICATIVE, 1.3, 10 },
 	{ "siphonology", 100e3, PerkInfo::MULTIPLICATIVE, 1.3, 3 },
 	{ "coordinated", 150e3, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "resourceful", 50e3, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
@@ -330,6 +331,7 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.attack *= 1+0.05*get_perk("power");
 	stats.attack *= 1+0.01*get_perk("power2");
 	stats.attack *= 1+0.01*get_perk("range");
+	stats.attack *= 1+min(floor(target_breed_time), 45.0)*+0.02*get_perk("anticipation");
 	stats.attack *= 1+0.05*crit*(1+0.3*crit);
 	stats.attack *= overheat;
 
