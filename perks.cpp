@@ -383,7 +383,7 @@ double Perks::evaluate(EvalStats &stats) const
 		overheat = pow(0.8, target_zone-229);
 
 	stats.health = 50;
-	stats.health += (4+6+10+14+23+35+60)*pow(1.19, 14*stats.prestige_level)*affordable_level;
+	stats.health += (4+6+10+14+23+35+60)*pow(1.19, 14*(stats.prestige_level-1))*affordable_level;
 	stats.health *= coord_stats;
 	stats.health *= pow(1.01, stats.geneticists);
 	stats.health *= pow(40, amalgamators);
@@ -399,7 +399,7 @@ double Perks::evaluate(EvalStats &stats) const
 	unsigned bionic = (target_zone-110)/15;
 
 	stats.attack = 6;
-	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*stats.prestige_level)*affordable_level;
+	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*(stats.prestige_level-1))*affordable_level;
 	stats.attack *= coord_stats;
 	stats.attack *= 1+0.5*amalgamators;
 	stats.attack *= 1+0.05*get_perk("power");
