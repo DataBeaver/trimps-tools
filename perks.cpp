@@ -75,8 +75,8 @@ private:
 	void print_perks() const;
 	unsigned get_perk(const std::string &) const;
 	double get_perk_cost(const PerkInfo &, unsigned, unsigned = 1) const;
-	double evaluate(EvalStats &) const;
-	double evaluate() const;
+	double evaluate(EvalStats &, bool = false) const;
+	double evaluate(bool = false) const;
 };
 
 using namespace std;
@@ -207,7 +207,7 @@ void Perks::optimize()
 	for(unsigned i=0; perk_info[i].name; ++i)
 		helium_spent += get_perk_cost(perk_info[i], 0, get_perk(perk_info[i].name));
 
-	double score = evaluate();
+	double score = evaluate(true);
 	while(1)
 	{
 		double free_helium = helium_budget-helium_spent;
@@ -235,7 +235,7 @@ void Perks::optimize()
 				continue;
 
 			level += inc;
-			double new_score = evaluate();
+			double new_score = evaluate(true);
 			level -= inc;
 
 			double eff = (new_score-score)/cost;
@@ -255,7 +255,7 @@ void Perks::optimize()
 		helium_spent += cost;
 		level += best_inc;
 
-		score = evaluate();
+		score = evaluate(true);
 	}
 }
 
@@ -307,7 +307,7 @@ double Perks::get_perk_cost(const PerkInfo &perk, unsigned level, unsigned count
 	}
 }
 
-double Perks::evaluate(EvalStats &stats) const
+double Perks::evaluate(EvalStats &stats, bool fractional) const
 {
 	stats.population = base_pop;
 	stats.population *= pow(1.1, get_perk("carpentry"));
@@ -319,7 +319,7 @@ double Perks::evaluate(EvalStats &stats) const
 		max_coords += 100;
 
 	double coord_factor = 1+0.25*pow(0.98, get_perk("coordinated"));
-	unsigned coords = 0;
+	double coords = 0;
 	stats.army = pow(1000, amalgamators);
 	unsigned reserve_factor = 3;
 	if(amalgamators)
@@ -333,6 +333,9 @@ double Perks::evaluate(EvalStats &stats) const
 		++coords;
 		stats.army = ceil(stats.army*coord_factor);
 	}
+
+	if(fractional)
+		coords += log(stats.population/reserve_factor/stats.army)/log(coord_factor);
 
 	double imp_ort = pow(1.003, target_zone*3);
 
@@ -373,8 +376,10 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.prestige_level = min(affordable_prestige, max_prestige);
 
 	equip_tier_cost *= pow(prestige_cost_multi, stats.prestige_level)/prestige_cost_offset;
-	double affordable_level = log(income*equip_time/equip_tier_cost)/log(1.2);
-	stats.equipment_level = max<unsigned>(affordable_level, 1U);
+	double affordable_level = max(log(income*equip_time/equip_tier_cost)/log(1.2), 1.0);
+	stats.equipment_level = affordable_level;
+	if(!fractional)
+		affordable_level = floor(affordable_level);
 
 	double coord_stats = pow(1.25, coords);
 
@@ -440,8 +445,8 @@ double Perks::evaluate(EvalStats &stats) const
 	return score;
 }
 
-double Perks::evaluate() const
+double Perks::evaluate(bool fractional) const
 {
 	EvalStats stats;
-	return evaluate(stats);
+	return evaluate(stats, fractional);
 }
