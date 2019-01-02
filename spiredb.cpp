@@ -113,65 +113,66 @@ void SpireDB::update_layouts()
 
 void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 {
+	if(data.empty())
+		return;
+
 	vector<string> parts = split(data);
-	if(parts[0]=="submit")
+	string cmd;
+	if(!parts.empty())
 	{
-		if(parts.size()==3)
-		{
-			try
-			{
-				SubmitResult result = submit_layout(parts[1], parts[2], network.get_remote_host(tag));
-				const char *result_str = 0;
-				switch(result)
-				{
-				case ACCEPTED: result_str = "accepted"; break;
-				case DUPLICATE: result_str = "duplicate"; break;
-				case OBSOLETE: result_str = "obsolete"; break;
-				}
-				network.send_message(tag, format("ok %s", result_str));
-			}
-			catch(const exception &e)
-			{
-				cout << e.what() << endl;
-				string message = e.what();
-				for(char &c: message)
-					if(c=='\n')
-						c = ' ';
-				network.send_message(tag, format("error %s", message));
-			}
-		}
-		else
-			network.send_message(tag, "error bad args");
+		cmd = parts[0];
+		parts.erase(parts.begin());
 	}
-	else if(parts[0]=="query")
+
+	const string &remote = network.get_remote_host(tag);
+	cout << '[' << remote << "] -> " << cmd;
+	for(const auto &p: parts)
+		cout << ' ' << p;
+	cout << endl;
+
+	string result;
+	try
 	{
-		if(parts.size()==4 || parts.size()==5)
-		{
-			if(parts.size()>=5 && parts[4]!="damage" && parts[4]!="income")
-				network.send_message(tag, "error bad args");
-			else
-			{
-				bool income = (parts.size()>=5 && parts[4]=="income");
-				Layout layout = query_layout(parts[1], parse_value<unsigned>(parts[2]), parse_value<Number>(parts[3]), income);
-				if(layout.get_traps().empty())
-					network.send_message(tag, "notfound");
-				else
-					network.send_message(tag, format("ok %s %s", layout.get_upgrades().str(), layout.get_traps()));
-			}
-		}
+		if(cmd=="submit")
+			result = submit(parts, remote);
+		else if(cmd=="query")
+			result = query(parts);
 		else
-			network.send_message(tag, "error bad args");
+			throw logic_error("bad command");
 	}
-	else
-		network.send_message(tag, "error bad command");
+	catch(const exception &e)
+	{
+		string type = typeid(e).name();
+		string message = e.what();
+		for(char &c: message)
+			if(c=='\n')
+				c = ' ';
+		result = format("error %s %s", type, message);
+	}
+
+	cout << '[' << remote << "] <- " << result << endl;
+	network.send_message(tag, result);
 }
 
-Layout SpireDB::query_layout(const string &up_str, unsigned floors, Number budget, bool income)
+string SpireDB::query(const vector<string> &args)
 {
-	TrapUpgrades upgrades(up_str);
+	if(args.size()<3 || args.size()>4)
+		throw invalid_argument("SpireDB::query");
+
+	TrapUpgrades upgrades(args[0]);
+	unsigned floors = parse_value<unsigned>(args[1]);
+	Number budget = parse_value<Number>(args[2]);
+	bool income = false;
+	if(args.size()>=4)
+	{
+		if(args[3]=="income")
+			income = true;
+		else if(args[3]!="damage")
+			throw invalid_argument("SpireDB::query");
+	}
+
 	pqxx::work xact(*pq_conn);
 	pqxx::result result = xact.exec_prepared((income ? "select_best_income" : "select_best_damage"), floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, budget);
-	Layout layout;
 	if(!result.empty())
 	{
 		pqxx::row row = result.front();
@@ -179,22 +180,23 @@ Layout SpireDB::query_layout(const string &up_str, unsigned floors, Number budge
 		upgrades.frost = row[1].as<uint16_t>();
 		upgrades.poison = row[2].as<uint16_t>();
 		upgrades.lightning = row[3].as<uint16_t>();
-		layout.set_upgrades(upgrades);
-		layout.set_traps(row[4].as<string>());
+		string traps = row[4].c_str();
+		return format("ok %s %s", upgrades.str(), traps);
 	}
-
-	cout << "query " << up_str << ' ' << floors << ' ' << budget << ' ' << upgrades.str() << ' ' << layout.get_traps() << endl;
-
-	return layout;
+	else
+		return "notfound";
 }
 
-SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string &data, const string &submitter)
+string SpireDB::submit(const vector<string> &args, const string &submitter)
 {
+	if(args.size()!=2)
+		throw invalid_argument("SpireDB::submit");
+
 	Layout layout;
-	layout.set_upgrades(up_str);
-	layout.set_traps(data);
+	layout.set_upgrades(args[0]);
+	layout.set_traps(args[1]);
 	if(!layout.is_valid())
-		throw invalid_argument("SpireDB::submit_layout");
+		throw invalid_argument("SpireDB::submit");
 	layout.update(Layout::FULL, 40);
 
 	unsigned floors = layout.get_traps().size()/5;
@@ -203,14 +205,12 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 	Number rs_per_sec = layout.get_runestones_per_second();
 	Number cost = layout.get_cost();
 
-	cout << "submit " << upgrades.str() << ' ' << layout.get_traps() << ' ' << damage << ' ' << cost << ' ' << submitter << endl;
-
 	bool accepted = false;
 	bool duplicate_damage = false;
 	bool duplicate_income = false;
 
 	pqxx::work xact(*pq_conn);
-	pqxx::result result = xact.exec_prepared("select_best_damage", data.size()/5, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, cost);
+	pqxx::result result = xact.exec_prepared("select_best_damage", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, cost);
 	if(!result.empty())
 	{
 		pqxx::row row = result.front();
@@ -224,7 +224,7 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 	else
 		accepted = true;
 
-	result = xact.exec_prepared("select_best_income", data.size()/5, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, cost);
+	result = xact.exec_prepared("select_best_income", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, cost);
 	if(!result.empty())
 	{
 		pqxx::row row = result.front();
@@ -245,10 +245,10 @@ SpireDB::SubmitResult SpireDB::submit_layout(const string &up_str, const string 
 		xact.exec_prepared("insert_layout", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, layout.get_traps(), damage, threat, rs_per_sec, cost, submitter, current_version);
 		xact.commit();
 
-		return ACCEPTED;
+		return "ok accepted";
 	}
 	else if(duplicate_damage && duplicate_income)
-		return DUPLICATE;
+		return "ok duplicate";
 	else
-		return OBSOLETE;
+		return "ok obsolete";
 }

@@ -12,13 +12,6 @@ class Layout;
 class SpireDB
 {
 private:
-	enum SubmitResult
-	{
-		ACCEPTED,
-		DUPLICATE,
-		OBSOLETE
-	};
-
 	Network network;
 	pqxx::connection *pq_conn;
 	bool force_update;
@@ -33,8 +26,8 @@ public:
 private:
 	void update_layouts();
 	void serve(Network::ConnectionTag, const std::string &);
-	Layout query_layout(const std::string &, unsigned, Number, bool);
-	SubmitResult submit_layout(const std::string &, const std::string &, const std::string &);
+	std::string query(const std::vector<std::string> &);
+	std::string submit(const std::vector<std::string> &, const std::string &);
 };
 
 #endif
