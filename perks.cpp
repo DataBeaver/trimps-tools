@@ -20,6 +20,15 @@ struct PerkInfo
 	unsigned max_level;
 };
 
+struct Heirloom
+{
+	double crit_chance;
+	double crit_damage;
+	double attack;
+	double health;
+	double miner;
+};
+
 struct EvalStats
 {
 	double population;
@@ -43,6 +52,9 @@ private:
 	double target_breed_time;
 	double equip_time;
 	double helium_budget;
+	unsigned achievements;
+	unsigned challenge2;
+	Heirloom heirloom;
 	double attack_weight;
 	double health_weight;
 	double helium_weight;
@@ -117,17 +129,32 @@ Perks::Perks(int argc, char **argv):
 	target_breed_time(45),
 	equip_time(120),
 	helium_budget(0),
+	achievements(0),
+	challenge2(0),
 	attack_weight(1),
 	health_weight(1),
 	helium_weight(0),
 	amalgamators(0)
 {
+	heirloom.crit_chance = 0;
+	heirloom.crit_damage = 0;
+	heirloom.attack = 0;
+	heirloom.health = 0;
+	heirloom.miner = 0;
+
 	DoubleIO base_pop_io;
 	DoubleIO helium_io;
 
 	GetOpt getopt;
 	for(unsigned i=0; perk_info[i].name; ++i)
 		getopt.add_option(perk_info[i].name, base_levels[perk_info[i].name], GetOpt::REQUIRED_ARG);
+	getopt.add_option("achievements", achievements, GetOpt::REQUIRED_ARG);
+	getopt.add_option("challenge2", challenge2, GetOpt::REQUIRED_ARG);
+	getopt.add_option("heirloom-attack", heirloom.attack, GetOpt::REQUIRED_ARG);
+	getopt.add_option("heirloom-health", heirloom.health, GetOpt::REQUIRED_ARG);
+	getopt.add_option("heirloom-crit-chance", heirloom.crit_chance, GetOpt::REQUIRED_ARG);
+	getopt.add_option("heirloom-crit-damage", heirloom.crit_damage, GetOpt::REQUIRED_ARG);
+	getopt.add_option("heirloom-miner", heirloom.miner, GetOpt::REQUIRED_ARG);
 	getopt.add_option("attack", attack_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_option("health", health_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_option("helium", helium_weight, GetOpt::REQUIRED_ARG);
@@ -300,6 +327,7 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.production *= 1+0.05*get_perk("motivation");
 	stats.production *= 1+0.01*get_perk("motivation2");
 	stats.production *= 1+0.07*get_perk("meditation");
+	stats.production *= 1+0.01*heirloom.miner;
 	// Speed books
 	stats.production *= pow(1.25, min(target_zone, 59U));
 	// Mega books
@@ -362,9 +390,13 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.health *= 1+0.05*get_perk("toughness");
 	stats.health *= 1+0.01*get_perk("toughness2");
 	stats.health *= pow(1.1, get_perk("resilience"));
+	stats.health *= 1+challenge2*0.01;
+	stats.health *= 1+heirloom.health*0.01;
 	stats.health *= overheat;
 
 	unsigned crit = get_perk("relentlessness");
+	// Should actually be based on HZE
+	unsigned bionic = (target_zone-110)/15;
 
 	stats.attack = 6;
 	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*stats.prestige_level)*affordable_level;
@@ -374,7 +406,11 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.attack *= 1+0.01*get_perk("power2");
 	stats.attack *= 1+0.01*get_perk("range");
 	stats.attack *= 1+min(floor(target_breed_time), 45.0)*+0.02*get_perk("anticipation");
-	stats.attack *= 1+0.05*crit*(1+0.3*crit);
+	stats.attack *= 1+(0.05*crit+0.01*heirloom.crit_chance)*(1+0.3*crit+0.01*heirloom.crit_damage);
+	stats.attack *= 1+bionic*0.2;
+	stats.attack *= 1+achievements*0.01;
+	stats.attack *= 1+challenge2*0.01;
+	stats.attack *= 1+heirloom.attack*0.01;
 	stats.attack *= overheat;
 
 	double helium = 1;
