@@ -46,7 +46,9 @@ private:
 	double attack_weight;
 	double health_weight;
 	double helium_weight;
+	LevelMap base_levels;
 	LevelMap perk_levels;
+	unsigned amalgamators;
 
 	static const PerkInfo perk_info[];
 
@@ -117,14 +119,15 @@ Perks::Perks(int argc, char **argv):
 	helium_budget(0),
 	attack_weight(1),
 	health_weight(1),
-	helium_weight(0)
+	helium_weight(0),
+	amalgamators(0)
 {
 	DoubleIO base_pop_io;
 	DoubleIO helium_io;
 
 	GetOpt getopt;
 	for(unsigned i=0; perk_info[i].name; ++i)
-		getopt.add_option(perk_info[i].name, perk_levels[perk_info[i].name], GetOpt::REQUIRED_ARG);
+		getopt.add_option(perk_info[i].name, base_levels[perk_info[i].name], GetOpt::REQUIRED_ARG);
 	getopt.add_option("attack", attack_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_option("health", health_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_option("helium", helium_weight, GetOpt::REQUIRED_ARG);
@@ -139,7 +142,27 @@ Perks::Perks(int argc, char **argv):
 
 int Perks::main()
 {
-	optimize();
+	double best_score = 0;
+	unsigned best_gators = 0;
+	LevelMap best_levels;
+	for(unsigned i=0; i<10; ++i)
+	{
+		amalgamators = i;
+		perk_levels = base_levels;
+		optimize();
+		double score = evaluate();
+		if(score>best_score)
+		{
+			best_score = score;
+			best_gators = i;
+			best_levels = perk_levels;
+		}
+		else
+			break;
+	}
+
+	amalgamators = best_gators;
+	perk_levels = best_levels;
 	print_perks();
 
 	return 0;
@@ -221,6 +244,7 @@ void Perks::print_perks() const
 
 	cout << "Helium spent: " << DoubleIO(helium_spent) << endl;
 	cout << "Population: " << DoubleIO(stats.population) << endl;
+	cout << "Amalgamators: " << amalgamators << endl;
 	cout << "Army size: " << DoubleIO(stats.army) << endl;
 	cout << "Geneticists: " << stats.geneticists << endl;
 }
@@ -256,8 +280,15 @@ double Perks::evaluate(EvalStats &stats) const
 
 	double coord_factor = 1+0.25*pow(0.98, get_perk("coordinated"));
 	unsigned coords = 0;
-	stats.army = 1;
-	while(coords<max_coords && stats.army*3<stats.population)
+	stats.army = pow(1000, amalgamators);
+	unsigned reserve_factor = 3;
+	if(amalgamators)
+	{
+		reserve_factor = 1000;
+		for(unsigned i=target_zone; i<600; i+=100)
+			reserve_factor *= 10;
+	}
+	while(coords<max_coords && stats.army*reserve_factor<stats.population)
 	{
 		++coords;
 		stats.army = ceil(stats.army*coord_factor);
@@ -327,6 +358,7 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.health += (4+6+10+14+23+35+60)*pow(1.19, 14*stats.prestige_level)*affordable_level;
 	stats.health *= coord_stats;
 	stats.health *= pow(1.01, stats.geneticists);
+	stats.health *= pow(40, amalgamators);
 	stats.health *= 1+0.05*get_perk("toughness");
 	stats.health *= 1+0.01*get_perk("toughness2");
 	stats.health *= pow(1.1, get_perk("resilience"));
@@ -337,6 +369,7 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.attack = 6;
 	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*stats.prestige_level)*affordable_level;
 	stats.attack *= coord_stats;
+	stats.attack *= 1+0.5*amalgamators;
 	stats.attack *= 1+0.05*get_perk("power");
 	stats.attack *= 1+0.01*get_perk("power2");
 	stats.attack *= 1+0.01*get_perk("range");
