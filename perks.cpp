@@ -271,9 +271,15 @@ void Perks::print_perks() const
 
 	cout << "Helium spent: " << DoubleIO(helium_spent) << endl;
 	cout << "Population: " << DoubleIO(stats.population) << endl;
+	cout << "Production: " << DoubleIO(stats.production) << endl;
+	cout << "Loot: " << DoubleIO(stats.loot) << endl;
 	cout << "Amalgamators: " << amalgamators << endl;
 	cout << "Army size: " << DoubleIO(stats.army) << endl;
+	cout << "Prestige level: " << stats.prestige_level << endl;
+	cout << "Equipment level: " << stats.equipment_level << endl;
 	cout << "Geneticists: " << stats.geneticists << endl;
+	cout << "Health: " << DoubleIO(stats.health) << endl;
+	cout << "Attack: " << DoubleIO(stats.attack) << endl;
 }
 
 unsigned Perks::get_perk(const string &name) const
