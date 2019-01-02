@@ -273,7 +273,7 @@ double Perks::evaluate(EvalStats &stats) const
 	// Assume loot mostly comes from caches on perfect maps
 	stats.loot = stats.production*20/25*speed;
 	stats.loot *= 1+0.05*get_perk("looting");
-	stats.loot *= 1+0.01*get_perk("looting2");
+	stats.loot *= 1+0.0025*get_perk("looting2");
 	// Magnimp
 	stats.loot *= pow(1.003, target_zone*3);
 
@@ -284,7 +284,7 @@ double Perks::evaluate(EvalStats &stats) const
 	static constexpr double prestige_cost_multi = pow(1.069, 45.05);
 	static constexpr double prestige_cost_offset = pow(1.069, 28.15);
 	unsigned affordable_prestige = log(income*equip_time/equip_tier_cost*prestige_cost_offset)/log(prestige_cost_multi);
-	unsigned max_prestige = (target_zone+5)/10*2;
+	unsigned max_prestige = (target_zone+12)/10*2;
 	stats.prestige_level = min(affordable_prestige, max_prestige);
 
 	equip_tier_cost *= pow(prestige_cost_multi, stats.prestige_level)/prestige_cost_offset;
@@ -322,8 +322,9 @@ double Perks::evaluate(EvalStats &stats) const
 
 	unsigned crit = get_perk("relentlessness");
 
-	stats.attack = 6*coord_stats;
+	stats.attack = 6;
 	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*stats.prestige_level)*affordable_level;
+	stats.attack *= coord_stats;
 	stats.attack *= 1+0.05*get_perk("power");
 	stats.attack *= 1+0.01*get_perk("power2");
 	stats.attack *= 1+0.01*get_perk("range");
