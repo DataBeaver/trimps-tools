@@ -43,6 +43,9 @@ private:
 	double target_breed_time;
 	double equip_time;
 	double helium_budget;
+	double attack_weight;
+	double health_weight;
+	double helium_weight;
 	LevelMap perk_levels;
 
 	static const PerkInfo perk_info[];
@@ -111,7 +114,10 @@ Perks::Perks(int argc, char **argv):
 	target_zone(10),
 	target_breed_time(45),
 	equip_time(120),
-	helium_budget(0)
+	helium_budget(0),
+	attack_weight(1),
+	health_weight(1),
+	helium_weight(0)
 {
 	DoubleIO base_pop_io;
 	DoubleIO helium_io;
@@ -119,6 +125,9 @@ Perks::Perks(int argc, char **argv):
 	GetOpt getopt;
 	for(unsigned i=0; perk_info[i].name; ++i)
 		getopt.add_option(perk_info[i].name, perk_levels[perk_info[i].name], GetOpt::REQUIRED_ARG);
+	getopt.add_option("attack", attack_weight, GetOpt::REQUIRED_ARG);
+	getopt.add_option("health", health_weight, GetOpt::REQUIRED_ARG);
+	getopt.add_option("helium", helium_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_argument("base_pop", base_pop_io, GetOpt::REQUIRED_ARG);
 	getopt.add_argument("target_zone", target_zone, GetOpt::REQUIRED_ARG);
 	getopt.add_argument("helium_budget", helium_io, GetOpt::REQUIRED_ARG);
@@ -335,10 +344,15 @@ double Perks::evaluate(EvalStats &stats) const
 	stats.attack *= 1+0.05*crit*(1+0.3*crit);
 	stats.attack *= overheat;
 
+	double helium = 1;
+	helium *= 1+0.05*get_perk("looting");
+	helium *= 1+0.0025*get_perk("looting2");
+	helium *= 1+challenge2*0.001;
+
 	double score = 0;
-	score += log(speed);
-	score += log(stats.health);
-	score += log(stats.attack);
+	score += log(stats.health)*health_weight;
+	score += (log(stats.attack)+log(speed))*attack_weight;
+	score += log(helium)*helium_weight;
 
 	return score;
 }
