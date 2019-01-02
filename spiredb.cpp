@@ -114,7 +114,10 @@ void SpireDB::update_layouts()
 void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 {
 	if(data.empty())
+	{
+		live_queries.erase(tag);
 		return;
+	}
 
 	vector<string> parts = split(data);
 	string cmd;
@@ -136,7 +139,7 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 		if(cmd=="submit")
 			result = submit(parts, remote);
 		else if(cmd=="query")
-			result = query(parts);
+			result = query(tag, parts);
 		else
 			throw logic_error("bad command");
 	}
@@ -154,21 +157,35 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 	network.send_message(tag, result);
 }
 
-string SpireDB::query(const vector<string> &args)
+string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 {
-	if(args.size()<3 || args.size()>4)
+	if(args.size()<3)
 		throw invalid_argument("SpireDB::query");
 
 	TrapUpgrades upgrades(args[0]);
 	unsigned floors = parse_value<unsigned>(args[1]);
 	Number budget = parse_value<Number>(args[2]);
 	bool income = false;
-	if(args.size()>=4)
+	bool live = false;
+	for(unsigned i=3; i<args.size(); ++i)
 	{
-		if(args[3]=="income")
+		if(args[i]=="income")
 			income = true;
-		else if(args[3]!="damage")
+		else if(args[i]=="damage")
+			income = false;
+		else if(args[i]=="live")
+			live = true;
+		else
 			throw invalid_argument("SpireDB::query");
+	}
+
+	if(live)
+	{
+		LiveQuery lq;
+		lq.upgrades = upgrades.str();
+		lq.floors = floors;
+		lq.budget = budget;
+		live_queries[tag] = lq;
 	}
 
 	pqxx::work xact(*pq_conn);
@@ -245,10 +262,24 @@ string SpireDB::submit(const vector<string> &args, const string &submitter)
 		xact.exec_prepared("insert_layout", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, layout.get_traps(), damage, threat, rs_per_sec, cost, submitter, current_version);
 		xact.commit();
 
+		check_live_queries(layout);
+
 		return "ok accepted";
 	}
 	else if(duplicate_damage && duplicate_income)
 		return "ok duplicate";
 	else
 		return "ok obsolete";
+}
+
+void SpireDB::check_live_queries(const Layout &layout)
+{
+	string up_str = layout.get_upgrades().str();
+	unsigned floors = layout.get_traps().size()/5;
+	Number cost = layout.get_cost();
+	for(const auto &lq: live_queries)
+	{
+		if(up_str==lq.second.upgrades && floors==lq.second.floors && cost<=lq.second.budget)
+			network.send_message(lq.first, format("push %s %s", up_str, layout.get_traps()));
+	}
 }

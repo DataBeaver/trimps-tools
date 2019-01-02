@@ -12,9 +12,17 @@ class Layout;
 class SpireDB
 {
 private:
+	struct LiveQuery
+	{
+		std::string upgrades;
+		unsigned floors;
+		Number budget;
+	};
+
 	Network network;
 	pqxx::connection *pq_conn;
 	bool force_update;
+	std::map<Network::ConnectionTag, LiveQuery> live_queries;
 
 	static const unsigned current_version;
 
@@ -26,8 +34,9 @@ public:
 private:
 	void update_layouts();
 	void serve(Network::ConnectionTag, const std::string &);
-	std::string query(const std::vector<std::string> &);
+	std::string query(Network::ConnectionTag, const std::vector<std::string> &);
 	std::string submit(const std::vector<std::string> &, const std::string &);
+	void check_live_queries(const Layout &);
 };
 
 #endif
