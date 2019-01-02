@@ -60,6 +60,7 @@ private:
 	double attack_weight;
 	double health_weight;
 	double helium_weight;
+	double fluffy_weight;
 	LevelMap base_levels;
 	LevelMap perk_levels;
 	unsigned amalgamators;
@@ -138,6 +139,7 @@ Perks::Perks(int argc, char **argv):
 	attack_weight(1),
 	health_weight(1),
 	helium_weight(0),
+	fluffy_weight(0.1),
 	amalgamators(0)
 {
 	heirloom.crit_chance = 0;
@@ -164,6 +166,7 @@ Perks::Perks(int argc, char **argv):
 	getopt.add_option("attack", attack_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_option("health", health_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_option("helium", helium_weight, GetOpt::REQUIRED_ARG);
+	getopt.add_option("fluffy", fluffy_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_argument("base_pop", base_pop_io, GetOpt::REQUIRED_ARG);
 	getopt.add_argument("target_zone", target_zone, GetOpt::REQUIRED_ARG);
 	getopt.add_argument("helium_budget", helium_io, GetOpt::REQUIRED_ARG);
@@ -416,6 +419,7 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 	unsigned crit = get_perk("relentlessness");
 	// Should actually be based on HZE
 	unsigned bionic = (target_zone-110)/15;
+	unsigned fluffy_level = get_perk("capable");
 
 	stats.attack = 6;
 	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*(stats.prestige_level-1))*affordable_level;
@@ -430,6 +434,7 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 	stats.attack *= 1+achievements*0.01;
 	stats.attack *= 1+challenge2*0.01;
 	stats.attack *= 1+heirloom.attack*0.01;
+	stats.attack *= 1+fluffy_level*(fluffy_level+1)/2*0.1;
 	stats.attack *= overheat;
 
 	double helium = 1;
@@ -437,10 +442,15 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 	helium *= 1+0.0025*get_perk("looting2");
 	helium *= 1+challenge2*0.001;
 
+	double fluffy_xp = 50;
+	fluffy_xp += 30*get_perk("curious");
+	fluffy_xp *= 1+0.25*get_perk("cunning");
+
 	double score = 0;
 	score += log(stats.health)*health_weight;
 	score += (log(stats.attack)+log(speed))*attack_weight;
 	score += log(helium)*helium_weight;
+	score += log(fluffy_xp)*fluffy_weight;
 
 	return score;
 }
