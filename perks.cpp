@@ -138,6 +138,9 @@ int Perks::main()
 void Perks::optimize()
 {
 	double helium_spent = 0;
+	for(unsigned i=0; perk_info[i].name; ++i)
+		helium_spent += get_perk_cost(perk_info[i], 0, get_perk(perk_info[i].name));
+
 	double score = evaluate();
 	while(1)
 	{
