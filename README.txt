@@ -78,7 +78,7 @@ the genetic algorithm:
   Sets the probability of crossing two layouts instead of mutating a single
   layout.  Expressed as a number out of 1000.
 
--f, --foreign-rate
+-o, --foreign-rate
   Sets the probability of picking the second layout for a cross from a random
   pool instead of the same as the first.  Expressed as a number out of 1000.
 
