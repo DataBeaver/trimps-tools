@@ -18,11 +18,14 @@ private:
 	class ReceiveFunc
 	{
 	protected:
-		ReceiveFunc() { }
+		bool one_shot;
+
+		ReceiveFunc(bool o): one_shot(o) { }
 	public:
 		virtual ~ReceiveFunc() { }
 
-		virtual void receive(unsigned, const std::string &) = 0;
+		bool is_one_shot() const { return one_shot; }
+		virtual void receive(ConnectionTag, const std::string &) = 0;
 	};
 
 	template<typename F>
@@ -32,9 +35,9 @@ private:
 		F func;
 
 	public:
-		TypedReceiveFunc(const F &f): func(f) { }
+		TypedReceiveFunc(const F &f, bool o): ReceiveFunc(o), func(f) { }
 
-		virtual void receive(unsigned t, const std::string &m) { func(t, m); }
+		virtual void receive(ConnectionTag t, const std::string &m) { func(t, m); }
 	};
 
 	struct Message
@@ -52,10 +55,10 @@ private:
 		int sock;
 		std::string remote_host;
 		std::string received_data;
-		ReceiveFunc *recv_func;
+		ReceiveFunc *next_recv;
 		std::list<Message> message_queue;
 
-		Connection(ConnectionTag, int, const std::string &);
+		Connection(ConnectionTag, int, const std::string &, ReceiveFunc *);
 	};
 
 	class Worker
@@ -115,14 +118,14 @@ inline void Network::serve(std::uint16_t port, const F &func)
 	if(listen_sock>=0)
 		throw std::logic_error("Network::serve");
 
-	serve_func = new TypedReceiveFunc<F>(func);
+	serve_func = new TypedReceiveFunc<F>(func, false);
 	serve_(port);
 }
 
 template<typename F>
 inline void Network::communicate(ConnectionTag tag, const std::string &data, const F &func)
 {
-	communicate_(tag, data, new TypedReceiveFunc<F>(func));
+	communicate_(tag, data, new TypedReceiveFunc<F>(func, true));
 }
 
 #endif

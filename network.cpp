@@ -146,14 +146,15 @@ void Network::communicate_(ConnectionTag tag, const string &data, ReceiveFunc *f
 	if(i==connections.end())
 		return;
 
-	if(i->second->recv_func)
+	if(i->second->next_recv!=serve_func)
 	{
 		i->second->message_queue.emplace_back(tag, msg_data, func);
 		return;
 	}
 
 	send(i->second->sock, msg_data.data(), msg_data.size(), 0);
-	i->second->recv_func = func;
+	if(func)
+		i->second->next_recv = func;
 }
 
 void Network::ensure_worker()
@@ -166,7 +167,7 @@ Network::ConnectionTag Network::add_connection(int sock, const string &host)
 {
 	lock_guard<mutex> lock(connections_mutex);
 	ConnectionTag tag = next_tag++;
-	connections[tag] = new Connection(tag, sock, host);
+	connections[tag] = new Connection(tag, sock, host, serve_func);
 	return tag;
 }
 
@@ -178,11 +179,11 @@ Network::Message::Message(ConnectionTag c, const string &d, ReceiveFunc *f):
 { }
 
 
-Network::Connection::Connection(ConnectionTag t, int s, const string &h):
+Network::Connection::Connection(ConnectionTag t, int s, const string &h, ReceiveFunc *f):
 	tag(t),
 	sock(s),
 	remote_host(h),
-	recv_func(0)
+	next_recv(f)
 { }
 
 
@@ -227,20 +228,25 @@ void Network::Worker::main()
 					process_connection(c.second);
 
 			for(auto c: stale_connections)
-			{
 				network.connections.erase(c->tag);
-				delete c;
-			}
-			stale_connections.clear();
 		}
 
 		for(const auto &m: receive_queue)
 		{
 			m.recv_func->receive(m.connection, m.data);
-			if(m.recv_func!=network.serve_func)
+			if(m.recv_func->is_one_shot())
 				delete m.recv_func;
 		}
 		receive_queue.clear();
+
+		for(auto c: stale_connections)
+		{
+			c->next_recv->receive(c->tag, string());
+			if(c->next_recv!=network.serve_func)
+				delete c->next_recv;
+			delete c;
+		}
+		stale_connections.clear();
 	}
 }
 
@@ -248,11 +254,12 @@ void Network::Worker::send_messages()
 {
 	lock_guard<mutex> lock(network.connections_mutex);
 	for(const auto &c: network.connections)
-		while(!c.second->recv_func && !c.second->message_queue.empty())
+		while(c.second->next_recv==network.serve_func && !c.second->message_queue.empty())
 		{
 			const Message &m = c.second->message_queue.front();
 			send(c.second->sock, m.data.data(), m.data.size(), 0);
-			c.second->recv_func = m.recv_func;
+			if(m.recv_func)
+				c.second->next_recv = m.recv_func;
 			c.second->message_queue.pop_front();
 		}
 }
@@ -277,31 +284,29 @@ void Network::Worker::accept_connection()
 
 void Network::Worker::process_connection(Connection *conn)
 {
-	ReceiveFunc *func = (conn->recv_func ? conn->recv_func : network.serve_func);
-
 	char buf[16384];
 	int res = recv(conn->sock, buf, sizeof(buf), 0);
-	if(res<=0)
-	{
-		if(func)
-			receive_queue.emplace_back(conn->tag, string(), func);
 
-		closesocket(conn->sock);
+	if(res>0)
+		conn->received_data.append(buf, res);
+	else
 		stale_connections.push_back(conn);
 
-		return;
-	}
-
-	conn->received_data.append(buf, res);
+	string::size_type start = 0;
 	while(1)
 	{
-		string::size_type newline = conn->received_data.find('\n');
+		string::size_type newline = conn->received_data.find('\n', start);
 		if(newline==string::npos)
 			break;
 
-		if(func)
-			receive_queue.emplace_back(conn->tag, conn->received_data.substr(0, newline), func);
-		conn->received_data.erase(0, newline+1);
-		conn->recv_func = 0;
+		if(conn->next_recv && newline>0)
+		{
+			receive_queue.emplace_back(conn->tag, conn->received_data.substr(start, newline-start), conn->next_recv);
+			conn->next_recv = network.serve_func;
+		}
+
+		start = newline+1;
 	}
+
+	conn->received_data.erase(0, start);
 }
