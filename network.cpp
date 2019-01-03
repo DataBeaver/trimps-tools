@@ -75,6 +75,11 @@ void Network::serve_(uint16_t port)
 
 Network::ConnectionTag Network::connect(const string &host, uint16_t port)
 {
+	return connect_(host, port, 0);
+}
+
+Network::ConnectionTag Network::connect_(const string &host, uint16_t port, ReceiveFunc *func)
+{
 	addrinfo hints = { 0, AF_INET, SOCK_STREAM, 0, 0, 0, 0, 0 };
 	addrinfo *ai = 0;
 	int err = getaddrinfo(host.c_str(), 0, &hints, &ai);
@@ -101,7 +106,7 @@ Network::ConnectionTag Network::connect(const string &host, uint16_t port)
 		throw runtime_error("Network::connect (connect)");
 	}
 
-	ConnectionTag tag = add_connection(sock, host);
+	ConnectionTag tag = add_connection(sock, host, func);
 
 	freeaddrinfo(ai);
 	ensure_worker();
@@ -146,7 +151,7 @@ void Network::communicate_(ConnectionTag tag, const string &data, ReceiveFunc *f
 	if(i==connections.end())
 		return;
 
-	if(i->second->next_recv!=serve_func)
+	if(i->second->next_recv!=i->second->recv_func)
 	{
 		i->second->message_queue.emplace_back(tag, msg_data, func);
 		return;
@@ -163,11 +168,11 @@ void Network::ensure_worker()
 		worker = new Worker(*this);
 }
 
-Network::ConnectionTag Network::add_connection(int sock, const string &host)
+Network::ConnectionTag Network::add_connection(int sock, const string &host, ReceiveFunc *func)
 {
 	lock_guard<mutex> lock(connections_mutex);
 	ConnectionTag tag = next_tag++;
-	connections[tag] = new Connection(tag, sock, host, serve_func);
+	connections[tag] = new Connection(tag, sock, host, func);
 	return tag;
 }
 
@@ -183,6 +188,7 @@ Network::Connection::Connection(ConnectionTag t, int s, const string &h, Receive
 	tag(t),
 	sock(s),
 	remote_host(h),
+	recv_func(f),
 	next_recv(f)
 { }
 
@@ -253,8 +259,10 @@ void Network::Worker::main()
 			}
 			catch(const exception &)
 			{ }
-			if(c->next_recv!=network.serve_func)
+			if(c->next_recv!=c->recv_func)
 				delete c->next_recv;
+			if(c->recv_func!=network.serve_func)
+				delete c->recv_func;
 			delete c;
 		}
 		stale_connections.clear();
@@ -265,7 +273,7 @@ void Network::Worker::send_messages()
 {
 	lock_guard<mutex> lock(network.connections_mutex);
 	for(const auto &c: network.connections)
-		while(c.second->next_recv==network.serve_func && !c.second->message_queue.empty())
+		while(c.second->next_recv==c.second->recv_func && !c.second->message_queue.empty())
 		{
 			const Message &m = c.second->message_queue.front();
 			send(c.second->sock, m.data.data(), m.data.size(), 0);
@@ -290,7 +298,7 @@ void Network::Worker::accept_connection()
 			host = host_ptr;
 	}
 	if(sock>=0)
-		network.add_connection(sock, host);
+		network.add_connection(sock, host, network.serve_func);
 }
 
 void Network::Worker::process_connection(Connection *conn)
@@ -313,7 +321,7 @@ void Network::Worker::process_connection(Connection *conn)
 		if(conn->next_recv && newline>0)
 		{
 			receive_queue.emplace_back(conn->tag, conn->received_data.substr(start, newline-start), conn->next_recv);
-			conn->next_recv = network.serve_func;
+			conn->next_recv = conn->recv_func;
 		}
 
 		start = newline+1;

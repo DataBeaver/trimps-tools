@@ -55,6 +55,7 @@ private:
 		int sock;
 		std::string remote_host;
 		std::string received_data;
+		ReceiveFunc *recv_func;
 		ReceiveFunc *next_recv;
 		std::list<Message> message_queue;
 
@@ -98,6 +99,12 @@ private:
 public:
 	ConnectionTag connect(const std::string &, std::uint16_t);
 
+	template<typename F>
+	ConnectionTag connect(const std::string &, std::uint16_t, const F &);
+private:
+	ConnectionTag connect_(const std::string &, std::uint16_t, ReceiveFunc *);
+
+public:
 	const std::string &get_remote_host(ConnectionTag) const;
 
 	void send_message(ConnectionTag, const std::string &);
@@ -109,7 +116,7 @@ private:
 	void communicate_(ConnectionTag, const std::string &, ReceiveFunc *);
 
 	void ensure_worker();
-	ConnectionTag add_connection(int, const std::string &);
+	ConnectionTag add_connection(int, const std::string &, ReceiveFunc *);
 };
 
 template<typename F>
@@ -120,6 +127,12 @@ inline void Network::serve(std::uint16_t port, const F &func)
 
 	serve_func = new TypedReceiveFunc<F>(func, false);
 	serve_(port);
+}
+
+template<typename F>
+inline Network::ConnectionTag Network::connect(const std::string &host, std::uint16_t port, const F &func)
+{
+	return connect_(host, port, new TypedReceiveFunc<F>(func, false));
 }
 
 template<typename F>
