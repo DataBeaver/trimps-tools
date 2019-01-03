@@ -65,6 +65,7 @@ Spire::Spire(int argc, char **argv):
 	fancy_output(false),
 	show_pools(false),
 	network(0),
+	live(false),
 	connection(0),
 	intr_flag(false),
 	budget(0),
@@ -95,6 +96,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('i', "income", income, GetOpt::NO_ARG).set_help("Optimize runestones per second");
 	getopt.add_option("towers", towers, GetOpt::NO_ARG).set_help("Try to use as many towers as possible");
 	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online layout database");
+	getopt.add_option("live", live, GetOpt::NO_ARG).set_help("Perform a live query to the database");
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on", "NAME");
 	getopt.add_option("fancy", fancy_output, GetOpt::NO_ARG).set_help("Produce fancy output");
 	getopt.add_option('a', "accuracy", accuracy, GetOpt::REQUIRED_ARG).set_help("Set simulation accuracy", "NUM");
@@ -302,7 +304,7 @@ void Spire::init_network()
 	network = new Network;
 	try
 	{
-		connection = network->connect("spiredb.tdb.fi", 8676);
+		connection = network->connect("spiredb.tdb.fi", 8676, bind(&Spire::receive, this, _1, _2));
 	}
 	catch(const exception &e)
 	{
@@ -388,6 +390,7 @@ int Spire::main()
 			leave_loop = true;
 		}
 
+		lock_guard<mutex> lock(best_mutex);
 		bool new_best_found = check_results();
 		update_output(new_best_found);
 	}
@@ -410,7 +413,15 @@ bool Spire::query_network()
 		return false;
 
 	unsigned floors = best_layout.get_traps().size()/5;
-	string reply = network->communicate(connection, format("query %s %s %s %s", best_layout.get_upgrades().str(), floors, budget, (income ? "income" : "damage")));
+	string query = format("query %s %s %s", best_layout.get_upgrades().str(), floors, budget);
+	if(income)
+		query += " income";
+	if(live)
+		query += " live";
+	string reply = network->communicate(connection, query);
+	if(reply.empty())
+		return false;
+
 	vector<string> parts = split(reply);
 	if(parts[0]=="ok")
 	{
@@ -529,6 +540,31 @@ void Spire::prune_pools()
 		if(n_pools==1)
 			foreign_rate = 0;
 		next_prune = 0;
+	}
+}
+
+void Spire::receive(Network::ConnectionTag, const string &message)
+{
+	if(message.empty())
+		return;
+
+	vector<string> parts = split(message);
+	if(parts[0]=="push" && parts.size()>=3)
+	{
+		Layout layout;
+		layout.set_upgrades(parts[1]);
+		layout.set_traps(parts[2]);
+		layout.update(income ? Layout::FULL : Layout::COMPATIBLE, accuracy);
+
+		lock_guard<mutex> lock_best(best_mutex);
+		if(score_func(layout)>score_func(best_layout))
+		{
+			best_layout = layout;
+			report(best_layout, "New best layout from database");
+
+			lock_guard<mutex> lock_pools(pools_mutex);
+			pools.front()->add_layout(layout);
+		}
 	}
 }
 

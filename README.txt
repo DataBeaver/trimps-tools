@@ -39,6 +39,10 @@ of the more important options are:
   best known layout.  As better layouts are found they are submitted to the
   database.
 
+--live
+  Perform database query in live mode and automatically obtain improvements
+  that other users submit into the database.
+
 You can also specify a starting layout on the command line.  Budget, floors
 and upgrades are deduced from the layout if not explicitly specified.
 

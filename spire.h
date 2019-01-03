@@ -62,6 +62,7 @@ private:
 	bool fancy_output;
 	bool show_pools;
 	Network *network;
+	bool live;
 	Network::ConnectionTag connection;
 	bool intr_flag;
 
@@ -71,6 +72,7 @@ private:
 	Pool::ScoreFunc *score_func;
 	Layout start_layout;
 	Layout best_layout;
+	std::mutex best_mutex;
 
 	Console console;
 
@@ -92,6 +94,7 @@ private:
 	void update_output(bool);
 	unsigned get_next_cycle();
 	void prune_pools();
+	void receive(Network::ConnectionTag, const std::string &);
 	void report(const Layout &, const std::string &);
 	bool print(const Layout &, unsigned &);
 	void print_fancy(const Layout &);
