@@ -280,6 +280,10 @@ void SpireDB::check_live_queries(const Layout &layout)
 	for(const auto &lq: live_queries)
 	{
 		if(up_str==lq.second.upgrades && floors==lq.second.floors && cost<=lq.second.budget)
-			network.send_message(lq.first, format("push %s %s", up_str, layout.get_traps()));
+		{
+			string push = format("push %s %s", up_str, layout.get_traps());
+			cout << '[' << network.get_remote_host(lq.first) << "] <- " << push << endl;
+			network.send_message(lq.first, push);
+		}
 	}
 }
