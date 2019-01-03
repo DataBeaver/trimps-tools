@@ -494,7 +494,7 @@ void Spire::update_output(bool new_best_found)
 	{
 		if(new_best_found)
 			report(best_layout, "New best layout found");
-		else
+		else if(fancy_output)
 		{
 			console.set_cursor_position(69, 13);
 			cout << cycle;
