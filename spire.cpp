@@ -177,7 +177,7 @@ Spire::Spire(int argc, char **argv):
 		budget = 1000000;
 
 	if(online)
-		init_network(refresh);
+		init_network();
 }
 
 void Spire::init_start_layout(const string &layout_in, const string &upgrades_in, unsigned floors)
@@ -297,17 +297,12 @@ void Spire::init_pools(unsigned pool_size)
 	}
 }
 
-void Spire::init_network(unsigned refresh)
+void Spire::init_network()
 {
 	network = new Network;
 	try
 	{
 		connection = network->connect("spiredb.tdb.fi", 8676);
-		if(refresh)
-		{
-			refresh_interval = chrono::duration<unsigned>(refresh);
-			next_refresh = chrono::steady_clock::now()+refresh_interval;
-		}
 	}
 	catch(const exception &e)
 	{

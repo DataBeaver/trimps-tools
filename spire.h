@@ -81,7 +81,7 @@ public:
 private:
 	void init_start_layout(const std::string &, const std::string &, unsigned);
 	void init_pools(unsigned);
-	void init_network(unsigned);
+	void init_network();
 public:
 	~Spire();
 
