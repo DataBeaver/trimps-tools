@@ -233,7 +233,13 @@ void Network::Worker::main()
 
 		for(const auto &m: receive_queue)
 		{
-			m.recv_func->receive(m.connection, m.data);
+			try
+			{
+				m.recv_func->receive(m.connection, m.data);
+			}
+			catch(const exception &)
+			{ }
+
 			if(m.recv_func->is_one_shot())
 				delete m.recv_func;
 		}
@@ -241,7 +247,12 @@ void Network::Worker::main()
 
 		for(auto c: stale_connections)
 		{
-			c->next_recv->receive(c->tag, string());
+			try
+			{
+				c->next_recv->receive(c->tag, string());
+			}
+			catch(const exception &)
+			{ }
 			if(c->next_recv!=network.serve_func)
 				delete c->next_recv;
 			delete c;
