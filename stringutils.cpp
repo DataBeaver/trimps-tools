@@ -9,7 +9,7 @@ vector<string> split(const string &str)
 
 	while(start<str.size())
 	{
-		string::size_type space = str.find(' ', start+1);
+		string::size_type space = str.find(' ', start);
 		parts.push_back(str.substr(start, space-start));
 		if(space==string::npos)
 			break;
