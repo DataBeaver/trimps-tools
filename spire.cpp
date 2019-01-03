@@ -58,6 +58,7 @@ Spire::Spire(int argc, char **argv):
 	n_workers(4),
 	loops_per_cycle(200),
 	cycle(1),
+	loops_per_second(0),
 	accuracy(12),
 	debug_layout(false),
 	numeric_format(false),
