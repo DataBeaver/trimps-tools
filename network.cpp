@@ -16,12 +16,39 @@ using namespace std;
 
 #ifdef _WIN32
 typedef SOCKADDR_STORAGE sockaddr_storage;
+
+int socket_pair(int sv[2])
+{
+	sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	addr.sin_port = 0;
+	int addrlen = sizeof(addr);
+
+	int ls = socket(AF_INET, SOCK_STREAM, 0);
+	::bind(ls, reinterpret_cast<sockaddr *>(&addr), addrlen);
+	getsockname(ls, reinterpret_cast<sockaddr *>(&addr), &addrlen);
+	listen(ls, 1);
+
+	sv[0] = socket(AF_INET, SOCK_STREAM, 0);
+	connect(sv[0], reinterpret_cast<sockaddr *>(&addr), addrlen);
+
+	sv[1] = accept(ls, 0, 0);
+	closesocket(ls);
+
+	return 0;
+}
 #endif
 
 #ifndef _WIN32
 void closesocket(int s)
 {
 	close(s);
+}
+
+int socket_pair(int sv[2])
+{
+	return socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
 }
 #endif
 
@@ -166,6 +193,8 @@ void Network::ensure_worker()
 {
 	if(!worker)
 		worker = new Worker(*this);
+	else
+		worker->wake();
 }
 
 Network::ConnectionTag Network::add_connection(int sock, const string &host, ReceiveFunc *func)
@@ -195,18 +224,28 @@ Network::Connection::Connection(ConnectionTag t, int s, const string &h, Receive
 
 Network::Worker::Worker(Network &n):
 	network(n),
+	wake_sock{ -1, -1 },
 	thread(&Worker::main, this)
 { }
 
+void Network::Worker::wake()
+{
+	char c = 0;
+	send(wake_sock[1], &c, 1, 0);
+}
+
 void Network::Worker::main()
 {
+	socket_pair(wake_sock);
+
 	fd_set fds;
 	while(1)
 	{
 		send_messages();
 
-		int max_fd = 0;
 		FD_ZERO(&fds);
+		FD_SET(wake_sock[0], &fds);
+		int max_fd = wake_sock[0]+1;
 		if(network.listen_sock>=0)
 		{
 			FD_SET(network.listen_sock, &fds);
@@ -225,6 +264,12 @@ void Network::Worker::main()
 		int res = select(max_fd+1, &fds, 0, 0, 0);
 		if(res>0)
 		{
+			if(FD_ISSET(wake_sock[0], &fds))
+			{
+				char buf[16];
+				recv(wake_sock[0], buf, sizeof(buf), 0);
+			}
+
 			if(network.listen_sock>=0 && FD_ISSET(network.listen_sock, &fds))
 				accept_connection();
 

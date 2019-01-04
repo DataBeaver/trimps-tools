@@ -66,12 +66,15 @@ private:
 	{
 	private:
 		Network &network;
-		std::thread thread;
+		int wake_sock[2];
 		std::list<Message> receive_queue;
 		std::vector<Connection *> stale_connections;
+		std::thread thread;
 
 	public:
 		Worker(Network &);
+
+		void wake();
 
 	private:
 		void main();
