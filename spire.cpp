@@ -180,7 +180,7 @@ Spire::Spire(int argc, char **argv):
 		budget = 1000000;
 
 	if(online)
-		init_network();
+		init_network(false);
 }
 
 void Spire::init_start_layout(const string &layout_in, const string &upgrades_in, unsigned floors)
@@ -300,20 +300,25 @@ void Spire::init_pools(unsigned pool_size)
 	}
 }
 
-void Spire::init_network()
+void Spire::init_network(bool reconnect)
 {
-	network = new Network;
+	if(!network)
+		network = new Network;
 	try
 	{
 		connection = network->connect("spiredb.tdb.fi", 8676, bind(&Spire::receive, this, _1, _2));
+		if(!fancy_output && reconnect)
+			cout << "Reconnected to online build database" << endl;
 	}
 	catch(const exception &e)
 	{
-		cout << "Can't connect to online build database:" << endl;
-		cout << e.what() << endl;
-		cout << "Continuing in offline mode" << endl;
-		delete network;
-		network = 0;
+		if(!fancy_output && !reconnect)
+		{
+			cout << "Can't connect to online build database:" << endl;
+			cout << e.what() << endl;
+			cout << "Connection will be reattempted automatically" << endl;
+		}
+		reconnect_timeout = chrono::steady_clock::now()+chrono::seconds(30);
 	}
 }
 
@@ -343,7 +348,7 @@ int Spire::main()
 	if(best_layout.get_damage() && !show_pools)
 		report(best_layout, "Initial layout");
 
-	if(network)
+	if(connection)
 	{
 		if(!fancy_output)
 			cout << "Querying online database for best known layout" << endl;
@@ -389,6 +394,8 @@ int Spire::main()
 
 			leave_loop = true;
 		}
+
+		check_reconnect(current_time);
 
 		lock_guard<mutex> lock(best_mutex);
 		bool new_best_found = check_results();
@@ -439,6 +446,25 @@ bool Spire::query_network()
 	}
 
 	return false;
+}
+
+void Spire::check_reconnect(const chrono::steady_clock::time_point &current_time)
+{
+	if(connection || current_time<reconnect_timeout)
+		return;
+
+	init_network(true);
+	if(connection)
+	{
+		lock_guard<mutex> lock(best_mutex);
+		if(query_network())
+		{
+			if(!show_pools)
+				report(best_layout, "New best layout from database");
+		}
+		else
+			submit_best();
+	}
 }
 
 bool Spire::check_results()
@@ -553,7 +579,13 @@ void Spire::prune_pools()
 void Spire::receive(Network::ConnectionTag, const string &message)
 {
 	if(message.empty())
+	{
+		if(!fancy_output)
+			cout << "Connection to online database lost" << endl;
+		reconnect_timeout = chrono::steady_clock::now()+chrono::seconds(30);
+		connection = 0;
 		return;
+	}
 
 	vector<string> parts = split(message);
 	if(parts[0]=="push" && parts.size()>=3)
@@ -617,6 +649,11 @@ void Spire::report(const Layout &layout, const string &message)
 		cout << "Cycle now: " << cycle;
 		console.set_cursor_position(58, 14);
 		cout << "Speed:     " << NumberIO(loops_per_second);
+		if(network)
+		{
+			console.set_cursor_position(58, 15);
+			cout << (connection ? "Online      " : "Disconnected");
+		}
 		cout << endl;
 	}
 }

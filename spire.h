@@ -64,6 +64,7 @@ private:
 	Network *network;
 	bool live;
 	Network::ConnectionTag connection;
+	std::chrono::steady_clock::time_point reconnect_timeout;
 	bool intr_flag;
 
 	Number budget;
@@ -83,13 +84,14 @@ public:
 private:
 	void init_start_layout(const std::string &, const std::string &, unsigned);
 	void init_pools(unsigned);
-	void init_network();
+	void init_network(bool);
 public:
 	~Spire();
 
 	int main();
 private:
 	bool query_network();
+	void check_reconnect(const std::chrono::steady_clock::time_point &);
 	bool check_results();
 	void submit_best();
 	void update_output(bool);
