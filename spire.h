@@ -91,6 +91,7 @@ public:
 private:
 	bool query_network();
 	bool check_results();
+	void submit_best();
 	void update_output(bool);
 	unsigned get_next_cycle();
 	void prune_pools();

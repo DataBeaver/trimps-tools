@@ -357,8 +357,7 @@ int Spire::main()
 			if(!fancy_output)
 				cout << "Database returned no better layout" << endl;
 
-			if(score_func(best_layout)>0)
-				network->send_message(connection, format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps()));
+			submit_best();
 		}
 	}
 
@@ -456,14 +455,21 @@ bool Spire::check_results()
 	if(new_best)
 	{
 		best_layout.update(income ? Layout::FULL : Layout::COMPATIBLE, accuracy);
-		if(network)
-			network->send_message(connection, format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps()));
+		submit_best();
 	}
 
 	if(next_prune && cycle>=next_prune)
 		prune_pools();
 
 	return new_best;
+}
+
+void Spire::submit_best()
+{
+	if(!network || !score_func(best_layout))
+		return;
+
+	network->send_message(connection, format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps()));
 }
 
 void Spire::update_output(bool new_best_found)
