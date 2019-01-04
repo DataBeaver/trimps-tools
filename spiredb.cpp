@@ -137,7 +137,7 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 	try
 	{
 		if(cmd=="submit")
-			result = submit(parts, remote);
+			result = submit(tag, parts, remote);
 		else if(cmd=="query")
 			result = query(tag, parts);
 		else
@@ -204,7 +204,7 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 		return "notfound";
 }
 
-string SpireDB::submit(const vector<string> &args, const string &submitter)
+string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, const string &submitter)
 {
 	if(args.size()!=2)
 		throw invalid_argument("SpireDB::submit");
@@ -262,7 +262,7 @@ string SpireDB::submit(const vector<string> &args, const string &submitter)
 		xact.exec_prepared("insert_layout", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, layout.get_traps(), damage, threat, rs_per_sec, cost, submitter, current_version);
 		xact.commit();
 
-		check_live_queries(layout);
+		check_live_queries(tag, layout);
 
 		return "ok accepted";
 	}
@@ -272,14 +272,14 @@ string SpireDB::submit(const vector<string> &args, const string &submitter)
 		return "ok obsolete";
 }
 
-void SpireDB::check_live_queries(const Layout &layout)
+void SpireDB::check_live_queries(Network::ConnectionTag tag, const Layout &layout)
 {
 	string up_str = layout.get_upgrades().str();
 	unsigned floors = layout.get_traps().size()/5;
 	Number cost = layout.get_cost();
 	for(const auto &lq: live_queries)
 	{
-		if(up_str==lq.second.upgrades && floors==lq.second.floors && cost<=lq.second.budget)
+		if(tag!=lq.first && up_str==lq.second.upgrades && floors==lq.second.floors && cost<=lq.second.budget)
 		{
 			string push = format("push %s %s", up_str, layout.get_traps());
 			cout << '[' << network.get_remote_host(lq.first) << "] <- " << push << endl;

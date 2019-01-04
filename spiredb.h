@@ -35,8 +35,8 @@ private:
 	void update_layouts();
 	void serve(Network::ConnectionTag, const std::string &);
 	std::string query(Network::ConnectionTag, const std::vector<std::string> &);
-	std::string submit(const std::vector<std::string> &, const std::string &);
-	void check_live_queries(const Layout &);
+	std::string submit(Network::ConnectionTag, const std::vector<std::string> &, const std::string &);
+	void check_live_queries(Network::ConnectionTag, const Layout &);
 };
 
 #endif
