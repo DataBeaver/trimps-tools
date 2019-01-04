@@ -263,6 +263,7 @@ void Network::Worker::main()
 				delete c->next_recv;
 			if(c->recv_func!=network.serve_func)
 				delete c->recv_func;
+			closesocket(c->sock);
 			delete c;
 		}
 		stale_connections.clear();
