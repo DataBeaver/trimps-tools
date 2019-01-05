@@ -339,8 +339,11 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 		stats.army = ceil(stats.army*coord_factor);
 	}
 
-	if(fractional)
+	if(fractional && coords<max_coords)
+	{
 		coords += log(stats.population/reserve_factor/stats.army)/log(coord_factor);
+		coords = min<unsigned>(coords, max_coords);
+	}
 
 	double imp_ort = pow(1.003, target_zone*3);
 
