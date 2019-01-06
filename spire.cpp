@@ -458,7 +458,7 @@ bool Spire::query_network()
 
 void Spire::check_reconnect(const chrono::steady_clock::time_point &current_time)
 {
-	if(connection || current_time<reconnect_timeout)
+	if(!network || connection || current_time<reconnect_timeout)
 		return;
 
 	init_network(true);
