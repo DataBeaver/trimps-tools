@@ -38,7 +38,10 @@ void WeightedAccumulator::add(Number n, Number w)
 	Number wlow = w&low_half_mask;
 	Number whigh = w>>half_bits;
 	Number mid = nlow*whigh+nhigh*wlow;
+	Number l = low;
 	low += nlow*wlow+(mid<<half_bits);
+	if(low<l)
+		++high;
 	high += nhigh*whigh+(mid>>half_bits);
 }
 
