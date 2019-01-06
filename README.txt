@@ -54,10 +54,10 @@ the genetic algorithm:
   diverse and advanced.  This option is relatively safe to use even if you
   have no clue what the following ones are for.
 
--a, --accuracy
-  Set the accuracy of calculations.  Roughly corresponds to the number of
-  significant bits in damage values.  Affects other numbers to a varying
-  degree.  Higher accuracy will make the program run slower.
+-e, --exact
+  Use exact calculation mode when optimizing for damage.  This reduces
+  performance but guarantees that damage is calculated correctly.  Income
+  optimization always uses exact mode.
 
 -w, --workers
   Set the number of worker threads to use

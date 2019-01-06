@@ -59,7 +59,6 @@ Spire::Spire(int argc, char **argv):
 	loops_per_cycle(200),
 	cycle(1),
 	loops_per_second(0),
-	accuracy(12),
 	debug_layout(false),
 	update_mode(Layout::FAST),
 	report_update_mode(Layout::COMPATIBLE),
@@ -89,6 +88,7 @@ Spire::Spire(int argc, char **argv):
 	string layout_str;
 	string preset;
 	bool online = false;
+	bool exact = false;
 	NumberIO budget_in = budget;
 
 	GetOpt getopt;
@@ -102,7 +102,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("live", live, GetOpt::NO_ARG).set_help("Perform a live query to the database");
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on", "NAME");
 	getopt.add_option("fancy", fancy_output, GetOpt::NO_ARG).set_help("Produce fancy output");
-	getopt.add_option('a', "accuracy", accuracy, GetOpt::REQUIRED_ARG).set_help("Set simulation accuracy", "NUM");
+	getopt.add_option('e', "exact", exact, GetOpt::NO_ARG).set_help("Use exact calculations, at cost of performance");
 	getopt.add_option('w', "workers", n_workers, GetOpt::REQUIRED_ARG).set_help("Number of threads to use", "NUM");
 	getopt.add_option('l', "loops", loops_per_cycle, GetOpt::REQUIRED_ARG).set_help("Number of loops per cycle", "NUM");
 	getopt.add_option('p', "pools", n_pools, GetOpt::REQUIRED_ARG).set_help("Number of population pools", "NUM").bind_seen_count(n_pools_seen);
@@ -163,9 +163,14 @@ Spire::Spire(int argc, char **argv):
 	else if(towers)
 		score_func = damage_towers_score;
 
-	if(income || debug_layout)
+	if(income)
 	{
 		update_mode = Layout::FULL;
+		report_update_mode = Layout::FULL;
+	}
+	else if(exact)
+	{
+		update_mode = Layout::EXACT_DAMAGE;
 		report_update_mode = Layout::FULL;
 	}
 

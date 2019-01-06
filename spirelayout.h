@@ -51,6 +51,7 @@ public:
 		COST_ONLY,
 		FAST,
 		COMPATIBLE,
+		EXACT_DAMAGE,
 		FULL
 	};
 
@@ -66,6 +67,7 @@ public:
 private:
 	struct SimResult
 	{
+		Number sim_hp;
 		Number max_hp;
 		Number damage;
 		Number toxicity;
@@ -116,17 +118,16 @@ public:
 private:
 	void build_steps(std::vector<Step> &) const;
 	SimResult simulate(const std::vector<Step> &, Number, std::vector<SimDetail> * = 0) const;
-	void build_results(const std::vector<Step> &, unsigned, std::vector<SimResult> &) const;
+	void build_results(const std::vector<Step> &, std::vector<SimResult> &) const;
 	template<typename F>
-	unsigned integrate_results_for_threat(const std::vector<SimResult> &, unsigned, const F &) const;
+	unsigned integrate_results(const std::vector<SimResult> &, unsigned, const F &) const;
 public:
-	void update(UpdateMode, unsigned = 12);
+	void update(UpdateMode);
 private:
 	void update_damage(const std::vector<Step> &, unsigned);
-	void update_damage(const std::vector<Step> &, const std::vector<SimResult> &, unsigned);
-	void refine_damage(const std::vector<Step> &, Number, Number, unsigned);
+	void update_damage(const std::vector<SimResult> &);
 	void update_cost();
-	void update_threat(const std::vector<SimResult> &, unsigned);
+	void update_threat(const std::vector<SimResult> &);
 	void update_runestones(const std::vector<SimResult> &);
 public:
 	void cross_from(const Layout &, Random &);

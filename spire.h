@@ -55,7 +55,6 @@ private:
 	unsigned loops_per_cycle;
 	std::atomic<unsigned> cycle;
 	unsigned loops_per_second;
-	unsigned accuracy;
 	bool debug_layout;
 	Layout::UpdateMode update_mode;
 	Layout::UpdateMode report_update_mode;

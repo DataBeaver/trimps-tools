@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 	return spiredb.main();
 }
 
-const unsigned SpireDB::current_version = 5;
+const unsigned SpireDB::current_version = 6;
 
 SpireDB::SpireDB(int argc, char **argv):
 	pq_conn(0),
@@ -105,7 +105,7 @@ void SpireDB::update_layouts()
 		Layout layout;
 		layout.set_upgrades(upgrades);
 		layout.set_traps(row[5].as<string>());
-		layout.update(Layout::FULL, 40);
+		layout.update(Layout::FULL);
 		xact.exec_prepared("update_values", id, layout.get_damage(), layout.get_threat(), layout.get_runestones_per_second(), layout.get_cost(), current_version);
 	}
 	xact.commit();
@@ -214,7 +214,7 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, c
 	layout.set_traps(args[1]);
 	if(!layout.is_valid())
 		throw invalid_argument("SpireDB::submit");
-	layout.update(Layout::FULL, 40);
+	layout.update(Layout::FULL);
 
 	unsigned floors = layout.get_traps().size()/5;
 	const TrapUpgrades &upgrades = layout.get_upgrades();
