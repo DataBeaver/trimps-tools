@@ -61,6 +61,9 @@ public:
 		ALL_MUTATIONS
 	};
 
+	static const char traps[];
+
+private:
 	struct SimResult
 	{
 		Number max_hp;
@@ -73,9 +76,6 @@ public:
 		SimResult();
 	};
 
-	static const char traps[];
-
-private:
 	struct Step
 	{
 		std::uint16_t cell;
