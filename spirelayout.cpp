@@ -15,7 +15,7 @@ private:
 	static constexpr unsigned bits = sizeof(Number)*8;
 	static constexpr unsigned half_bits = bits/2;
 	static constexpr Number low_half_mask = (Number(1)<<half_bits)-1;
-	static constexpr Number high_half_mask = ~low_half_mask;
+	static constexpr Number high_bit = Number(1)<<(bits-1);
 
 public:
 	WeightedAccumulator();
@@ -46,7 +46,7 @@ Number WeightedAccumulator::result() const
 {
 	Number q = 0;
 	Number r = high;
-	Number bit = Number(1)<<(bits-1);
+	Number bit = high_bit;
 	while(bit)
 	{
 		r <<= 1;
