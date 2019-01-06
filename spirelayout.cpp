@@ -408,7 +408,7 @@ void Layout::build_results(const vector<Step> &steps, vector<SimResult> &results
 }
 
 template<typename F>
-unsigned Layout::integrate_results(const vector<SimResult> &results, unsigned thrt, const F &func) const
+Number Layout::integrate_results(const vector<SimResult> &results, unsigned thrt, const F &func) const
 {
 	if(results.empty())
 		return 0;
@@ -624,7 +624,7 @@ void Layout::update_runestones(const vector<SimResult> &results)
 
 	if(hp_range)
 	{
-		steps_taken = max<unsigned>(steps_taken/hp_range, capacity);
+		steps_taken = max<Number>(steps_taken/hp_range, capacity);
 		rs_per_sec = runestones.result()*capacity/steps_taken/3;
 	}
 	else

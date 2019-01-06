@@ -120,7 +120,7 @@ private:
 	SimResult simulate(const std::vector<Step> &, Number, std::vector<SimDetail> * = 0) const;
 	void build_results(const std::vector<Step> &, std::vector<SimResult> &) const;
 	template<typename F>
-	unsigned integrate_results(const std::vector<SimResult> &, unsigned, const F &) const;
+	Number integrate_results(const std::vector<SimResult> &, unsigned, const F &) const;
 public:
 	void update(UpdateMode);
 private:
