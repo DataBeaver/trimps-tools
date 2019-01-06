@@ -320,8 +320,16 @@ void Spire::init_network(bool reconnect)
 	try
 	{
 		connection = network->connect("spiredb.tdb.fi", 8676, bind(&Spire::receive, this, _1, _2));
-		if(!fancy_output && reconnect)
-			cout << "Reconnected to online build database" << endl;
+		if(reconnect)
+		{
+			if(fancy_output)
+			{
+				console.set_cursor_position(58, 15);
+				cout << "Online      ";
+			}
+			else
+				cout << "Reconnected to online build database" << endl;
+		}
 	}
 	catch(const exception &e)
 	{
@@ -593,7 +601,12 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 {
 	if(message.empty())
 	{
-		if(!fancy_output)
+		if(fancy_output)
+		{
+			console.set_cursor_position(58, 15);
+			cout << "Disconnected";
+		}
+		else
 			cout << "Connection to online database lost" << endl;
 		reconnect_timeout = chrono::steady_clock::now()+chrono::seconds(30);
 		connection = 0;
