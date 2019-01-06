@@ -61,6 +61,8 @@ Spire::Spire(int argc, char **argv):
 	loops_per_second(0),
 	accuracy(12),
 	debug_layout(false),
+	update_mode(Layout::FAST),
+	report_update_mode(Layout::COMPATIBLE),
 	numeric_format(false),
 	raw_values(false),
 	fancy_output(false),
@@ -161,6 +163,12 @@ Spire::Spire(int argc, char **argv):
 	else if(towers)
 		score_func = damage_towers_score;
 
+	if(income || debug_layout)
+	{
+		update_mode = Layout::FULL;
+		report_update_mode = Layout::FULL;
+	}
+
 	if(!n_pools_seen && heterogeneous)
 		n_pools = 21;
 	if(n_pools==1)
@@ -240,7 +248,7 @@ void Spire::init_start_layout(const string &layout_in, const string &upgrades_in
 		}
 
 		start_layout.set_traps(clean_data, floors);
-		start_layout.update((income || debug_layout) ? Layout::FULL : Layout::COMPATIBLE, accuracy);
+		start_layout.update(report_update_mode);
 
 		if(!budget)
 			budget = start_layout.get_cost();
@@ -435,7 +443,7 @@ bool Spire::query_network()
 		Layout layout;
 		layout.set_upgrades(best_layout.get_upgrades());
 		layout.set_traps(parts[2], floors);
-		layout.update(income ? Layout::FULL : Layout::COMPATIBLE, accuracy);
+		layout.update(report_update_mode);
 
 		if(score_func(layout)>score_func(best_layout))
 		{
@@ -480,7 +488,7 @@ bool Spire::check_results()
 
 	if(new_best)
 	{
-		best_layout.update(income ? Layout::FULL : Layout::COMPATIBLE, accuracy);
+		best_layout.update(report_update_mode);
 		submit_best();
 	}
 
@@ -593,7 +601,7 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 		Layout layout;
 		layout.set_upgrades(parts[1]);
 		layout.set_traps(parts[2]);
-		layout.update(income ? Layout::FULL : Layout::COMPATIBLE, accuracy);
+		layout.update(report_update_mode);
 
 		lock_guard<mutex> lock_best(best_mutex);
 		if(score_func(layout)>score_func(best_layout))
@@ -930,7 +938,7 @@ void Spire::Worker::main()
 			if(mutated.get_cost()>spire.budget)
 				continue;
 
-			mutated.update(spire.income ? Layout::FULL : Layout::FAST, spire.accuracy);
+			mutated.update(spire.update_mode);
 			pool.add_layout(mutated);
 		}
 	}

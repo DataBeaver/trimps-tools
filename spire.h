@@ -57,6 +57,8 @@ private:
 	unsigned loops_per_second;
 	unsigned accuracy;
 	bool debug_layout;
+	Layout::UpdateMode update_mode;
+	Layout::UpdateMode report_update_mode;
 	bool numeric_format;
 	bool raw_values;
 	bool fancy_output;
