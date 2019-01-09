@@ -135,7 +135,7 @@ public:
 	Number get_damage() const { return damage; }
 	Number get_cost() const { return cost; }
 	Number get_runestones_per_second() const { return rs_per_sec; }
-	unsigned get_threat() const { return threat; }
+	unsigned get_threat() const { return (threat+8)/16; }
 	unsigned get_cycle() const { return cycle; }
 	bool is_valid() const;
 	void debug(Number) const;

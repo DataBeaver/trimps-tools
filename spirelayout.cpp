@@ -425,8 +425,8 @@ Number Layout::integrate_results(const vector<SimResult> &results, unsigned thrt
 	if(results.empty())
 		return 0;
 
-	unsigned range = min(max<int>(0.53*thrt, 150), 850);
-	Number max_hp = 10+4*thrt+pow(1.012, thrt);
+	unsigned range = min(max<int>(0.53*thrt/16, 150), 850);
+	Number max_hp = 10+0.25*thrt+pow(1.012, thrt/16.0);
 	Number min_hp = max_hp*(1000-range)/1000;
 
 	for(auto i=results.begin(); (i!=results.end() && i->sim_hp<max_hp); ++i)
@@ -566,7 +566,7 @@ void Layout::update_threat(const vector<SimResult> &results)
 {
 	if(!damage)
 	{
-		threat = 1;
+		threat = 16;
 		return;
 	}
 
@@ -574,8 +574,8 @@ void Layout::update_threat(const vector<SimResult> &results)
 	unsigned floors = cells/5;
 
 	static double log_base = log(1.012);
-	unsigned low = log(damage-4*log(damage)/log_base)/log_base;
-	unsigned high = low+64;
+	unsigned low = log(damage-4*log(damage)/log_base)/log_base*16;
+	unsigned high = low+1024;
 
 	while(low+1<high)
 	{
@@ -612,7 +612,7 @@ void Layout::update_runestones(const vector<SimResult> &results)
 	unsigned capacity = (1+(data.size()+1)/2)*3;
 	WeightedAccumulator runestones;
 	Number steps_taken = 0;
-	double threat_multi = pow(1.00116, threat);
+	double threat_multi = pow(1.00116, threat/16.0);
 
 	Number hp_range = integrate_results(results, threat, [this, &runestones, &steps_taken, threat_multi](const SimResult &r, Number low_hp, Number high_hp)
 	{
@@ -621,7 +621,7 @@ void Layout::update_runestones(const vector<SimResult> &results)
 			double multi = threat_multi*r.runestone_pct/100;
 			Number low_step = (low_hp+599)/600;
 			Number high_step = (high_hp+599)/600;
-			unsigned threat_term = threat/20;
+			unsigned threat_term = threat/320;
 			runestones.add((low_step+threat_term)*multi, low_step*600-low_hp);
 			runestones.add((high_step+threat_term)*multi, high_hp+1-(high_step-1)*600);
 			if(high_step>low_step)
