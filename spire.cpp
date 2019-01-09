@@ -841,7 +841,7 @@ void Spire::print_fancy(const Layout &layout)
 	console.restore_default_text_color();
 
 	if(lines_per_floor<3)
-		cout  << "Note: incerase window height for even fancier output!" << endl;
+		cout  << "Note: increase window height for even fancier output!" << endl;
 }
 
 Spire::PrintNum Spire::print_num(Number num) const
