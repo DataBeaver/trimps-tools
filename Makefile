@@ -4,7 +4,7 @@ LDFLAGS := -pthread
 PQXX_CFLAGS = $(shell pkg-config --cflags libpqxx)
 PQXX_LDFLAGS = $(shell pkg-config --libs libpqxx)
 
-all: spire
+all: spire perks
 
 spire: console.o getopt.o network.o spire.o spirelayout.o spirepool.o stringutils.o types.o
 	$(CXX) $(LDFLAGS) $^ -o $@
@@ -13,6 +13,7 @@ spiredb: getopt.o network.o spiredb.o spirelayout.o stringutils.o
 	$(CXX) $(LDFLAGS) $(PQXX_LDFLAGS) $^ -o $@
 
 perks: getopt.o perks.o stringutils.o types.o
+	$(CXX) $(LDFLAGS) $^ -o $@
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $(EXTRA_CXXFLAGS) -c $< -o $@
