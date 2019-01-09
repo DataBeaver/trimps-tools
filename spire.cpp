@@ -192,7 +192,7 @@ Spire::Spire(int argc, char **argv):
 	if(!budget)
 		budget = 1000000;
 
-	if(online)
+	if(online || live)
 		init_network(false);
 }
 
