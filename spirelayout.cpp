@@ -609,7 +609,7 @@ void Layout::update_threat(const vector<SimResult> &results)
 
 void Layout::update_runestones(const vector<SimResult> &results)
 {
-	unsigned capacity = (1+(data.size()+1)/2)*3;
+	unsigned capacity = (1+(data.size()+1)/2)*48;
 	WeightedAccumulator runestones;
 	Number steps_taken = 0;
 	double threat_multi = pow(1.00116, threat/16.0);
@@ -631,7 +631,7 @@ void Layout::update_runestones(const vector<SimResult> &results)
 			runestones.add(r.toxicity/10, high_hp+1-low_hp);
 		else
 			runestones.add(0, high_hp+1-low_hp);
-		steps_taken += r.steps_taken*(high_hp+1-low_hp);
+		steps_taken += r.steps_taken*16*(high_hp+1-low_hp);
 	});
 
 	if(hp_range)
