@@ -1,11 +1,24 @@
 Tools to assist in decision-making for the browser game Trimps
 (https://trimps.github.io/).
 
-To compile, simply type make.  No additional libraries are required.
+Copyright © 2018-2019  Mikkosoft Productions
+Licensed under GPLv3.
+
+
+## Compiling
+
+To compile the programs, simply type make.  No additional libraries are
+required.
+
+
+## Spire optimizer
 
 The spire program can be used for optimizing spire tower defense layouts.  It
-utilizes a genetic algorithm to search for the layout with best damage.  Some
-of the more important options are:
+utilizes a genetic algorithm to search for the layout with best damage or
+income.  In the simplest form, pass your current layout as a command line
+argument and the program will try to find a layout that does more damage while
+not requiring more runestones.  The behaviour can be further customized with
+options.  Some of the more important are:
 
 -f, --floors
   Set the number of floors in the spire
@@ -42,9 +55,6 @@ of the more important options are:
 --live
   Perform database query in live mode and automatically obtain improvements
   that other users submit into the database.  Implies --online.
-
-You can also specify a starting layout on the command line.  Budget, floors
-and upgrades are deduced from the layout if not explicitly specified.
 
 More advanced options can be used to tweak the performance of the program or
 the genetic algorithm:
@@ -103,3 +113,60 @@ Finally, a few options are mostly for debugging purposes:
 --raw-values
   Print raw, full values of numbers.  These are more difficult to read but
   may be helpful in debugging suspected accuracy issues.
+
+
+## Perk optimizer
+
+The perks program calculates optimal level for perks.  It has three required
+command-line arguments: base population, target zone and helium budget.
+Options can be used to further modify optimization goals:
+
+--attack
+  Set the weight for trimp attack
+
+--health
+  Set the weight for trimp health
+
+--health
+  Set the weight for helium gain
+
+--fluffy
+  Set the weight for fluffy exp gain
+
+Each perk has an option which sets a base level for that perk.  The optimizer
+may add further levels but will never remove levels.
+
+--looting
+--toughness
+--power
+--toughness2
+--power2
+etc.
+
+Other options are available to set auxiliary modifiers:
+
+--breed-time
+  Set your target breed time in seconds
+
+--equip-time
+  Set the number of seconds you're willing to spend on gearing up at the
+  target zone
+
+--heirloom-attack
+--heirloom-health
+--heirloom-crit-chance
+--heirloom-crit-damage
+--heirloom-miner
+  Set heirloom values
+
+--large
+  Set value of the "large" daily challenge modifier (less housing)
+
+--famine
+  Set value of the "famine" daily challenge modifier (less income)
+
+--achievements
+  Set the damage bonus gained from achievements
+
+--challenge2
+  Set the stat bonus gained from Challenge²
