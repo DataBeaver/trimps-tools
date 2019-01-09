@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 	return spiredb.main();
 }
 
-const unsigned SpireDB::current_version = 7;
+const unsigned SpireDB::current_version = 8;
 
 SpireDB::SpireDB(int argc, char **argv):
 	pq_conn(0),
