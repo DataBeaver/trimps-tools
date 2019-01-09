@@ -377,8 +377,8 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 
 	double equip_tier_cost = 40+40+55+80+100+140+160+230+275+375+415+450+500;
 	equip_tier_cost *= pow(0.95, get_perk("artisanistry"));
-	static constexpr double prestige_cost_multi = pow(1.069, 45.05);
-	static constexpr double prestige_cost_offset = pow(1.069, 28.15);
+	static const double prestige_cost_multi = pow(1.069, 45.05);
+	static const double prestige_cost_offset = pow(1.069, 28.15);
 	unsigned affordable_prestige = log(income*equip_time/equip_tier_cost*prestige_cost_offset)/log(prestige_cost_multi);
 	unsigned max_prestige = (target_zone+12)/10*2;
 	stats.prestige_level = min(affordable_prestige, max_prestige);
