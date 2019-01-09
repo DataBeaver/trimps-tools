@@ -21,6 +21,9 @@ public:
 	WeightedAccumulator();
 
 	void add(Number, Number);
+private:
+	void adc(Number);
+public:
 	Number result() const;
 };
 
@@ -38,11 +41,17 @@ void WeightedAccumulator::add(Number n, Number w)
 	Number wlow = w&low_half_mask;
 	Number whigh = w>>half_bits;
 	Number mid = nlow*whigh+nhigh*wlow;
+	adc(nlow*wlow);
+	adc(mid<<half_bits);
+	high += nhigh*whigh+(mid>>half_bits);
+}
+
+void WeightedAccumulator::adc(Number n)
+{
 	Number l = low;
-	low += nlow*wlow+(mid<<half_bits);
+	low += n;
 	if(low<l)
 		++high;
-	high += nhigh*whigh+(mid>>half_bits);
 }
 
 Number WeightedAccumulator::result() const
