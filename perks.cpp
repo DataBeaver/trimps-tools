@@ -325,7 +325,8 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 
 	double coord_factor = 1+0.25*pow(0.98, get_perk("coordinated"));
 	double coords = 0;
-	stats.army = pow(1000, amalgamators);
+	stats.army = 1;
+	double amal_factor = pow(1000, amalgamators);
 	unsigned reserve_factor = 3;
 	if(amalgamators)
 	{
@@ -333,11 +334,12 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 		for(unsigned i=target_zone; i<600; i+=100)
 			reserve_factor *= 10;
 	}
-	while(coords<max_coords && stats.army*reserve_factor<stats.population)
+	while(coords<max_coords && stats.army*amal_factor*reserve_factor<stats.population)
 	{
 		++coords;
 		stats.army = ceil(stats.army*coord_factor);
 	}
+	stats.army *= amal_factor;
 
 	if(fractional && coords<max_coords)
 	{
