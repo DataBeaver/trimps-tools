@@ -186,7 +186,13 @@ int Perks::main()
 	for(unsigned i=0; i<10; ++i)
 	{
 		amalgamators = i;
+		unsigned carp = get_perk("carpentry")/2;
+		unsigned carp2 = get_perk("carpentry2")/2;
+		unsigned coord = get_perk("coordinated")/2;
 		perk_levels = base_levels;
+		perk_levels["carpentry"] = max(perk_levels["carpentry"], carp);
+		perk_levels["carpentry2"] = max(perk_levels["carpentry2"], carp2);
+		perk_levels["coordinated"] = max(perk_levels["coordinated"], coord);
 		optimize();
 		double score = evaluate();
 		if(score>best_score)
