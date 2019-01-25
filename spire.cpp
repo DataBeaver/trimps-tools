@@ -671,6 +671,8 @@ void Spire::report(const Layout &layout, const string &message)
 		cout << "Cost:   " << print_num(layout.get_cost()) << " Rs    ";
 		console.set_cursor_position(58, 11);
 		cout << "Cycle:  " << layout.get_cycle();
+		if(!layout.get_cycle())
+			cout << "        ";
 		console.set_cursor_position(58, 13);
 		cout << "Cycle now: " << cycle;
 		console.set_cursor_position(58, 14);
