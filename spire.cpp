@@ -90,6 +90,8 @@ Spire::Spire(int argc, char **argv):
 	bool online = false;
 	bool exact = false;
 	NumberIO budget_in = budget;
+	std::string tower_type;
+	unsigned towers_seen = 0;
 
 	GetOpt getopt;
 	getopt.add_option('b', "budget", budget_in, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM");
@@ -97,7 +99,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
 	getopt.add_option('i', "income", income, GetOpt::NO_ARG).set_help("Optimize runestones per second");
-	getopt.add_option("towers", towers, GetOpt::NO_ARG).set_help("Try to use as many towers as possible");
+	getopt.add_option("towers", tower_type, GetOpt::OPTIONAL_ARG).set_help("Try to use as many towers as possible").bind_seen_count(towers_seen);
 	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online layout database");
 	getopt.add_option("live", live, GetOpt::NO_ARG).set_help("Perform a live query to the database");
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on", "NAME");
@@ -158,10 +160,26 @@ Spire::Spire(int argc, char **argv):
 	else if(!preset.empty() && preset!="basic")
 		throw usage_error("Invalid preset");
 
-	if(income)
-		score_func = (towers ? income_towers_score : income_score);
-	else if(towers)
-		score_func = damage_towers_score;
+	towers = towers_seen;
+	if(towers_seen)
+	{
+		char tower = 0;
+		if(tower_type=="S" || tower_type=="strength")
+			tower = 'S';
+		else if(tower_type=="C" || tower_type=="condenser")
+			tower = 'C';
+		else if(tower_type=="K" || tower_type=="knowledge")
+			tower = 'K';
+		else if(!tower_type.empty())
+			throw usage_error("Invalid tower type");
+
+		if(income)
+			score_func = get_towers_score_func<income_score>(tower);
+		else
+			score_func = get_towers_score_func<damage_score>(tower);
+	}
+	else if(income)
+		score_func = income_score;
 
 	if(income)
 	{
@@ -856,28 +874,42 @@ Number Spire::damage_score(const Layout &layout)
 	return layout.get_damage();
 }
 
-Number Spire::damage_towers_score(const Layout &layout)
-{
-	return damage_score(layout)*get_towers_multiplier(layout);
-}
-
 Number Spire::income_score(const Layout &layout)
 {
 	return layout.get_runestones_per_second();
 }
 
-Number Spire::income_towers_score(const Layout &layout)
+template<Pool::ScoreFunc *base_func, char tower>
+Number Spire::towers_score(const Layout &layout)
 {
-	return income_score(layout)*get_towers_multiplier(layout);
+	Number score = base_func(layout);
+	for(char c: layout.get_traps())
+		if(c==tower)
+			score = score*3/2;
+	return score;
 }
 
-unsigned Spire::get_towers_multiplier(const Layout &layout)
+template<Pool::ScoreFunc *base_func>
+Number Spire::all_towers_score(const Layout &layout)
 {
-	unsigned mul = 2;
+	Number score = base_func(layout);
 	for(char c: layout.get_traps())
 		if(c=='S' || c=='C' || c=='K')
-			mul = mul*3/2;
-	return mul;
+			score = score*3/2;
+	return score;
+}
+
+template<Pool::ScoreFunc *base_func>
+Pool::ScoreFunc *Spire::get_towers_score_func(char tower)
+{
+	if(tower=='S')
+		return &towers_score<base_func, 'S'>;
+	else if(tower=='C')
+		return &towers_score<base_func, 'C'>;
+	else if(tower=='K')
+		return &towers_score<base_func, 'K'>;
+	else
+		return &all_towers_score<base_func>;
 }
 
 void Spire::sighandler(int)

@@ -104,10 +104,13 @@ private:
 	void print_fancy(const Layout &);
 	PrintNum print_num(Number) const;
 	static Number damage_score(const Layout &);
-	static Number damage_towers_score(const Layout &);
 	static Number income_score(const Layout &);
-	static Number income_towers_score(const Layout &);
-	static unsigned get_towers_multiplier(const Layout &);
+	template<Pool::ScoreFunc *, char>
+	static Number towers_score(const Layout &);
+	template<Pool::ScoreFunc *>
+	static Number all_towers_score(const Layout &);
+	template<Pool::ScoreFunc *>
+	static Pool::ScoreFunc *get_towers_score_func(char);
 	static void sighandler(int);
 
 	friend std::ostream &operator<<(std::ostream &, const PrintNum &);
