@@ -64,6 +64,7 @@ private:
 	LevelMap base_levels;
 	LevelMap perk_levels;
 	unsigned amalgamators;
+	bool amalgagreater;
 
 	static const PerkInfo perk_info[];
 
@@ -140,7 +141,8 @@ Perks::Perks(int argc, char **argv):
 	health_weight(1),
 	helium_weight(0),
 	fluffy_weight(0.1),
-	amalgamators(0)
+	amalgamators(0),
+	amalgagreater(false)
 {
 	heirloom.crit_chance = 0;
 	heirloom.crit_damage = 0;
@@ -165,6 +167,7 @@ Perks::Perks(int argc, char **argv):
 	getopt.add_option("heirloom-miner", heirloom.miner, GetOpt::REQUIRED_ARG);
 	getopt.add_option("large", large, GetOpt::REQUIRED_ARG);
 	getopt.add_option("famine", famine, GetOpt::REQUIRED_ARG);
+	getopt.add_option("amalgagreater", amalgagreater, GetOpt::NO_ARG);
 	getopt.add_option("attack", attack_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_option("health", health_weight, GetOpt::REQUIRED_ARG);
 	getopt.add_option("helium", helium_weight, GetOpt::REQUIRED_ARG);
@@ -437,7 +440,10 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 	stats.attack = 6;
 	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*(stats.prestige_level-1))*affordable_level;
 	stats.attack *= coord_stats;
-	stats.attack *= 1+0.5*amalgamators;
+	if(amalgagreater)
+		stats.attack *= pow(1.5, amalgamators);
+	else
+		stats.attack *= 1+0.5*amalgamators;
 	stats.attack *= 1+0.05*get_perk("power");
 	stats.attack *= 1+0.01*get_perk("power2");
 	stats.attack *= 1+0.01*get_perk("range");
