@@ -35,6 +35,7 @@ struct EvalStats
 	double production;
 	double loot;
 	double army;
+	unsigned coordinations;
 	unsigned prestige_level;
 	unsigned equipment_level;
 	unsigned geneticists;
@@ -296,6 +297,7 @@ void Perks::print_perks() const
 	cout << "Loot: " << DoubleIO(stats.loot) << endl;
 	cout << "Amalgamators: " << amalgamators << endl;
 	cout << "Army size: " << DoubleIO(stats.army) << endl;
+	cout << "Coordinations: " << stats.coordinations << endl;
 	cout << "Prestige level: " << stats.prestige_level << endl;
 	cout << "Equipment level: " << stats.equipment_level << endl;
 	cout << "Geneticists: " << stats.geneticists << endl;
@@ -334,7 +336,7 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 		max_coords += 100;
 
 	double coord_factor = 1+0.25*pow(0.98, get_perk("coordinated"));
-	double coords = 0;
+	stats.coordinations = 0;
 	stats.army = 1;
 	double amal_factor = pow(1e3, amalgamators);
 	unsigned reserve_factor = 3;
@@ -344,13 +346,14 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 		for(unsigned i=target_zone; i<600; i+=100)
 			reserve_factor *= 10;
 	}
-	while(coords<max_coords && stats.army*amal_factor*reserve_factor<stats.population)
+	while(stats.coordinations<max_coords && stats.army*amal_factor*reserve_factor<stats.population)
 	{
-		++coords;
+		++stats.coordinations;
 		stats.army = ceil(stats.army*coord_factor);
 	}
 	stats.army *= amal_factor;
 
+	double coords = stats.coordinations;
 	if(fractional && coords<max_coords)
 	{
 		coords += log(stats.population/reserve_factor/stats.army)/log(coord_factor);
