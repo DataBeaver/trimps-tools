@@ -116,6 +116,7 @@ const PerkInfo Perks::perk_info[] =
 	{ "coordinated", 150e3, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "resourceful", 50e3, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "overkill", 1e6, PerkInfo::MULTIPLICATIVE, 1.3, 30 },
+	{ "classy", 100e15, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "curious", 100e12, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "cunning", 100e9, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "capable", 100e6, PerkInfo::MULTIPLICATIVE, 10, 10 },
@@ -464,6 +465,7 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 	double fluffy_xp = 50;
 	fluffy_xp += 30*get_perk("curious");
 	fluffy_xp *= 1+0.25*get_perk("cunning");
+	fluffy_xp *= pow(1.015, 2*get_perk("classy"));
 
 	double score = 0;
 	score += log(stats.health)*health_weight;
