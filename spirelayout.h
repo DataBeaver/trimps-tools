@@ -28,6 +28,9 @@ struct TrapEffects
 	unsigned shock_dur;
 	unsigned damage_multi;
 	unsigned special_multi;
+	unsigned lightning_column_pml;
+	unsigned strength_pml;
+	unsigned condenser_pml;
 
 	TrapEffects(const TrapUpgrades &);
 };

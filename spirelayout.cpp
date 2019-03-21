@@ -117,7 +117,10 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades):
 	lightning_damage(50),
 	shock_dur(1),
 	damage_multi(2),
-	special_multi(2)
+	special_multi(2),
+	lightning_column_pml(100),
+	strength_pml(1000),
+	condenser_pml(250)
 {
 	if(upgrades.fire>=2)
 		fire_damage *= 10;
@@ -267,11 +270,11 @@ void Layout::build_steps(vector<Step> &steps) const
 		{
 			step.direct_damage = effects.fire_damage*damage_multi;
 			if(floor_flags[i/5]&0x08)
-				step.direct_damage *= 2;
+				step.direct_damage = step.direct_damage*(1000+effects.strength_pml)/1000;
 			if(chilled && upgrades.frost>=3)
 				step.direct_damage = step.direct_damage*5/4;
 			if(upgrades.lightning>=4)
-				step.direct_damage = step.direct_damage*(10+column_flags[i%5])/10;
+				step.direct_damage = step.direct_damage*(1000+effects.lightning_column_pml*column_flags[i%5])/1000;
 			if(upgrades.fire>=4)
 				step.kill_pml = 200;
 		}
@@ -288,7 +291,7 @@ void Layout::build_steps(vector<Step> &steps) const
 					step.toxicity *= 3;
 			}
 			if(upgrades.lightning>=4)
-				step.toxicity = step.toxicity*(10+column_flags[i%5])/10;
+				step.toxicity = step.toxicity*(1000+effects.lightning_column_pml*column_flags[i%5])/1000;
 		}
 		else if(t=='L')
 		{
@@ -302,7 +305,7 @@ void Layout::build_steps(vector<Step> &steps) const
 			uint16_t flags = floor_flags[i/5];
 			step.direct_damage = effects.fire_damage*(flags&0x07);
 			if(upgrades.lightning>=4)
-				step.direct_damage += effects.fire_damage*(flags>>4)/10;
+				step.direct_damage += effects.fire_damage*effects.lightning_column_pml*(flags>>4)/1000;
 			step.direct_damage *= 2*damage_multi;
 			if(chilled && upgrades.frost>=3)
 				step.direct_damage = step.direct_damage*5/4;
@@ -317,7 +320,7 @@ void Layout::build_steps(vector<Step> &steps) const
 			repeat = 1;
 		}
 		else if(t=='C')
-			step.toxic_pml = 250*special_multi;
+			step.toxic_pml = effects.condenser_pml*special_multi;
 
 		if(repeat>1 && upgrades.frost>=5)
 			step.rs_bonus = 2;
