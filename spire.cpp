@@ -257,7 +257,16 @@ void Spire::init_start_layout(const string &layout_in, const string &upgrades_in
 		throw usage_error("Invalid lightning trap upgrade level");
 
 	if(!core_in.empty())
-		start_layout.set_core(core_in);
+	{
+		try
+		{
+			start_layout.set_core(core_in);
+		}
+		catch(const invalid_argument &e)
+		{
+			throw usage_error(e.what());
+		}
+	}
 
 	if(!traps.empty())
 	{
