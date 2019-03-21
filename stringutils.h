@@ -42,6 +42,6 @@ inline std::string format(const std::string &fmt, const T &arg, Args... args)
 	return fmt.substr(0, marker)+stringify(arg)+format(fmt.substr(marker_end+1), args...);
 }
 
-std::vector<std::string> split(const std::string &);
+std::vector<std::string> split(const std::string &, char = ' ');
 
 #endif
