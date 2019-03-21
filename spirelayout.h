@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+#include "spirecore.h"
 #include "types.h"
 
 struct TrapUpgrades
@@ -32,7 +33,7 @@ struct TrapEffects
 	unsigned strength_pml;
 	unsigned condenser_pml;
 
-	TrapEffects(const TrapUpgrades &);
+	TrapEffects(const TrapUpgrades &, const Core &);
 };
 
 struct CellInfo
@@ -104,6 +105,7 @@ private:
 	};
 
 	TrapUpgrades upgrades;
+	Core core;
 	std::string data;
 	Number damage;
 	Number cost;
@@ -115,9 +117,11 @@ public:
 	Layout();
 
 	void set_upgrades(const TrapUpgrades &);
+	void set_core(const Core &);
 	void set_traps(const std::string &, unsigned = 0);
 	const TrapUpgrades &get_upgrades() const { return upgrades; }
 	const std::string &get_traps() const { return data; }
+	const Core &get_core() const { return core; }
 private:
 	void build_steps(std::vector<Step> &) const;
 	SimResult simulate(const std::vector<Step> &, Number, std::vector<SimDetail> * = 0) const;

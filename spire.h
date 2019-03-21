@@ -83,7 +83,7 @@ private:
 public:
 	Spire(int, char **);
 private:
-	void init_start_layout(const std::string &, const std::string &, unsigned);
+	void init_start_layout(const std::string &, const std::string &, unsigned, const std::string &);
 	void init_pools(unsigned);
 	void init_network(bool);
 public:

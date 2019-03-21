@@ -30,6 +30,12 @@ options.  Some of the more important are:
   Set upgrade levels of all trap types at once.  The argument should be four
   numbers, one for each trap type.
 
+-c, --core  
+  Set stats of the spire core in use.  Core description must start with a tier
+  name, followed by any number of mods separated by slashes.  Each mod is
+  described by the trap or tower name, optionally followed by a colon and the
+  value of the mod.  For example "epic/poison:40/lightning:30/condenser:12".
+
 -i, --income  
   Optimize for runestone income instead of damage.  This is much slower so it
   may be prudent to first find a decent damage-optimized build and use that

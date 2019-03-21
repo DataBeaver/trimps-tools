@@ -109,7 +109,7 @@ string TrapUpgrades::str() const
 }
 
 
-TrapEffects::TrapEffects(const TrapUpgrades &upgrades):
+TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	fire_damage(50),
 	frost_damage(10),
 	chill_dur(3),
@@ -122,6 +122,8 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades):
 	strength_pml(1000),
 	condenser_pml(250)
 {
+	unsigned core_scale = 100*Core::value_scale;
+
 	if(upgrades.fire>=2)
 		fire_damage *= 10;
 	if(upgrades.fire>=3)
@@ -136,6 +138,8 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades):
 		fire_damage *= 10;
 	if(upgrades.fire>=8)
 		fire_damage *= 100;
+
+	fire_damage = (Number(fire_damage)*(core_scale+core.fire)+core_scale/2)/core_scale;
 
 	if(upgrades.frost>=2)
 	{
@@ -165,6 +169,8 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades):
 	if(upgrades.poison>=7)
 		poison_damage *= 2;
 
+	poison_damage = (poison_damage*(core_scale+core.poison)+core_scale/2)/core_scale;
+
 	if(upgrades.lightning>=2)
 	{
 		lightning_damage *= 10;
@@ -185,6 +191,12 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades):
 		lightning_damage *= 10;
 		damage_multi *= 2;
 	}
+
+	lightning_damage = (lightning_damage*(core_scale+core.lightning)+core_scale/2)/core_scale;
+	lightning_column_pml = (lightning_column_pml*(core_scale+core.lightning)+core_scale/2)/core_scale;
+
+	strength_pml = (strength_pml*(core_scale+core.strength)+core_scale/2)/core_scale;
+	condenser_pml = (condenser_pml*(core_scale+core.condenser)+core_scale/2)/core_scale;
 }
 
 
@@ -210,6 +222,11 @@ Layout::Layout():
 void Layout::set_upgrades(const TrapUpgrades &u)
 {
 	upgrades = u;
+}
+
+void Layout::set_core(const Core &c)
+{
+	core = c;
 }
 
 void Layout::set_traps(const string &t, unsigned floors)
@@ -242,7 +259,7 @@ void Layout::build_steps(vector<Step> &steps) const
 			floor_flags[j] |= 0x08;
 	}
 
-	TrapEffects effects(upgrades);
+	TrapEffects effects(upgrades, core);
 
 	unsigned chilled = 0;
 	unsigned frozen = 0;

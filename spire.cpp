@@ -85,6 +85,7 @@ Spire::Spire(int argc, char **argv):
 	unsigned floors = 0;
 	unsigned floors_seen = 0;
 	string upgrades;
+	string core;
 	string layout_str;
 	string preset;
 	bool online = false;
@@ -97,6 +98,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('b', "budget", budget_in, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM");
 	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG).set_help("Number of floors in the spire", "NUM").bind_seen_count(floors_seen);
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
+	getopt.add_option('c', "core", core, GetOpt::REQUIRED_ARG).set_help("Set spire core description", "DESC");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
 	getopt.add_option('i', "income", income, GetOpt::NO_ARG).set_help("Optimize runestones per second");
 	getopt.add_option("towers", tower_type, GetOpt::OPTIONAL_ARG).set_help("Try to use as many towers as possible").bind_seen_count(towers_seen);
@@ -204,7 +206,7 @@ Spire::Spire(int argc, char **argv):
 	if(prune_interval)
 		next_prune = prune_interval;
 
-	init_start_layout(layout_str, upgrades, floors);
+	init_start_layout(layout_str, upgrades, floors, core);
 	init_pools(pool_size);
 
 	if(!budget)
@@ -214,7 +216,7 @@ Spire::Spire(int argc, char **argv):
 		init_network(false);
 }
 
-void Spire::init_start_layout(const string &layout_in, const string &upgrades_in, unsigned floors)
+void Spire::init_start_layout(const string &layout_in, const string &upgrades_in, unsigned floors, const string &core_in)
 {
 	string traps;
 	string upgrades = upgrades_in;
@@ -253,6 +255,9 @@ void Spire::init_start_layout(const string &layout_in, const string &upgrades_in
 		throw usage_error("Invalid poison trap upgrade level");
 	if(start_upgrades.lightning>6)
 		throw usage_error("Invalid lightning trap upgrade level");
+
+	if(!core_in.empty())
+		start_layout.set_core(core_in);
 
 	if(!traps.empty())
 	{
@@ -315,6 +320,7 @@ void Spire::init_pools(unsigned pool_size)
 
 		Layout empty;
 		empty.set_upgrades(pool_upgrades);
+		empty.set_core(start_layout.get_core());
 		empty.set_traps(string(), floors-reduce);
 		pools[i]->add_layout(empty);
 
@@ -473,6 +479,7 @@ bool Spire::query_network()
 	{
 		Layout layout;
 		layout.set_upgrades(best_layout.get_upgrades());
+		layout.set_core(best_layout.get_core());
 		layout.set_traps(parts[2], floors);
 		layout.update(report_update_mode);
 
