@@ -84,7 +84,7 @@ the genetic algorithm:
 -s, --pool-size  
   Sets the maximum size of each pool
 
--c, --cross-rate  
+-r, --cross-rate  
   Sets the probability of crossing two layouts instead of mutating a single
   layout.  Expressed as a number out of 1000.
 
