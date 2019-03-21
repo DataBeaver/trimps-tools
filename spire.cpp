@@ -43,6 +43,10 @@ int main(int argc, char **argv)
 			cout << help << endl;
 		return 1;
 	}
+	catch(const exception &e)
+	{
+		cout << "An error occurred: " << e.what() << endl;
+	}
 }
 
 Spire *Spire::instance;
