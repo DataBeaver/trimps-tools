@@ -6,7 +6,7 @@ PQXX_LDFLAGS = $(shell pkg-config --libs libpqxx)
 
 all: spire perks
 
-spire: console.o getopt.o network.o spire.o spirelayout.o spirepool.o stringutils.o types.o
+spire: console.o getopt.o network.o spire.o spirecore.o spirelayout.o spirepool.o stringutils.o types.o
 	$(CXX) $(LDFLAGS) $^ -o $@
 
 spiredb: getopt.o network.o spiredb.o spirelayout.o stringutils.o
@@ -23,6 +23,7 @@ getopt.o: getopt.h stringutils.h
 network.o: network.h
 perks.o: getopt.h stringutils.h types.h
 spire.o: console.h getopt.h network.h spire.h spirelayout.h spirepool.h stringutils.h types.h
+spirecore.o: spirecore.h stringutils.h
 spiredb.o: getopt.h network.h spiredb.h spirelayout.h stringutils.h types.h
 spiredb.o: EXTRA_CXXFLAGS = $(PQXX_CFLAGS)
 spirelayout.o: spirelayout.h types.h
