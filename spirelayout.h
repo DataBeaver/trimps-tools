@@ -84,9 +84,9 @@ private:
 		char trap;
 		std::uint8_t slow;
 		bool shock;
-		std::uint8_t kill_pct;
-		std::uint8_t toxic_pct;
 		std::uint8_t rs_bonus;
+		std::uint16_t kill_pml;
+		std::uint16_t toxic_pml;
 		Number direct_damage;
 		Number toxicity;
 

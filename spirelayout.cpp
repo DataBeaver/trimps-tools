@@ -273,7 +273,7 @@ void Layout::build_steps(vector<Step> &steps) const
 			if(upgrades.lightning>=4)
 				step.direct_damage = step.direct_damage*(10+column_flags[i%5])/10;
 			if(upgrades.fire>=4)
-				step.kill_pct = 20;
+				step.kill_pml = 200;
 		}
 		else if(t=='P')
 		{
@@ -317,7 +317,7 @@ void Layout::build_steps(vector<Step> &steps) const
 			repeat = 1;
 		}
 		else if(t=='C')
-			step.toxic_pct = 25*special_multi;
+			step.toxic_pml = 250*special_multi;
 
 		if(repeat>1 && upgrades.frost>=5)
 			step.rs_bonus = 2;
@@ -359,7 +359,7 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, vector<
 	for(const auto &s: steps)
 	{
 		result.damage += s.direct_damage;
-		kill_damage = max(kill_damage, result.damage*100/(100-s.kill_pct));
+		kill_damage = max(kill_damage, result.damage*1000/(1000-s.kill_pml));
 		if(upgrades.poison>=5 && hp && result.damage*4>=hp)
 		{
 			toxicity += s.toxicity*5;
@@ -368,7 +368,7 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, vector<
 		}
 		else
 			toxicity += s.toxicity;
-		toxicity = toxicity*(100+s.toxic_pct)/100;
+		toxicity = toxicity*(1000+s.toxic_pml)/1000;
 		result.damage += toxicity;
 		rs_pct += s.rs_bonus;
 		kill_damage = max(kill_damage, result.damage);
@@ -831,9 +831,9 @@ Layout::Step::Step():
 	trap(0),
 	slow(0),
 	shock(false),
-	kill_pct(0),
-	toxic_pct(0),
 	rs_bonus(0),
+	kill_pml(0),
+	toxic_pml(0),
 	direct_damage(0),
 	toxicity(0)
 { }
