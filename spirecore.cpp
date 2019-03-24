@@ -69,13 +69,69 @@ Core::Core(const string &desc):
 				throw invalid_argument("Core mod "+part+" out of range");
 		}
 
-		switch(mod)
-		{
-		case 0: fire = value; break;
-		case 1: poison = value; break;
-		case 2: lightning = value; break;
-		case 3: strength = value; break;
-		case 4: condenser = value; break;
-		}
+		set_mod(mod, value);
 	}
+}
+
+void Core::set_mod(unsigned mod, uint16_t value)
+{
+	switch(mod)
+	{
+	case 0: fire = value; break;
+	case 1: poison = value; break;
+	case 2: lightning = value; break;
+	case 3: strength = value; break;
+	case 4: condenser = value; break;
+	}
+}
+
+uint16_t Core::get_mod(unsigned mod) const
+{
+	switch(mod)
+	{
+	case 0: return fire;
+	case 1: return poison;
+	case 2: return lightning;
+	case 3: return strength;
+	case 4: return condenser;
+	default: return 0;
+	}
+}
+
+string Core::get_type() const
+{
+	string result;
+	result.reserve(4);
+	for(unsigned i=0; i<5; ++i)
+		if(get_mod(i))
+			result += toupper(mod_names[i][0]);
+	return result;
+}
+
+string Core::str(bool compact) const
+{
+	if(tier<0)
+		return string();
+
+	string result;
+
+	if(compact)
+		result = stringify(tier+1);
+	else
+		result = tiers[tier].name;
+
+	for(unsigned i=0; i<5; ++i)
+	{
+		unsigned value = get_mod(i);
+		if(!value)
+			continue;
+
+		float fvalue = static_cast<float>(value)/value_scale;
+		if(compact)
+			result += format("/%c:%d", static_cast<char>(toupper(mod_names[i][0])), fvalue);
+		else
+			result += format("/%s:%d", mod_names[i], fvalue);
+	}
+
+	return result;
 }

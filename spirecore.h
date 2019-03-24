@@ -32,6 +32,13 @@ struct Core
 
 	Core();
 	Core(const std::string &);
+
+	void set_mod(unsigned, std::uint16_t);
+	std::uint16_t get_mod(unsigned) const;
+
+	std::string get_type() const;
+
+	std::string str(bool = false) const;
 };
 
 #endif
