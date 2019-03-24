@@ -189,19 +189,37 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 	}
 
 	pqxx::work xact(*pq_conn);
-	pqxx::result result = xact.exec_prepared((income ? "select_best_income" : "select_best_damage"), floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, budget);
+	Layout best = query_layout(xact, floors, upgrades, budget, income);
+
+	if(!best.get_traps().empty())
+		return format("ok %s %s", best.get_upgrades().str(), best.get_traps());
+	else
+		return "notfound";
+}
+
+Layout SpireDB::query_layout(pqxx::transaction_base &xact, unsigned floors, const TrapUpgrades &upgrades, Number budget, bool income)
+{
+	pqxx::result result;
+
+	const char *query = (income ? "select_best_income" : "select_best_damage");
+	result = xact.exec_prepared(query, floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, budget);
+
+	Layout layout;
 	if(!result.empty())
 	{
 		pqxx::row row = result.front();
-		upgrades.fire = row[0].as<uint16_t>();
-		upgrades.frost = row[1].as<uint16_t>();
-		upgrades.poison = row[2].as<uint16_t>();
-		upgrades.lightning = row[3].as<uint16_t>();
-		string traps = row[4].c_str();
-		return format("ok %s %s", upgrades.str(), traps);
+
+		TrapUpgrades res_upg;
+		res_upg.fire = row[1].as<uint16_t>();
+		res_upg.frost = row[2].as<uint16_t>();
+		res_upg.poison = row[3].as<uint16_t>();
+		res_upg.lightning = row[4].as<uint16_t>();
+		layout.set_upgrades(res_upg);
+
+		layout.set_traps(row[5].c_str());
 	}
-	else
-		return "notfound";
+
+	return layout;
 }
 
 string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, const string &submitter)
@@ -216,48 +234,19 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, c
 		throw invalid_argument("SpireDB::submit");
 	layout.update(Layout::FULL);
 
-	unsigned floors = layout.get_traps().size()/5;
-	const TrapUpgrades &upgrades = layout.get_upgrades();
-	Number damage = layout.get_damage();
-	Number rs_per_sec = layout.get_runestones_per_second();
-	Number cost = layout.get_cost();
-
-	bool accepted = false;
-	bool duplicate_damage = false;
-	bool duplicate_income = false;
-
 	pqxx::work xact(*pq_conn);
-	pqxx::result result = xact.exec_prepared("select_best_damage", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, cost);
-	if(!result.empty())
-	{
-		pqxx::row row = result.front();
-		Number best_damage = row[5].as<Number>(0);
-		Number best_cost = row[6].as<Number>(0);
-		if(best_damage<damage || (best_damage==damage && best_cost>cost))
-			accepted = true;
-		else if(best_damage==damage && best_cost==cost)
-			duplicate_damage = true;
-	}
-	else
-		accepted = true;
+	int verdict = check_better_layout(xact, layout, false);
+	verdict = max(verdict, check_better_layout(xact, layout, true));
 
-	result = xact.exec_prepared("select_best_income", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, cost);
-	if(!result.empty())
+	if(verdict>0)
 	{
-		pqxx::row row = result.front();
-		Number best_income = row[5].as<Number>(0);
-		Number best_cost = row[6].as<Number>(0);
-		if(best_income<rs_per_sec || (best_income==rs_per_sec && best_cost>cost))
-			accepted = true;
-		else if(best_income==rs_per_sec && best_cost==cost)
-			duplicate_income = true;
-	}
-	else
-		accepted = true;
-
-	if(accepted)
-	{
+		unsigned floors = layout.get_traps().size()/5;
+		const TrapUpgrades &upgrades = layout.get_upgrades();
+		Number damage = layout.get_damage();
+		Number rs_per_sec = layout.get_runestones_per_second();
+		Number cost = layout.get_cost();
 		unsigned threat = layout.get_threat();
+
 		xact.exec_prepared("delete_worse", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, damage, rs_per_sec, cost);
 		xact.exec_prepared("insert_layout", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, layout.get_traps(), damage, threat, rs_per_sec, cost, submitter, current_version);
 		xact.commit();
@@ -266,10 +255,29 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, c
 
 		return "ok accepted";
 	}
-	else if(duplicate_damage && duplicate_income)
+	else if(!verdict)
 		return "ok duplicate";
 	else
 		return "ok obsolete";
+}
+
+int SpireDB::check_better_layout(pqxx::transaction_base &xact, const Layout &layout, bool income)
+{
+	unsigned floors = layout.get_traps().size()/5;
+	const TrapUpgrades &upgrades = layout.get_upgrades();
+	Number cost = layout.get_cost();
+
+	Layout best = query_layout(xact, floors, upgrades, cost, income);
+	best.update(income ? Layout::FULL : Layout::EXACT_DAMAGE);
+	int result = compare_layouts(layout, best, income);
+	if(result)
+		return result;
+	else if(layout.get_cost()>best.get_cost())
+		return 1;
+	else if(layout.get_cost()<best.get_cost())
+		return -1;
+	else
+		return 0;
 }
 
 void SpireDB::check_live_queries(Network::ConnectionTag tag, const Layout &layout)
@@ -286,4 +294,16 @@ void SpireDB::check_live_queries(Network::ConnectionTag tag, const Layout &layou
 			network.send_message(lq.first, push);
 		}
 	}
+}
+
+int SpireDB::compare_layouts(const Layout &layout1, const Layout &layout2, bool income)
+{
+	unsigned score1 = (income ? layout1.get_runestones_per_second() : layout1.get_damage());
+	unsigned score2 = (income ? layout2.get_runestones_per_second() : layout2.get_damage());
+	if(score1<score2)
+		return -1;
+	else if(score1>score2)
+		return 1;
+	else
+		return 0;
 }

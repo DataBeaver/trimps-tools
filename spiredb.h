@@ -4,10 +4,12 @@
 #include <string>
 #define PQXX_HIDE_EXP_OPTIONAL
 #include <pqxx/connection>
+#include <pqxx/transaction>
 #include "network.h"
 #include "types.h"
 
 class Layout;
+class TrapUpgrades;
 
 class SpireDB
 {
@@ -35,8 +37,11 @@ private:
 	void update_layouts();
 	void serve(Network::ConnectionTag, const std::string &);
 	std::string query(Network::ConnectionTag, const std::vector<std::string> &);
+	Layout query_layout(pqxx::transaction_base &, unsigned, const TrapUpgrades &, Number, bool);
 	std::string submit(Network::ConnectionTag, const std::vector<std::string> &, const std::string &);
+	int check_better_layout(pqxx::transaction_base &, const Layout &, bool);
 	void check_live_queries(Network::ConnectionTag, const Layout &);
+	static int compare_layouts(const Layout &, const Layout &, bool);
 };
 
 #endif
