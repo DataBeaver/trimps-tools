@@ -19,7 +19,7 @@ struct Core
 		ModValues mods[5];
 	};
 
-	unsigned tier;
+	std::int16_t tier;
 	std::uint16_t fire;
 	std::uint16_t poison;
 	std::uint16_t lightning;

@@ -20,7 +20,7 @@ const char *Core::mod_names[] = { "fire", "poison", "lightning", "strength", "co
 const unsigned Core::value_scale = 16;
 
 Core::Core():
-	tier(0),
+	tier(-1),
 	fire(0),
 	poison(0),
 	lightning(0),
