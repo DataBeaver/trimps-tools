@@ -43,14 +43,37 @@ SpireDB::SpireDB(int argc, char **argv):
 		dbopts.assign(buf, in.gcount());
 	}
 
+	string common_fields = "layouts.id, fire, frost, poison, lightning, traps, core_tier";
+	string adjusted_damage = "damage+COALESCE(($8-core_fire.value)*core_fire.damage_delta, 0)+COALESCE(($9-core_poison.value)*core_poison.damage_delta, 0)+"
+		"COALESCE(($10-core_lightning.value)*core_lightning.damage_delta, 0)+COALESCE(($11-core_strength.value)*core_strength.damage_delta, 0)+"
+		"COALESCE(($12-core_condenser.value)*core_condenser.damage_delta, 0) AS adjusted_damage";
+	string adjusted_rs = "rs_per_sec+COALESCE(($8-core_fire.value)*core_fire.rs_delta, 0)+COALESCE(($9-core_poison.value)*core_poison.rs_delta, 0)+"
+		"COALESCE(($10-core_lightning.value)*core_lightning.rs_delta, 0)+COALESCE(($11-core_strength.value)*core_strength.rs_delta, 0)+"
+		"COALESCE(($12-core_condenser.value)*core_condenser.rs_delta, 0) AS adjusted_rs";
+	string join_core_mods =
+		"LEFT JOIN core_mods AS core_fire ON core_fire.layout_id=layouts.id AND core_fire.mod=0 "
+		"LEFT JOIN core_mods AS core_poison ON core_poison.layout_id=layouts.id AND core_poison.mod=1 "
+		"LEFT JOIN core_mods AS core_lightning ON core_lightning.layout_id=layouts.id AND core_lightning.mod=2 "
+		"LEFT JOIN core_mods AS core_strength ON core_strength.layout_id=layouts.id AND core_strength.mod=3 "
+		"LEFT JOIN core_mods AS core_condenser ON core_condenser.layout_id=layouts.id AND core_condenser.mod=4";
+	string filter_base = "floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND cost<=$6";
+	string filter_core =
+		"core_type=$7 AND COALESCE(core_fire.value, 0)<=$8 AND COALESCE(core_poison.value, 0)<=$9 AND COALESCE(core_lightning.value, 0)<=$10 "
+		"AND COALESCE(core_strength.value, 0)<=$11 AND COALESCE(core_condenser.value, 0)<=$12";
+
 	pq_conn = new pqxx::connection(dbopts);
-	pq_conn->prepare("select_all", "SELECT id, fire, frost, poison, lightning, traps FROM layouts");
-	pq_conn->prepare("select_old", "SELECT id, fire, frost, poison, lightning, traps FROM layouts WHERE version<$1");
+	pq_conn->prepare("select_all", "SELECT "+common_fields+" FROM layouts");
+	pq_conn->prepare("select_old", "SELECT "+common_fields+" FROM layouts WHERE version<$1");
+	pq_conn->prepare("select_mods", "SELECT mod, value, damage_delta, rs_delta FROM core_mods WHERE layout_id=$1");
 	pq_conn->prepare("update_values", "UPDATE layouts SET damage=$2, threat=$3, rs_per_sec=$4, cost=$5, version=$6 WHERE id=$1");
-	pq_conn->prepare("insert_layout", "INSERT INTO layouts (floors, fire, frost, poison, lightning, traps, damage, threat, rs_per_sec, cost, submitter, version) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)");
-	pq_conn->prepare("select_best_damage", "SELECT fire, frost, poison, lightning, traps, damage, cost FROM layouts WHERE floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND cost<=$6 ORDER BY damage DESC LIMIT 1");
-	pq_conn->prepare("select_best_income", "SELECT fire, frost, poison, lightning, traps, rs_per_sec, cost FROM layouts WHERE floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND cost<=$6 ORDER BY rs_per_sec DESC LIMIT 1");
-	pq_conn->prepare("delete_worse", "DELETE FROM layouts WHERE floors>=$1 AND fire>=$2 AND frost>=$3 AND poison>=$4 AND lightning>=$5 AND damage<$6 AND rs_per_sec<$7 AND cost>=$8");
+	pq_conn->prepare("insert_layout", "INSERT INTO layouts (floors, fire, frost, poison, lightning, traps, core_tier, core_type, damage, threat, rs_per_sec, cost, submitter, version) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id");
+	pq_conn->prepare("insert_mod", "INSERT INTO core_mods (layout_id, mod, value, damage_delta, rs_delta) VALUES ($1, $2, $3, $4, $5)");
+	pq_conn->prepare("select_best_damage", "SELECT "+common_fields+", damage, cost FROM layouts WHERE "+filter_base+" AND core_type IS NULL ORDER BY damage DESC LIMIT 1");
+	pq_conn->prepare("select_best_damage_with_core", "SELECT "+common_fields+", "+adjusted_damage+" FROM layouts "+join_core_mods+" WHERE "+filter_base+" AND "+filter_core+" ORDER BY adjusted_damage DESC LIMIT 1");
+	pq_conn->prepare("select_best_income", "SELECT "+common_fields+", rs_per_sec, cost FROM layouts WHERE "+filter_base+" AND core_type IS NULL ORDER BY rs_per_sec DESC LIMIT 1");
+	pq_conn->prepare("select_best_income_with_core", "SELECT "+common_fields+", "+adjusted_rs+" FROM layouts "+join_core_mods+" WHERE "+filter_base+" AND "+filter_core+" ORDER BY adjusted_rs DESC LIMIT 1");
+	pq_conn->prepare("delete_worse", "DELETE FROM layouts WHERE floors>=$1 AND fire>=$2 AND frost>=$3 AND poison>=$4 AND lightning>=$5 AND damage<$6 AND rs_per_sec<$7 AND cost>=$8 AND core_type IS NULL");
+	pq_conn->prepare("delete_worse_with_core", "DELETE FROM layouts WHERE floors>=$1 AND fire>=$2 AND frost>=$3 AND poison>=$4 AND lightning>=$5 AND damage<$6 AND rs_per_sec<$7 AND cost>=$8 AND core_type=$9 AND NOT EXISTS (SELECT 1 FROM core_mods WHERE (mod=0 AND value<$10) OR (mod=1 AND value<$11) OR (mod=2 AND value<$12) OR (mod=3 AND value<$13) OR (mod=4 AND value<$14))");
 }
 
 SpireDB::~SpireDB()
@@ -163,6 +186,7 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 		throw invalid_argument("SpireDB::query");
 
 	TrapUpgrades upgrades(args[0]);
+	Core core;
 	unsigned floors = parse_value<unsigned>(args[1]);
 	Number budget = parse_value<Number>(args[2]);
 	bool income = false;
@@ -175,6 +199,8 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 			income = false;
 		else if(args[i]=="live")
 			live = true;
+		else if(!args[i].compare(0, 5, "core="))
+			core = args[i].substr(5);
 		else
 			throw invalid_argument("SpireDB::query");
 	}
@@ -189,25 +215,57 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 	}
 
 	pqxx::work xact(*pq_conn);
-	Layout best = query_layout(xact, floors, upgrades, budget, income);
+	Layout best = query_layout(xact, floors, upgrades, budget, 0, income);
+
+	if(core.tier>=0)
+	{
+		Layout best_with_core = query_layout(xact, floors, upgrades, budget, &core, income);
+		best.set_core(core);
+		best.update(income ? Layout::FULL : Layout::EXACT_DAMAGE);
+		Core orig_core = best_with_core.get_core();
+		best_with_core.set_core(core);
+		best_with_core.update(income ? Layout::FULL : Layout::EXACT_DAMAGE);
+		if(compare_layouts(best_with_core, best, income)>0)
+		{
+			best = best_with_core;
+			best.set_core(orig_core);
+		}
+		else
+			best.set_core(Core());
+	}
 
 	if(!best.get_traps().empty())
-		return format("ok %s %s", best.get_upgrades().str(), best.get_traps());
+	{
+		string result = format("ok %s %s", best.get_upgrades().str(), best.get_traps());
+		if(best.get_core().tier>=0)
+			result += format(" %s", best.get_core().str(true));
+		return result;
+	}
 	else
 		return "notfound";
 }
 
-Layout SpireDB::query_layout(pqxx::transaction_base &xact, unsigned floors, const TrapUpgrades &upgrades, Number budget, bool income)
+Layout SpireDB::query_layout(pqxx::transaction_base &xact, unsigned floors, const TrapUpgrades &upgrades, Number budget, const Core *core, bool income)
 {
 	pqxx::result result;
 
-	const char *query = (income ? "select_best_income" : "select_best_damage");
-	result = xact.exec_prepared(query, floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, budget);
+	if(core)
+	{
+		const char *query = (income ? "select_best_income_with_core" : "select_best_damage_with_core");
+		result = xact.exec_prepared(query, floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, budget,
+			core->get_type(), core->fire, core->poison, core->lightning, core->strength, core->condenser);
+	}
+	else
+	{
+		const char *query = (income ? "select_best_income" : "select_best_damage");
+		result = xact.exec_prepared(query, floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, budget);
+	}
 
 	Layout layout;
 	if(!result.empty())
 	{
 		pqxx::row row = result.front();
+		unsigned id = row[0].as<unsigned>();
 
 		TrapUpgrades res_upg;
 		res_upg.fire = row[1].as<uint16_t>();
@@ -217,19 +275,42 @@ Layout SpireDB::query_layout(pqxx::transaction_base &xact, unsigned floors, cons
 		layout.set_upgrades(res_upg);
 
 		layout.set_traps(row[5].c_str());
+
+		if(core)
+		{
+			Core res_core = query_core(xact, id);
+			res_core.tier = row[6].as<int16_t>();
+			layout.set_core(res_core);
+		}
 	}
 
 	return layout;
 }
 
+Core SpireDB::query_core(pqxx::transaction_base &xact, unsigned layout_id)
+{
+	Core core;
+	pqxx::result result = xact.exec_prepared("select_mods", layout_id);
+	for(const auto &row: result)
+		core.set_mod(row[0].as<unsigned>(), row[1].as<uint16_t>());
+	return core;
+}
+
 string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, const string &submitter)
 {
-	if(args.size()!=2)
+	if(args.size()<2)
 		throw invalid_argument("SpireDB::submit");
 
 	Layout layout;
 	layout.set_upgrades(args[0]);
 	layout.set_traps(args[1]);
+	for(unsigned i=2; i<args.size(); ++i)
+	{
+		if(!args[i].compare(0, 5, "core="))
+			layout.set_core(args[i].substr(5));
+		else
+			throw invalid_argument("SpireDB::submit");
+	}
 	if(!layout.is_valid())
 		throw invalid_argument("SpireDB::submit");
 	layout.update(Layout::FULL);
@@ -247,8 +328,30 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, c
 		Number cost = layout.get_cost();
 		unsigned threat = layout.get_threat();
 
-		xact.exec_prepared("delete_worse", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, damage, rs_per_sec, cost);
-		xact.exec_prepared("insert_layout", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, layout.get_traps(), damage, threat, rs_per_sec, cost, submitter, current_version);
+		const Core &core = layout.get_core();
+		if(core.tier>=0)
+			xact.exec_prepared("delete_worse_with_core", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, damage, rs_per_sec, cost, core.get_type(), core.fire, core.poison, core.lightning, core.strength, core.condenser);
+		else
+			xact.exec_prepared("delete_worse", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, damage, rs_per_sec, cost);
+
+		if(core.tier>=0)
+		{
+			pqxx::row row = xact.exec_prepared1("insert_layout", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, layout.get_traps(), core.tier, core.get_type(), damage, threat, rs_per_sec, cost, submitter, current_version);
+			unsigned layout_id = row[0].as<unsigned>();
+
+			for(unsigned i=0; i<5; ++i)
+			{
+				unsigned value = core.get_mod(i);
+				if(!value)
+					continue;
+
+				Number damage_delta, rs_delta;
+				calculate_core_mod_deltas(layout, i, damage_delta, rs_delta);
+				xact.exec_prepared("insert_mod", layout_id, i, value, damage_delta, rs_delta);
+			}
+		}
+		else
+			xact.exec_prepared("insert_layout", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, layout.get_traps(), -1, nullptr, damage, threat, rs_per_sec, cost, submitter, current_version);
 		xact.commit();
 
 		check_live_queries(tag, layout);
@@ -265,9 +368,10 @@ int SpireDB::check_better_layout(pqxx::transaction_base &xact, const Layout &lay
 {
 	unsigned floors = layout.get_traps().size()/5;
 	const TrapUpgrades &upgrades = layout.get_upgrades();
+	const Core &core = layout.get_core();
 	Number cost = layout.get_cost();
 
-	Layout best = query_layout(xact, floors, upgrades, cost, income);
+	Layout best = query_layout(xact, floors, upgrades, cost, (core.tier>=0 ? &core : 0), income);
 	best.update(income ? Layout::FULL : Layout::EXACT_DAMAGE);
 	int result = compare_layouts(layout, best, income);
 	if(result)
@@ -306,4 +410,21 @@ int SpireDB::compare_layouts(const Layout &layout1, const Layout &layout2, bool 
 		return 1;
 	else
 		return 0;
+}
+
+void SpireDB::calculate_core_mod_deltas(const Layout &layout, unsigned mod, Number &damage_delta, Number &rs_delta)
+{
+	const Core &core = layout.get_core();
+	unsigned base_value = core.get_mod(mod);
+
+	Core delta_core = core;
+	unsigned high_value = base_value+10*Core::value_scale;
+	delta_core.set_mod(mod, high_value);
+
+	Layout delta_layout = layout;
+	delta_layout.set_core(delta_core);
+	delta_layout.update(Layout::FULL);
+
+	damage_delta = (delta_layout.get_damage()-layout.get_damage())/(high_value-base_value);
+	rs_delta = (delta_layout.get_runestones_per_second()-layout.get_runestones_per_second())/(high_value-base_value);
 }

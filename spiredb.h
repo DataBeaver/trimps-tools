@@ -8,6 +8,7 @@
 #include "network.h"
 #include "types.h"
 
+class Core;
 class Layout;
 class TrapUpgrades;
 
@@ -37,11 +38,13 @@ private:
 	void update_layouts();
 	void serve(Network::ConnectionTag, const std::string &);
 	std::string query(Network::ConnectionTag, const std::vector<std::string> &);
-	Layout query_layout(pqxx::transaction_base &, unsigned, const TrapUpgrades &, Number, bool);
+	Layout query_layout(pqxx::transaction_base &, unsigned, const TrapUpgrades &, Number, const Core *, bool);
+	Core query_core(pqxx::transaction_base &, unsigned);
 	std::string submit(Network::ConnectionTag, const std::vector<std::string> &, const std::string &);
 	int check_better_layout(pqxx::transaction_base &, const Layout &, bool);
 	void check_live_queries(Network::ConnectionTag, const Layout &);
 	static int compare_layouts(const Layout &, const Layout &, bool);
+	static void calculate_core_mod_deltas(const Layout &, unsigned, Number &, Number &);
 };
 
 #endif

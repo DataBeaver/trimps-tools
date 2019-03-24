@@ -483,6 +483,8 @@ bool Spire::query_network()
 		query += " income";
 	if(live)
 		query += " live";
+	if(best_layout.get_core().tier>=0)
+		query += format(" core=%s", best_layout.get_core().str(true));
 	string reply = network->communicate(connection, query);
 	if(reply.empty())
 		return false;
@@ -554,7 +556,10 @@ void Spire::submit_best()
 	if(!network || !score_func(best_layout))
 		return;
 
-	network->send_message(connection, format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps()));
+	string submit = format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps());
+	if(best_layout.get_core().tier>=0)
+		submit += format(" core=%s", best_layout.get_core().str(true));
+	network->send_message(connection, submit);
 }
 
 void Spire::update_output(bool new_best_found)
