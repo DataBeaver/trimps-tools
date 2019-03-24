@@ -105,10 +105,8 @@ private:
 	PrintNum print_num(Number) const;
 	static Number damage_score(const Layout &);
 	static Number income_score(const Layout &);
-	template<Pool::ScoreFunc *, char>
+	template<Pool::ScoreFunc *, uint32_t>
 	static Number towers_score(const Layout &);
-	template<Pool::ScoreFunc *>
-	static Number all_towers_score(const Layout &);
 	template<Pool::ScoreFunc *>
 	static Pool::ScoreFunc *get_towers_score_func(char);
 	static void sighandler(int);

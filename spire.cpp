@@ -904,23 +904,13 @@ Number Spire::income_score(const Layout &layout)
 	return layout.get_runestones_per_second();
 }
 
-template<Pool::ScoreFunc *base_func, char tower>
+template<Pool::ScoreFunc *base_func, uint32_t towers_mask>
 Number Spire::towers_score(const Layout &layout)
 {
 	Number score = base_func(layout);
-	for(char c: layout.get_traps())
-		if(c==tower)
-			score = score*3/2;
-	return score;
-}
-
-template<Pool::ScoreFunc *base_func>
-Number Spire::all_towers_score(const Layout &layout)
-{
-	Number score = base_func(layout);
-	for(char c: layout.get_traps())
-		if(c=='S' || c=='C' || c=='K')
-			score = score*3/2;
+	for(const char c: layout.get_traps())
+		if(towers_mask&(1<<(c-'A')))
+			score = score*2;
 	return score;
 }
 
@@ -928,13 +918,13 @@ template<Pool::ScoreFunc *base_func>
 Pool::ScoreFunc *Spire::get_towers_score_func(char tower)
 {
 	if(tower=='S')
-		return &towers_score<base_func, 'S'>;
+		return &towers_score<base_func, 0x40000>;
 	else if(tower=='C')
-		return &towers_score<base_func, 'C'>;
+		return &towers_score<base_func, 0x00004>;
 	else if(tower=='K')
-		return &towers_score<base_func, 'K'>;
+		return &towers_score<base_func, 0x00400>;
 	else
-		return &all_towers_score<base_func>;
+		return &towers_score<base_func, 0x40404>;
 }
 
 void Spire::sighandler(int)
