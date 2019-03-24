@@ -43,7 +43,9 @@ options.  Some of the more important are:
 
 --towers  
   Try to use as many towers as possible.  This may produce layouts that have
-  inferior damage or income.
+  inferior damage or income.  An optional argument can be used to specify the
+  tower to maximize.  Prepending the tower name with a - will maximize other
+  towers instead.
 
 -n, --numeric-format  
   Output layouts in numeric format compatible with [swaq's TD calculator]
