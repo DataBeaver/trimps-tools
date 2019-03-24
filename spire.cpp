@@ -169,6 +169,13 @@ Spire::Spire(int argc, char **argv):
 	towers = towers_seen;
 	if(towers_seen)
 	{
+		bool exclude = false;
+		if(!tower_type.empty() && tower_type[0]=='-')
+		{
+			exclude = true;
+			tower_type.erase(0, 1);
+		}
+
 		char tower = 0;
 		if(tower_type=="S" || tower_type=="strength")
 			tower = 'S';
@@ -180,9 +187,9 @@ Spire::Spire(int argc, char **argv):
 			throw usage_error("Invalid tower type");
 
 		if(income)
-			score_func = get_towers_score_func<income_score>(tower);
+			score_func = get_towers_score_func<income_score>(tower, exclude);
 		else
-			score_func = get_towers_score_func<damage_score>(tower);
+			score_func = get_towers_score_func<damage_score>(tower, exclude);
 	}
 	else if(income)
 		score_func = income_score;
@@ -915,14 +922,29 @@ Number Spire::towers_score(const Layout &layout)
 }
 
 template<Pool::ScoreFunc *base_func>
-Pool::ScoreFunc *Spire::get_towers_score_func(char tower)
+Pool::ScoreFunc *Spire::get_towers_score_func(char tower, bool exclude)
 {
 	if(tower=='S')
-		return &towers_score<base_func, 0x40000>;
+	{
+		if(exclude)
+			return &towers_score<base_func, 0x00404>;
+		else
+			return &towers_score<base_func, 0x40000>;
+	}
 	else if(tower=='C')
-		return &towers_score<base_func, 0x00004>;
+	{
+		if(exclude)
+			return &towers_score<base_func, 0x40400>;
+		else
+			return &towers_score<base_func, 0x00004>;
+	}
 	else if(tower=='K')
-		return &towers_score<base_func, 0x00400>;
+	{
+		if(exclude)
+			return &towers_score<base_func, 0x40004>;
+		else
+			return &towers_score<base_func, 0x00400>;
+	}
 	else
 		return &towers_score<base_func, 0x40404>;
 }

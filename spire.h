@@ -108,7 +108,7 @@ private:
 	template<Pool::ScoreFunc *, uint32_t>
 	static Number towers_score(const Layout &);
 	template<Pool::ScoreFunc *>
-	static Pool::ScoreFunc *get_towers_score_func(char);
+	static Pool::ScoreFunc *get_towers_score_func(char, bool);
 	static void sighandler(int);
 
 	friend std::ostream &operator<<(std::ostream &, const PrintNum &);
