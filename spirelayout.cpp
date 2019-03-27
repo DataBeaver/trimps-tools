@@ -116,7 +116,7 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	poison_damage(5),
 	lightning_damage(50),
 	shock_dur(1),
-	damage_multi(2),
+	shock_damage_pml(2000),
 	special_multi(2),
 	lightning_column_pml(100),
 	strength_pml(1000),
@@ -179,7 +179,7 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	if(upgrades.lightning>=3)
 	{
 		lightning_damage *= 10;
-		damage_multi *= 2;
+		shock_damage_pml *= 2;
 	}
 	if(upgrades.lightning>=5)
 	{
@@ -189,10 +189,11 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	if(upgrades.lightning>=6)
 	{
 		lightning_damage *= 10;
-		damage_multi *= 2;
+		shock_damage_pml *= 2;
 	}
 
 	lightning_damage = (lightning_damage*(core_scale+core.lightning)+core_scale/2)/core_scale;
+	shock_damage_pml = (shock_damage_pml*(core_scale+core.lightning)+core_scale/2)/core_scale;
 	lightning_column_pml = (lightning_column_pml*(core_scale+core.lightning)+core_scale/2)/core_scale;
 
 	strength_pml = (strength_pml*(core_scale+core.strength)+core_scale/2)/core_scale;
@@ -264,7 +265,7 @@ void Layout::build_steps(vector<Step> &steps) const
 	unsigned chilled = 0;
 	unsigned frozen = 0;
 	unsigned shocked = 0;
-	unsigned damage_multi = 1;
+	unsigned damage_pml = 1000;
 	unsigned special_multi = 1;
 	unsigned repeat = 1;
 	for(unsigned i=0; i<cells; )
@@ -278,14 +279,14 @@ void Layout::build_steps(vector<Step> &steps) const
 
 		if(t=='Z')
 		{
-			step.direct_damage = effects.frost_damage*damage_multi;
+			step.direct_damage = effects.frost_damage*damage_pml/1000;
 			chilled = effects.chill_dur*special_multi+1;
 			frozen = 0;
 			repeat = 1;
 		}
 		else if(t=='F')
 		{
-			step.direct_damage = effects.fire_damage*damage_multi;
+			step.direct_damage = effects.fire_damage*damage_pml/1000;
 			if(floor_flags[i/5]&0x08)
 				step.direct_damage = step.direct_damage*(1000+effects.strength_pml)/1000;
 			if(chilled && upgrades.frost>=3)
@@ -297,7 +298,7 @@ void Layout::build_steps(vector<Step> &steps) const
 		}
 		else if(t=='P')
 		{
-			step.toxicity = effects.poison_damage*damage_multi;
+			step.toxicity = effects.poison_damage*damage_pml/1000;
 			if(upgrades.frost>=4 && i+1<cells && data[i+1]=='Z')
 				step.toxicity *= 4;
 			if(upgrades.poison>=3)
@@ -312,9 +313,9 @@ void Layout::build_steps(vector<Step> &steps) const
 		}
 		else if(t=='L')
 		{
-			step.direct_damage = effects.lightning_damage*damage_multi;
+			step.direct_damage = effects.lightning_damage*damage_pml/1000;
 			shocked = effects.shock_dur+1;
-			damage_multi = effects.damage_multi;
+			damage_pml = effects.shock_damage_pml;
 			special_multi = effects.special_multi;
 		}
 		else if(t=='S')
@@ -323,7 +324,7 @@ void Layout::build_steps(vector<Step> &steps) const
 			step.direct_damage = effects.fire_damage*(flags&0x07);
 			if(upgrades.lightning>=4)
 				step.direct_damage += effects.fire_damage*effects.lightning_column_pml*(flags>>4)/1000;
-			step.direct_damage *= 2*damage_multi;
+			step.direct_damage = step.direct_damage*2*damage_pml/1000;
 			if(chilled && upgrades.frost>=3)
 				step.direct_damage = step.direct_damage*5/4;
 		}
@@ -345,7 +346,7 @@ void Layout::build_steps(vector<Step> &steps) const
 
 		if(shocked && !--shocked)
 		{
-			damage_multi = 1;
+			damage_pml = 1000;
 			special_multi = 1;
 		}
 

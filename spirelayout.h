@@ -27,7 +27,7 @@ struct TrapEffects
 	unsigned poison_damage;
 	unsigned lightning_damage;
 	unsigned shock_dur;
-	unsigned damage_multi;
+	unsigned shock_damage_pml;
 	unsigned special_multi;
 	unsigned lightning_column_pml;
 	unsigned strength_pml;
