@@ -16,6 +16,7 @@ struct Core
 	struct TierInfo
 	{
 		const char *name;
+		std::uint8_t max_mods;
 		ModValues mods[5];
 	};
 
