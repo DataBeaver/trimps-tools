@@ -20,6 +20,7 @@ private:
 		std::string upgrades;
 		unsigned floors;
 		Number budget;
+		std::string core_type;
 	};
 
 	Network network;
