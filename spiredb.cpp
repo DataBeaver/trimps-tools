@@ -340,7 +340,7 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, c
 			pqxx::row row = xact.exec_prepared1("insert_layout", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, layout.get_traps(), core.tier, core.get_type(), damage, threat, rs_per_sec, cost, submitter, current_version);
 			unsigned layout_id = row[0].as<unsigned>();
 
-			for(unsigned i=0; i<5; ++i)
+			for(unsigned i=0; i<Core::N_MODS; ++i)
 			{
 				unsigned value = core.get_mod(i);
 				if(!value)

@@ -59,7 +59,7 @@ Core::Core(const string &desc):
 			if(!part.compare(0, colon, mod_names[mod]) || (colon==1 && tolower(part[0])==mod_names[mod][0]))
 				break;
 
-		if(mod>=5)
+		if(mod>=N_MODS)
 			throw invalid_argument("Invalid core mod "+part);
 
 		unsigned value = tiers[tier].mods[mod].soft_cap;
@@ -104,7 +104,7 @@ string Core::get_type() const
 {
 	string result;
 	result.reserve(4);
-	for(unsigned i=0; i<5; ++i)
+	for(unsigned i=0; i<N_MODS; ++i)
 		if(get_mod(i))
 			result += toupper(mod_names[i][0]);
 	return result;
@@ -122,7 +122,7 @@ string Core::str(bool compact) const
 	else
 		result = tiers[tier].name;
 
-	for(unsigned i=0; i<5; ++i)
+	for(unsigned i=0; i<N_MODS; ++i)
 	{
 		unsigned value = get_mod(i);
 		if(!value)

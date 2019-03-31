@@ -6,6 +6,11 @@
 
 struct Core
 {
+	enum
+	{
+		N_MODS = 5
+	};
+
 	struct ModValues
 	{
 		std::uint16_t step;
@@ -17,7 +22,7 @@ struct Core
 	{
 		const char *name;
 		std::uint8_t max_mods;
-		ModValues mods[5];
+		ModValues mods[N_MODS];
 	};
 
 	std::int16_t tier;
