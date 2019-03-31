@@ -8,7 +8,7 @@ struct Core
 {
 	enum
 	{
-		N_MODS = 5
+		N_MODS = 6
 	};
 
 	struct ModValues
@@ -31,6 +31,7 @@ struct Core
 	std::uint16_t lightning;
 	std::uint16_t strength;
 	std::uint16_t condenser;
+	std::uint16_t runestones;
 
 	static const TierInfo tiers[];
 	static const char *mod_names[];

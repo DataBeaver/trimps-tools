@@ -660,6 +660,9 @@ void Layout::update_runestones(const vector<SimResult> &results)
 	{
 		steps_taken = max<Number>(steps_taken/hp_range, capacity);
 		rs_per_sec = runestones.result()*capacity/steps_taken/3;
+
+		unsigned core_scale = 100*Core::value_scale;
+		rs_per_sec = (rs_per_sec*(core_scale+core.runestones)+core_scale/2)/core_scale;
 	}
 	else
 		rs_per_sec = 0;
