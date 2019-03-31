@@ -46,7 +46,7 @@ Core::Core(const string &desc):
 
 	if(tier>=7)
 		throw invalid_argument("Invalid core tier "+parts[0]);
-	if(parts.size()>tiers[tier].max_mods+1)
+	if(parts.size()>static_cast<unsigned>(tiers[tier].max_mods)+1)
 		throw invalid_argument("Too many mods for tier "+parts[0]);
 
 	for(unsigned i=1; i<parts.size(); ++i)
