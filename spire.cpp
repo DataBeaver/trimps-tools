@@ -169,6 +169,13 @@ Spire::Spire(int argc, char **argv):
 	towers = towers_seen;
 	if(towers_seen)
 	{
+		if(tower_type=="SC" || tower_type=="CS")
+			tower_type = "-K";
+		else if(tower_type=="SK" || tower_type=="KS")
+			tower_type = "-C";
+		else if(tower_type=="CK" || tower_type=="KC")
+			tower_type = "-S";
+
 		bool exclude = false;
 		if(!tower_type.empty() && tower_type[0]=='-')
 		{
