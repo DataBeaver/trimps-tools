@@ -22,11 +22,11 @@ console.o: console.h
 getopt.o: getopt.h stringutils.h
 network.o: network.h
 perks.o: getopt.h stringutils.h types.h
-spire.o: console.h getopt.h network.h spire.h spirelayout.h spirepool.h stringutils.h types.h
-spirecore.o: spirecore.h stringutils.h
-spiredb.o: getopt.h network.h spiredb.h spirelayout.h stringutils.h types.h
+spire.o: console.h getopt.h network.h spire.h spirecore.h spirelayout.h spirepool.h stringutils.h types.h
+spirecore.o: spirecore.h stringutils.h types.h
+spiredb.o: getopt.h network.h spirecore.h spiredb.h spirelayout.h stringutils.h types.h
 spiredb.o: EXTRA_CXXFLAGS = $(PQXX_CFLAGS)
-spirelayout.o: spirelayout.h types.h
+spirelayout.o: spirecore.h spirelayout.h types.h
 stringutils.o: stringutils.h
 types.o: types.h
 
