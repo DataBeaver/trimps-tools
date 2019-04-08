@@ -921,11 +921,11 @@ Number Spire::income_score(const Layout &layout)
 template<Pool::ScoreFunc *base_func, uint32_t towers_mask>
 Number Spire::towers_score(const Layout &layout)
 {
-	Number score = base_func(layout);
+	Number count = 0;
 	for(const char c: layout.get_traps())
 		if(towers_mask&(1<<(c-'A')))
-			score = score*2;
-	return score;
+			++count;
+	return (base_func(layout)>>8) + (count<<(sizeof(Number)*8-6));
 }
 
 template<Pool::ScoreFunc *base_func>
