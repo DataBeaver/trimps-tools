@@ -536,6 +536,7 @@ void Layout::update_cost()
 	Number strength_cost = 3000;
 	Number condenser_cost = 6000;
 	Number knowledge_cost = 9000;
+	Number max_cost = numeric_limits<Number>::max();
 	cost = 0;
 	for(char t: data)
 	{
@@ -563,22 +564,22 @@ void Layout::update_cost()
 		else if(t=='S')
 		{
 			cost += strength_cost;
-			strength_cost *= 100;
+			strength_cost = (strength_cost<max_cost/100 ? strength_cost*100 : max_cost);
 		}
 		else if(t=='C')
 		{
 			cost += condenser_cost;
-			condenser_cost *= 100;
+			condenser_cost = (condenser_cost<max_cost/100 ? condenser_cost*100 : max_cost);
 		}
 		else if(t=='K')
 		{
 			cost += knowledge_cost;
-			knowledge_cost *= 100;
+			knowledge_cost = (knowledge_cost<max_cost/100 ? knowledge_cost*100 : max_cost);
 		}
 
 		if(cost<prev_cost)
 		{
-			cost = numeric_limits<Number>::max();
+			cost = max_cost;
 			break;
 		}
 	}
