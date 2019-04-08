@@ -287,7 +287,7 @@ void Perks::print_perks() const
 		Number level = get_perk(perk.name);
 		double cost = get_perk_cost(perk, 0, level);
 		helium_spent += cost;
-		cout << left << setw(14) << perk.name << "  " << setw(8) << right << level << "  "
+		cout << left << setw(14) << perk.name << "  " << setw(11) << right << level << "  "
 			<< setw(6) << stringify(DoubleIO(cost)) << " He  " << setw(5) << setprecision(2) << fixed << cost*100/helium_budget << "%" << endl;
 	}
 
