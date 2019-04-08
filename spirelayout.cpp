@@ -139,7 +139,7 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	if(upgrades.fire>=8)
 		fire_damage *= 100;
 
-	fire_damage = (Number(fire_damage)*(core_scale+core.fire)+core_scale/2)/core_scale;
+	fire_damage = (fire_damage*(core_scale+core.fire)+core_scale/2)/core_scale;
 
 	if(upgrades.frost>=2)
 	{

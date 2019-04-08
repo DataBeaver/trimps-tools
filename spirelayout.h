@@ -21,11 +21,11 @@ struct TrapUpgrades
 
 struct TrapEffects
 {
-	unsigned fire_damage;
-	unsigned frost_damage;
+	Number fire_damage;
+	Number frost_damage;
 	unsigned chill_dur;
-	unsigned poison_damage;
-	unsigned lightning_damage;
+	Number poison_damage;
+	Number lightning_damage;
 	unsigned shock_dur;
 	unsigned shock_damage_pml;
 	unsigned special_multi;
