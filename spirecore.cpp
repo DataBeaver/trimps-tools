@@ -98,6 +98,7 @@ uint16_t Core::get_mod(unsigned mod) const
 	case 2: return lightning;
 	case 3: return strength;
 	case 4: return condenser;
+	case 5: return runestones;
 	default: return 0;
 	}
 }
