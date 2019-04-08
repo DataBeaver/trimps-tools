@@ -17,7 +17,7 @@ struct PerkInfo
 	double base_cost;
 	CostMode cost_mode;
 	double cost_growth;
-	unsigned max_level;
+	Number max_level;
 };
 
 struct Heirloom
@@ -46,7 +46,7 @@ struct EvalStats
 class Perks
 {
 private:
-	typedef std::map<std::string, unsigned> LevelMap;
+	typedef std::map<std::string, Number> LevelMap;
 
 	double base_pop;
 	unsigned target_zone;
@@ -76,8 +76,8 @@ public:
 private:
 	void optimize();
 	void print_perks() const;
-	unsigned get_perk(const std::string &) const;
-	double get_perk_cost(const PerkInfo &, unsigned, unsigned = 1) const;
+	Number get_perk(const std::string &) const;
+	double get_perk_cost(const PerkInfo &, Number, Number = 1) const;
 	double evaluate(EvalStats &, bool = false) const;
 	double evaluate(bool = false) const;
 };
@@ -191,9 +191,9 @@ int Perks::main()
 	for(unsigned i=0; i<10; ++i)
 	{
 		amalgamators = i;
-		unsigned carp = get_perk("carpentry")/2;
-		unsigned carp2 = get_perk("carpentry2")/2;
-		unsigned coord = get_perk("coordinated")/2;
+		Number carp = get_perk("carpentry")/2;
+		Number carp2 = get_perk("carpentry2")/2;
+		Number coord = get_perk("coordinated")/2;
 		perk_levels = base_levels;
 		perk_levels["carpentry"] = max(perk_levels["carpentry"], carp);
 		perk_levels["carpentry2"] = max(perk_levels["carpentry2"], carp2);
@@ -228,16 +228,16 @@ void Perks::optimize()
 	{
 		double free_helium = helium_budget-helium_spent;
 		const PerkInfo *best_perk = 0;
-		unsigned best_inc = 1;
+		Number best_inc = 1;
 		double best_eff = 0;
 		for(unsigned i=0; perk_info[i].name; ++i)
 		{
 			const PerkInfo &perk = perk_info[i];
-			unsigned &level = perk_levels[perk.name];
+			Number &level = perk_levels[perk.name];
 			if(perk.max_level && level>=perk.max_level)
 				continue;
 
-			unsigned inc = 1;
+			Number inc = 1;
 			if(perk.cost_mode==PerkInfo::ADDITIVE)
 			{
 				double a = perk.cost_growth/2;
@@ -266,7 +266,7 @@ void Perks::optimize()
 		if(!best_perk)
 			break;
 
-		unsigned &level = perk_levels[best_perk->name];
+		Number &level = perk_levels[best_perk->name];
 		double cost = get_perk_cost(*best_perk, level, best_inc);
 		helium_spent += cost;
 		level += best_inc;
@@ -284,7 +284,7 @@ void Perks::print_perks() const
 	for(unsigned i=0; perk_info[i].name; ++i)
 	{
 		const PerkInfo &perk = perk_info[i];
-		unsigned level = get_perk(perk.name);
+		Number level = get_perk(perk.name);
 		double cost = get_perk_cost(perk, 0, level);
 		helium_spent += cost;
 		cout << left << setw(14) << perk.name << "  " << setw(8) << right << level << "  "
@@ -305,20 +305,20 @@ void Perks::print_perks() const
 	cout << "Attack: " << DoubleIO(stats.attack) << endl;
 }
 
-unsigned Perks::get_perk(const string &name) const
+Number Perks::get_perk(const string &name) const
 {
 	auto i = perk_levels.find(name);
 	return (i!=perk_levels.end() ? i->second : 0);
 }
 
-double Perks::get_perk_cost(const PerkInfo &perk, unsigned level, unsigned count) const
+double Perks::get_perk_cost(const PerkInfo &perk, Number level, Number count) const
 {
 	if(perk.cost_mode==PerkInfo::ADDITIVE)
 		return (perk.base_cost+perk.cost_growth*level)*count + perk.cost_growth*count*(count-1)/2;
 	else
 	{
 		double cost = 0;
-		for(unsigned i=0; i<count; ++i)
+		for(Number i=0; i<count; ++i)
 			cost += ceil((level+i)/2.0 + perk.base_cost*pow(perk.cost_growth, level+i));
 		return cost;
 	}
@@ -438,10 +438,10 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 	stats.health *= 1+heirloom.health*0.01;
 	stats.health *= overheat;
 
-	unsigned crit = get_perk("relentlessness");
+	Number crit = get_perk("relentlessness");
 	// Should actually be based on HZE
 	unsigned bionic = (target_zone-110)/15;
-	unsigned fluffy_level = get_perk("capable");
+	Number fluffy_level = get_perk("capable");
 
 	stats.attack = 6;
 	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*(stats.prestige_level-1))*affordable_level;
