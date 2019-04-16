@@ -58,6 +58,7 @@ Spire::Spire(int argc, char **argv):
 	prune_limit(3),
 	cross_rate(500),
 	foreign_rate(500),
+	core_rate(1000),
 	heterogeneous(false),
 	n_workers(4),
 	loops_per_cycle(200),
@@ -75,6 +76,7 @@ Spire::Spire(int argc, char **argv):
 	connection(0),
 	intr_flag(false),
 	budget(0),
+	core_budget(0),
 	income(false),
 	towers(false),
 	score_func(damage_score)
@@ -95,6 +97,7 @@ Spire::Spire(int argc, char **argv):
 	bool online = false;
 	bool exact = false;
 	std::string budget_str;
+	std::string core_budget_str;
 	std::string tower_type;
 	unsigned towers_seen = 0;
 
@@ -103,6 +106,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG).set_help("Number of floors in the spire", "NUM").bind_seen_count(floors_seen);
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('c', "core", core, GetOpt::REQUIRED_ARG).set_help("Set spire core description", "DESC");
+	getopt.add_option('d', "core-budget", core_budget_str, GetOpt::REQUIRED_ARG).set_help("Maximum amount of spirestones to spend on core", "NUM");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
 	getopt.add_option('i', "income", income, GetOpt::NO_ARG).set_help("Optimize runestones per second");
 	getopt.add_option("towers", tower_type, GetOpt::OPTIONAL_ARG).set_help("Try to use as many towers as possible").bind_seen_count(towers_seen);
@@ -120,6 +124,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("heterogeneous", heterogeneous, GetOpt::NO_ARG).set_help("Use heterogeneous pool configurations");
 	getopt.add_option('r', "cross-rate", cross_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing two layouts (out of 1000)", "NUM");
 	getopt.add_option('o', "foreign-rate", foreign_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing from another pool (out of 1000)", "NUM").bind_seen_count(foreign_rate_seen);
+	getopt.add_option("core-rate", core_rate, GetOpt::REQUIRED_ARG).set_help("Probability of mutating the core (out of 1000)", "NUM");
 	getopt.add_option('g', "debug-layout", debug_layout, GetOpt::NO_ARG).set_help("Print detailed information about the layout");
 	getopt.add_option("show-pools", show_pools, GetOpt::NO_ARG).set_help("Show population pool contents while running");
 	getopt.add_option("raw-values", raw_values, GetOpt::NO_ARG).set_help("Display raw numeric values");
@@ -240,6 +245,23 @@ Spire::Spire(int argc, char **argv):
 	}
 	else if(!budget)
 		budget = 1000000;
+
+	if(!core_budget_str.empty())
+	{
+		try
+		{
+			core_budget = parse_value<NumberIO>(core_budget_str).value;
+		}
+		catch(const exception &e)
+		{
+			throw usage_error(format("Invalid argument for --core-budget (%s)", e.what()));
+		}
+		if(core_budget_str[0]=='+')
+			core_budget += start_layout.get_core().cost;
+	}
+
+	if(!core_budget)
+		core_rate = 0;
 
 	if(online || live)
 		init_network(false);
@@ -721,6 +743,8 @@ void Spire::report(const Layout &layout, const string &message)
 	cout << endl << "  ";
 	unsigned count = 1;
 	print(layout, count);
+	if((core_budget || fancy_output) && layout.get_core().tier>=0)
+		cout << "  Core: " << layout.get_core().str() << endl;
 
 	if(fancy_output)
 	{
@@ -1042,6 +1066,15 @@ void Spire::Worker::main()
 			mutated.mutate(static_cast<Layout::MutateMode>(random()%3), mut_count, random, cycle);
 			if(!mutated.is_valid())
 				continue;
+
+			if(spire.core_rate && random()%1000<spire.core_rate)
+			{
+				Core core = mutated.get_core();
+				core.mutate(1+random()%5, random);
+				core.update();
+				if(core.cost<=spire.core_budget)
+					mutated.set_core(core);
+			}
 
 			mutated.update(Layout::COST_ONLY);
 			if(mutated.get_cost()>spire.budget)

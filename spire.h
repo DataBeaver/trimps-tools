@@ -49,6 +49,7 @@ private:
 	unsigned prune_limit;
 	unsigned cross_rate;
 	unsigned foreign_rate;
+	unsigned core_rate;
 	bool heterogeneous;
 	unsigned n_workers;
 	std::list<Worker *> workers;
@@ -69,6 +70,7 @@ private:
 	bool intr_flag;
 
 	Number budget;
+	Number core_budget;
 	bool income;
 	bool towers;
 	Pool::ScoreFunc *score_func;

@@ -37,6 +37,11 @@ options.  Some of the more important are:
   described by the trap or tower name, optionally followed by a colon and the
   value of the mod.  For example "epic/poison:40/lightning:30/condenser:12".
 
+-d, --core-budget  
+  Set the cost limit of the core.  If this option is not specified then the
+  core will not be touched.  If the budget starts with a plus sign, the value
+  is added to the cost of the initial core.
+
 -i, --income  
   Optimize for runestone income instead of damage.  This is much slower so it
   may be prudent to first find a decent damage-optimized build and use that
@@ -100,6 +105,10 @@ the genetic algorithm:
 -o, --foreign-rate  
   Sets the probability of picking the second layout for a cross from a random
   pool instead of the same as the first.  Expressed as a number out of 1000.
+
+--core-rate  
+  Sets the probability of mutating the core.  Expressed as a number ouf of
+  1000.
 
 --heterogeneous  
   Use a heterogeneous pool configuration.  This can help if the properties of

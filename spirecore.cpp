@@ -170,3 +170,54 @@ string Core::str(bool compact) const
 
 	return result;
 }
+
+void Core::mutate(unsigned count, Random &random)
+{
+	unsigned n_mods = 0;
+	for(unsigned i=0; i<N_MODS; ++i)
+		if(get_mod(i))
+			++n_mods;
+
+	if(!n_mods)
+		return;
+
+	const TierInfo &tier_info = tiers[tier];
+	for(unsigned i=0; i<count; ++i)
+	{
+		unsigned op = random()%3;
+		unsigned mod = random()%n_mods;
+		while(!get_mod(mod))
+			++mod;
+		const ModValues &mod_vals = tier_info.mods[mod];
+
+		if(op==0)
+		{
+			uint16_t value = get_mod(mod)+mod_vals.step;
+			if(mod_vals.hard_cap)
+				value = min(value, mod_vals.hard_cap);
+			set_mod(mod, value);
+		}
+		else if(op==1)
+		{
+			uint16_t value = get_mod(mod)-mod_vals.step;
+			value = max(value, mod_vals.base);
+			set_mod(mod, value);
+		}
+		else if(op==2)
+		{
+			unsigned other = random()%(N_MODS-n_mods);
+			while(get_mod(other))
+				++other;
+
+			uint16_t value = get_mod(mod);
+			Number mod_cost = get_mod_cost(mod, value);
+			const ModValues &other_vals = tier_info.mods[other];
+			value = other_vals.base+mod_cost/tier_info.upgrade_cost*other_vals.step;
+			while(get_mod_cost(other, value)>mod_cost)
+				value -= other_vals.step;
+
+			set_mod(mod, 0);
+			set_mod(other, value);
+		}
+	}
+}

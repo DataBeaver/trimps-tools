@@ -53,6 +53,8 @@ struct Core
 	std::string get_type() const;
 
 	std::string str(bool = false) const;
+
+	void mutate(unsigned, Random &);
 };
 
 #endif
