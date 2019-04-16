@@ -12,6 +12,47 @@ const char suffixes4[][3] = { "", "d", "v", "tg", "qa", "qi" };
 
 }
 
+#if defined(WITH_128BIT) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+ostream &operator<<(ostream &os, unsigned __int128 value)
+{
+	char buf[40];
+	unsigned i = 39;
+	buf[i] = 0;
+	while(value)
+	{
+		buf[--i] = '0'+value%10;
+		value /= 10;
+	}
+
+	os << (buf+i);
+
+	return os;
+}
+
+istream &operator>>(istream &is, unsigned __int128 &value)
+{
+	string word;
+	is >> word;
+	unsigned __int128 v = 0;
+	for(auto c: word)
+	{
+		if(c<'0' || c>'9')
+		{
+			is.setstate(ios_base::failbit);
+			return is;
+		}
+		v = v*10+(c-'0');
+	}
+
+	value = v;
+
+	return is;
+}
+#pragma GCC diagnostic pop
+#endif
+
 template<typename T>
 ostream &operator<<(ostream &os, const NumericIO<T> &num)
 {
