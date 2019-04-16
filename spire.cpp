@@ -289,7 +289,9 @@ void Spire::init_start_layout(const string &layout_in, const string &upgrades_in
 	{
 		try
 		{
-			start_layout.set_core(core_in);
+			Core core = core_in;
+			core.update();
+			start_layout.set_core(core);
 		}
 		catch(const invalid_argument &e)
 		{

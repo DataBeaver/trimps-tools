@@ -5,13 +5,13 @@ using namespace std;
 
 const Core::TierInfo Core::tiers[] =
 {
-	{ "common", 1, {{ 16, 400, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 16, 160, 0 }, { 0, 0, 0 }, { 16, 400, 0 }} },
-	{ "uncommon", 2, {{ 16, 400, 0 }, { 16, 400, 0 }, { 0, 0, 0 }, { 16, 160, 0 }, { 4, 80, 160 }, { 16, 400, 0 }} },
-	{ "rare", 3, {{ 16, 400, 0 }, { 16, 400, 0 }, { 16, 160, 0 }, { 16, 160, 0 }, { 4, 80, 160 }, { 16, 400, 0 }} },
-	{ "epic", 3, {{ 16, 800, 0 }, { 16, 800, 0 }, { 16, 320, 0 }, { 16, 320, 0 }, { 4, 160, 240 }, { 16, 800, 0 }} },
-	{ "legendary", 3, {{ 32, 1600, 0 }, { 32, 1600, 0 }, { 32, 800, 0 }, { 32, 800, 0 }, { 8, 240, 400 }, { 32, 1600, 0 }} },
-	{ "magnificent", 4, {{ 48, 3184, 0 }, { 48, 3184, 0 }, { 32, 1600, 0 }, { 48, 1600, 0 }, { 8, 320, 560 }, {48, 3184, 0 }} },
-	{ "ethereal", 4, {{ 64, 6400, 0 }, { 64, 6400, 0 }, { 64, 3184, 0 }, { 64, 3184, 0 }, { 8, 480, 800 }, { 64, 6400, 0 }} },
+	{ "common", 20, 150, 1, {{ 16, 160, 400, 0 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 16, 16, 160, 0 }, { 0, 0, 0, 0 }, { 16, 160, 400, 0 }} },
+	{ "uncommon", 200, 150, 2, {{ 16, 160, 400, 0 }, { 16, 160, 400, 0 }, { 0, 0, 0, 0 }, { 16, 16, 160, 0 }, { 4, 16, 80, 160 }, { 16, 160, 400, 0 }} },
+	{ "rare", 2000, 125, 3, {{ 16, 160, 400, 0 }, { 16, 160, 400, 0 }, { 16, 16, 160, 0 }, { 16, 16, 160, 0 }, { 4, 16, 80, 160 }, { 16, 160, 400, 0 }} },
+	{ "epic", 20000, 119, 3, {{ 16, 400, 800, 0 }, { 16, 400, 800, 0 }, { 16, 160, 320, 0 }, { 16, 160, 320, 0 }, { 4, 80, 160, 240 }, { 16, 400, 800, 0 }} },
+	{ "legendary", 200000, 115, 3, {{ 32, 800, 1600, 0 }, { 32, 800, 1600, 0 }, { 32, 320, 800, 0 }, { 32, 320, 800, 0 }, { 8, 80, 240, 400 }, { 32, 800, 1600, 0 }} },
+	{ "magnificent", 2000000, 112, 4, {{ 48, 1600, 3184, 0 }, { 48, 1600, 3184, 0 }, { 32, 800, 1600, 0 }, { 48, 800, 1600, 0 }, { 8, 160, 320, 560 }, {48, 1600, 3184, 0 }} },
+	{ "ethereal", 20000000, 110, 4, {{ 64, 3200, 6400, 0 }, { 64, 3200, 6400, 0 }, { 64, 1600, 3184, 0 }, { 64, 1600, 3184, 0 }, { 8, 320, 480, 800 }, { 64, 3200, 6400, 0 }} },
 	{ 0, 0, 0, 0, {} }
 };
 
@@ -26,7 +26,8 @@ Core::Core():
 	lightning(0),
 	strength(0),
 	condenser(0),
-	runestones(0)
+	runestones(0),
+	cost(0)
 { }
 
 Core::Core(const string &desc):
@@ -101,6 +102,33 @@ uint16_t Core::get_mod(unsigned mod) const
 	case 5: return runestones;
 	default: return 0;
 	}
+}
+
+Number Core::get_mod_cost(unsigned mod, uint16_t value)
+{
+	const ModValues &mod_vals = tiers[tier].mods[mod];
+	if(value<=mod_vals.base)
+		return 0;
+
+	Number result = 0;
+	unsigned steps = (min<unsigned>(value, mod_vals.soft_cap)-mod_vals.base)/mod_vals.step;
+	Number step_cost = tiers[tier].upgrade_cost;
+	result += step_cost*steps;
+	unsigned increase = tiers[tier].cost_increase;
+	for(unsigned j=mod_vals.soft_cap; j<value; j+=mod_vals.step)
+	{
+		result += step_cost;
+		step_cost = step_cost*increase/100;
+	}
+
+	return result;
+}
+
+void Core::update()
+{
+	cost = 0;
+	for(unsigned i=0; i<N_MODS; ++i)
+		cost += get_mod_cost(i, get_mod(i));
 }
 
 string Core::get_type() const
