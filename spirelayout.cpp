@@ -708,7 +708,7 @@ void Layout::mutate(MutateMode mode, unsigned count, Random &random, unsigned cy
 		{
 			unsigned pos = base+random()%cells;
 			unsigned end = base+random()%(cells-1);
-			while(end==pos)
+			if(end==pos)
 				++end;
 
 			if(op==1)
@@ -730,7 +730,7 @@ void Layout::mutate(MutateMode mode, unsigned count, Random &random, unsigned cy
 			unsigned floors = cells/5;
 			unsigned pos = random()%floors;
 			unsigned end = random()%(floors-1);
-			while(end==pos)
+			if(end==pos)
 				++end;
 
 			pos = base+pos*5;
