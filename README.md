@@ -24,7 +24,8 @@ options.  Some of the more important are:
   Set the number of floors in the spire
 
 -b, --budget  
-  Set an upper limit of runestones to spend
+  Set an upper limit of runestones to spend.  If the budget starts with a plus
+  sign, the value is added to the cost of the starting layout.
 
 -u, --upgrades  
   Set upgrade levels of all trap types at once.  The argument should be four

@@ -94,12 +94,12 @@ Spire::Spire(int argc, char **argv):
 	string preset;
 	bool online = false;
 	bool exact = false;
-	NumberIO budget_in = budget;
+	std::string budget_str;
 	std::string tower_type;
 	unsigned towers_seen = 0;
 
 	GetOpt getopt;
-	getopt.add_option('b', "budget", budget_in, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM");
+	getopt.add_option('b', "budget", budget_str, GetOpt::REQUIRED_ARG).set_help("Maximum amount of runestones to spend", "NUM");
 	getopt.add_option('f', "floors", floors, GetOpt::REQUIRED_ARG).set_help("Number of floors in the spire", "NUM").bind_seen_count(floors_seen);
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('c', "core", core, GetOpt::REQUIRED_ARG).set_help("Set spire core description", "DESC");
@@ -125,8 +125,6 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("raw-values", raw_values, GetOpt::NO_ARG).set_help("Display raw numeric values");
 	getopt.add_argument("layout", layout_str, GetOpt::OPTIONAL_ARG).set_help("Layout to start with");
 	getopt(argc, argv);
-
-	budget = budget_in.value;
 
 	if(floors_seen && floors<1)
 		throw usage_error("Invalid number of floors");
@@ -227,7 +225,20 @@ Spire::Spire(int argc, char **argv):
 	init_start_layout(layout_str, upgrades, floors, core);
 	init_pools(pool_size);
 
-	if(!budget)
+	if(!budget_str.empty())
+	{
+		try
+		{
+			budget = parse_value<NumberIO>(budget_str).value;
+		}
+		catch(const exception &e)
+		{
+			throw usage_error(format("Invalid argument for --budget (%s)", e.what()));
+		}
+		if(budget_str[0]=='+')
+			budget += start_layout.get_cost();
+	}
+	else if(!budget)
 		budget = 1000000;
 
 	if(online || live)
@@ -304,12 +315,12 @@ void Spire::init_start_layout(const string &layout_in, const string &upgrades_in
 
 		start_layout.set_traps(clean_data, floors);
 		start_layout.update(report_update_mode);
-
-		if(!budget)
-			budget = start_layout.get_cost();
 	}
 	else
+	{
 		start_layout.set_traps(string(), (floors ? floors : 7));
+		start_layout.update(Layout::COST_ONLY);
+	}
 }
 
 void Spire::init_pools(unsigned pool_size)
