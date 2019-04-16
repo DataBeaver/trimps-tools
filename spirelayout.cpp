@@ -119,7 +119,7 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	shock_damage_pml(2000),
 	special_multi(2),
 	lightning_column_pml(100),
-	strength_pml(1000),
+	strength_pml(2000),
 	condenser_pml(250)
 {
 	unsigned core_scale = 100*Core::value_scale;
@@ -288,7 +288,7 @@ void Layout::build_steps(vector<Step> &steps) const
 		{
 			step.direct_damage = effects.fire_damage*damage_pml/1000;
 			if(floor_flags[i/5]&0x08)
-				step.direct_damage = step.direct_damage*(1000+effects.strength_pml)/1000;
+				step.direct_damage = step.direct_damage*effects.strength_pml/1000;
 			if(chilled && upgrades.frost>=3)
 				step.direct_damage = step.direct_damage*5/4;
 			if(upgrades.lightning>=4)
@@ -324,7 +324,7 @@ void Layout::build_steps(vector<Step> &steps) const
 			step.direct_damage = effects.fire_damage*(flags&0x07);
 			if(upgrades.lightning>=4)
 				step.direct_damage += effects.fire_damage*effects.lightning_column_pml*(flags>>4)/1000;
-			step.direct_damage = step.direct_damage*2*damage_pml/1000;
+			step.direct_damage = step.direct_damage*effects.strength_pml*damage_pml/1000000;
 			if(chilled && upgrades.frost>=3)
 				step.direct_damage = step.direct_damage*5/4;
 		}
