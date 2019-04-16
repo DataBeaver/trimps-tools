@@ -688,7 +688,11 @@ void Layout::mutate(MutateMode mode, unsigned count, Random &random, unsigned cy
 		base = (random()%locality)*5;
 	}
 
-	unsigned traps_count = (upgrades.lightning>0 ? 7 : 5);
+	unsigned traps_count = 7;
+	if(!upgrades.lightning)
+		traps_count -= 2;
+	if(!upgrades.poison)
+		traps_count -= 2;
 	for(unsigned i=0; i<count; ++i)
 	{
 		unsigned op = 0;  // REPLACE_ONLY
@@ -698,6 +702,8 @@ void Layout::mutate(MutateMode mode, unsigned count, Random &random, unsigned cy
 			op = random()%8;
 
 		unsigned t = 1+random()%traps_count;
+		if(!upgrades.poison && t>=3)
+			t += (t-1)/2;
 		if(!upgrades.lightning && t>=4)
 			++t;
 		char trap = traps[t];
