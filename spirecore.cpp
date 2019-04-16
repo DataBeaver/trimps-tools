@@ -69,8 +69,10 @@ Core::Core(const string &desc):
 		{
 			value = parse_value<float>(part.substr(colon+1))*value_scale;
 			unsigned hard_cap = tiers[tier].mods[mod].hard_cap;
+			if(value<tiers[tier].mods[mod].base)
+				throw invalid_argument("Core mod "+part+" is below base value");
 			if(hard_cap && value>hard_cap)
-				throw invalid_argument("Core mod "+part+" out of range");
+				throw invalid_argument("Core mod "+part+" exceeds hard cap");
 		}
 
 		set_mod(mod, value);
