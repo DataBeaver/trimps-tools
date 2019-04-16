@@ -936,7 +936,7 @@ Number Spire::towers_score(const Layout &layout)
 	for(const char c: layout.get_traps())
 		if(towers_mask&(1<<(c-'A')))
 			++count;
-	return (base_func(layout)>>8) + (count<<(sizeof(Number)*8-6));
+	return (base_func(layout)>>6) + (count<<(sizeof(Number)*8-6));
 }
 
 template<Pool::ScoreFunc *base_func>
