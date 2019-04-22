@@ -173,21 +173,28 @@ string Core::str(bool compact) const
 
 void Core::mutate(unsigned count, Random &random)
 {
+	const TierInfo &tier_info = tiers[tier];
+
 	unsigned n_mods = 0;
+	unsigned n_swap = 0;
 	for(unsigned i=0; i<N_MODS; ++i)
+	{
 		if(get_mod(i))
 			++n_mods;
+		else if(tier_info.mods[i].base)
+			++n_swap;
+	}
 
 	if(!n_mods)
 		return;
 
-	const TierInfo &tier_info = tiers[tier];
 	for(unsigned i=0; i<count; ++i)
 	{
 		unsigned op = random()%3;
 		unsigned mod = random()%n_mods;
-		while(!get_mod(mod))
-			++mod;
+		for(unsigned j=0; j<=mod; ++j)
+			if(!get_mod(j))
+				++mod;
 		const ModValues &mod_vals = tier_info.mods[mod];
 
 		if(op==0)
@@ -205,9 +212,10 @@ void Core::mutate(unsigned count, Random &random)
 		}
 		else if(op==2)
 		{
-			unsigned other = random()%(N_MODS-n_mods);
-			while(get_mod(other))
-				++other;
+			unsigned other = random()%n_swap;
+			for(unsigned j=0; j<=other; ++j)
+				if(get_mod(j) || !tier_info.mods[j].base)
+					++other;
 
 			uint16_t value = get_mod(mod);
 			Number mod_cost = get_mod_cost(mod, value);
