@@ -77,6 +77,7 @@ Spire::Spire(int argc, char **argv):
 	intr_flag(false),
 	budget(0),
 	core_budget(0),
+	core_mutate(Core::ALL_MUTATIONS),
 	income(false),
 	towers(false),
 	score_func(damage_score)
@@ -98,6 +99,7 @@ Spire::Spire(int argc, char **argv):
 	bool exact = false;
 	std::string budget_str;
 	std::string core_budget_str;
+	bool keep_core_mods = false;
 	std::string tower_type;
 	unsigned towers_seen = 0;
 
@@ -107,6 +109,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('u', "upgrades", upgrades, GetOpt::REQUIRED_ARG).set_help("Set all trap upgrade levels", "NNNN");
 	getopt.add_option('c', "core", core, GetOpt::REQUIRED_ARG).set_help("Set spire core description", "DESC");
 	getopt.add_option('d', "core-budget", core_budget_str, GetOpt::REQUIRED_ARG).set_help("Maximum amount of spirestones to spend on core", "NUM");
+	getopt.add_option('k', "keep-core-mods", keep_core_mods, GetOpt::NO_ARG).set_help("Do not swap core mods");
 	getopt.add_option('n', "numeric-format", numeric_format, GetOpt::NO_ARG).set_help("Output layouts in numeric format");
 	getopt.add_option('i', "income", income, GetOpt::NO_ARG).set_help("Optimize runestones per second");
 	getopt.add_option("towers", tower_type, GetOpt::OPTIONAL_ARG).set_help("Try to use as many towers as possible").bind_seen_count(towers_seen);
@@ -214,6 +217,9 @@ Spire::Spire(int argc, char **argv):
 		update_mode = Layout::EXACT_DAMAGE;
 		report_update_mode = Layout::FULL;
 	}
+
+	if(keep_core_mods)
+		core_mutate = Core::VALUES_ONLY;
 
 	if(!n_pools_seen && heterogeneous)
 		n_pools = 21;
@@ -1070,7 +1076,7 @@ void Spire::Worker::main()
 			if(spire.core_rate && random()%1000<spire.core_rate)
 			{
 				Core core = mutated.get_core();
-				core.mutate(1+random()%5, random);
+				core.mutate(spire.core_mutate, 1+random()%5, random);
 				core.update();
 				if(core.cost<=spire.core_budget)
 					mutated.set_core(core);

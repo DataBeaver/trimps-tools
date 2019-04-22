@@ -29,6 +29,12 @@ struct Core
 		ModValues mods[N_MODS];
 	};
 
+	enum MutateMode
+	{
+		VALUES_ONLY,
+		ALL_MUTATIONS
+	};
+
 	std::int16_t tier;
 	std::uint16_t fire;
 	std::uint16_t poison;
@@ -54,7 +60,7 @@ struct Core
 
 	std::string str(bool = false) const;
 
-	void mutate(unsigned, Random &);
+	void mutate(MutateMode, unsigned, Random &);
 };
 
 #endif

@@ -171,7 +171,7 @@ string Core::str(bool compact) const
 	return result;
 }
 
-void Core::mutate(unsigned count, Random &random)
+void Core::mutate(MutateMode mode, unsigned count, Random &random)
 {
 	const TierInfo &tier_info = tiers[tier];
 
@@ -188,9 +188,10 @@ void Core::mutate(unsigned count, Random &random)
 	if(!n_mods)
 		return;
 
+	unsigned op_range = (mode==VALUES_ONLY ? 2 : 3);
 	for(unsigned i=0; i<count; ++i)
 	{
-		unsigned op = random()%3;
+		unsigned op = random()%op_range;
 		unsigned mod = random()%n_mods;
 		for(unsigned j=0; j<=mod; ++j)
 			if(!get_mod(j))

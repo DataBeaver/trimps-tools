@@ -42,6 +42,9 @@ options.  Some of the more important are:
   core will not be touched.  If the budget starts with a plus sign, the value
   is added to the cost of the initial core.
 
+-k, --keep-core-mods  
+  Prevent swapping of core mods.  Only change the values of existing mods.
+
 -i, --income  
   Optimize for runestone income instead of damage.  This is much slower so it
   may be prudent to first find a decent damage-optimized build and use that
