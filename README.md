@@ -1,5 +1,5 @@
-Tools to assist in decision-making for the browser game [Trimps]
-(https://trimps.github.io/).
+Tools to assist in decision-making for the browser game
+[Trimps](https://trimps.github.io/).
 
 Copyright © 2018-2019  Mikkosoft Productions
 Licensed under GPLv3.
@@ -57,8 +57,8 @@ options.  Some of the more important are:
   towers instead.
 
 -n, --numeric-format  
-  Output layouts in numeric format compatible with [swaq's TD calculator]
-  (http://swaqvalley.com/td_calc/)
+  Output layouts in numeric format compatible with
+  [swaq's TD calculator](http://swaqvalley.com/td_calc/)
 
 --fancy  
   Produces fancy pseudographical output.  For best result use a 256-color
