@@ -72,6 +72,7 @@ private:
 	Number budget;
 	Number core_budget;
 	Core::MutateMode core_mutate;
+	bool no_core_downgrade;
 	bool income;
 	bool towers;
 	Pool::ScoreFunc *score_func;

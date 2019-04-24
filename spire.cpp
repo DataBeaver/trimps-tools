@@ -78,6 +78,7 @@ Spire::Spire(int argc, char **argv):
 	budget(0),
 	core_budget(0),
 	core_mutate(Core::ALL_MUTATIONS),
+	no_core_downgrade(false),
 	income(false),
 	towers(false),
 	score_func(damage_score)
@@ -99,7 +100,7 @@ Spire::Spire(int argc, char **argv):
 	bool exact = false;
 	std::string budget_str;
 	std::string core_budget_str;
-	bool keep_core_mods = false;
+	unsigned keep_core_mods = 0;
 	std::string tower_type;
 	unsigned towers_seen = 0;
 
@@ -219,7 +220,10 @@ Spire::Spire(int argc, char **argv):
 	}
 
 	if(keep_core_mods)
+	{
 		core_mutate = Core::VALUES_ONLY;
+		no_core_downgrade = (keep_core_mods>=2);
+	}
 
 	if(!n_pools_seen && heterogeneous)
 		n_pools = 21;
@@ -1078,7 +1082,16 @@ void Spire::Worker::main()
 				Core core = mutated.get_core();
 				core.mutate(spire.core_mutate, 1+random()%5, random);
 				core.update();
-				if(core.cost<=spire.core_budget)
+
+				bool ok = (core.cost<=spire.core_budget);
+
+				if(ok && spire.no_core_downgrade)
+				{
+					for(unsigned j=0; (ok && j<Core::N_MODS); ++j)
+						ok = (core.get_mod(j)>=mutated.get_core().get_mod(j));
+				}
+
+				if(ok)
 					mutated.set_core(core);
 			}
 

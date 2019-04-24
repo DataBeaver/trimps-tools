@@ -44,6 +44,8 @@ options.  Some of the more important are:
 
 -k, --keep-core-mods  
   Prevent swapping of core mods.  Only change the values of existing mods.
+  Specifying this option twice prevents downgrading mods from the original
+  values.
 
 -i, --income  
   Optimize for runestone income instead of damage.  This is much slower so it
