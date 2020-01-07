@@ -1,6 +1,12 @@
 #ifndef CONSOLE_H_
 #define CONSOLE_H_
 
+#include <string>
+#include <iostream>
+#include <sstream>
+
+typedef std::ostream& (*STRFUNC)(std::ostream&);
+
 class Console
 {
 private:
@@ -10,6 +16,7 @@ private:
 	unsigned width;
 	unsigned height;
 	unsigned top;
+	unsigned written;
 
 public:
 	Console();
@@ -22,6 +29,19 @@ public:
 	void clear_current_line();
 	void set_text_color(unsigned, unsigned = 0);
 	void restore_default_text_color();
+
+	template <typename Tdata>
+	Console& operator<<(const Tdata& data)
+	{
+		std::stringstream temp;
+		temp << data;
+		return stream_manip(temp);
+	}
+	Console& operator<< (STRFUNC func);
+
+private:
+	Console& stream_manip(const std::stringstream&);
+	void handle_newlines(const std::string&);
 };
 
 #endif
