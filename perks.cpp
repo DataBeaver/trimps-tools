@@ -206,7 +206,7 @@ int Perks::main()
 			best_gators = i;
 			best_levels = perk_levels;
 		}
-		else
+		else if(score<best_score*0.99)
 			break;
 	}
 
