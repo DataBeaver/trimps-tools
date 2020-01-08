@@ -2,6 +2,8 @@
 #include <signal.h>
 #include <chrono>
 #include <functional>
+#include <algorithm>
+#include <regex>
 #include <iomanip>
 #include <iostream>
 #include "console.h"
@@ -283,26 +285,90 @@ Spire::Spire(int argc, char **argv):
 		init_network(false);
 }
 
+string alpha_from_numeric(const string& numeric)
+{
+	string alpha;
+	alpha.resize(numeric.length());
+
+	std::transform(numeric.begin(), numeric.end(), alpha.begin(), [](char c) {
+		if (c < '0' || '7' < c)
+			throw usage_error("Trap ID in numer format string must be between '0' and '7'.");
+		return Layout::traps[c - '0'];
+	});
+
+	return alpha;
+}
+
+ParsedLayoutValues parse_numeric_layout(const string& layout)
+{
+	auto firstPlus = layout.find('+');
+	auto secondPlus = firstPlus + 5;
+
+	ParsedLayoutValues parsed;
+
+	parsed.traps = alpha_from_numeric(layout.substr(0, firstPlus-1));
+	parsed.upgrades = layout.substr(firstPlus+1, 4);
+	parsed.floors = stoi(layout.substr(secondPlus + 1));
+
+	return parsed;
+}
+
+string remove_spaces(const string& input)
+{
+	string result = string(input);
+	result.erase(remove_if(result.begin(), result.end(), [](char c) {return isspace(c); }), result.end());
+	return result;
+}
+
+ParsedLayoutValues parse_alpha_layout(const string &layout_in)
+{
+	ParsedLayoutValues parsed;
+
+	parsed.upgrades = layout_in.substr(0,4);
+	parsed.traps = remove_spaces(layout_in.substr(5));
+	parsed.floors = parsed.traps.length()/5;
+
+	return parsed;
+}
+
 ParsedLayoutValues Spire::parse_layout(const string &layout_in, const string &upgrades_in, const string& core_in, unsigned floors)
 {
 	ParsedLayoutValues parsed;
 
-	string traps;
-	string upgrades = upgrades_in;
+	// Is it a numeric (i.e. swaq TD) format string? That format is:
 
-	string::size_type plus = layout_in.find('+');
-	traps = layout_in.substr(0, plus);
-	if(plus!=string::npos && upgrades.empty())
+	// swaq ::=			[traps] '+' [upgrades] '+' [floors]
+	// traps ::=		r'(\d{5})+'
+	// upgrades ::=		r'\d{4}'
+	// floors ::=		r'\d'
+	if (regex_match(layout_in, regex("(\\d{5})+\\+\\d{4}\\+\\d{1,2}")))
 	{
-		upgrades = layout_in.substr(plus+1);
-		plus = upgrades.find('+');
-		if(plus!=string::npos)
-			upgrades.erase(plus);
+		parsed = parse_numeric_layout(layout_in);
 	}
 
-	parsed.upgrades = upgrades;
-	parsed.traps = traps;
-	parsed.floors = floors;
+	// Is it our alphabetic format string? That format (allowing for removal of spaces) is:
+	//
+	// tower ::=            [upgrades] ' ' [traps] | [upgrades] [traps]
+	// upgrades ::=         r'\d{4}'
+	// traps ::=            [trap_row] | [trap_row] ' ' [trap_row] | [trap_row] [trap_row]
+	// trap_row :=          r'[FZPLSCK_]{5}'
+	else if (regex_match(layout_in, regex("\\d{4} ?([FZPLSCK_]{5} ?)*[FZPLSCK_]{5}+")))
+	{
+	        parsed = parse_alpha_layout(layout_in);
+	}
+	else
+	{
+		throw usage_error("This isn't a format string I know how to parse");
+	}
+
+	if (!upgrades_in.empty())
+		parsed.upgrades = upgrades_in;
+
+	if (!core_in.empty())
+		parsed.core = core_in;
+
+	if (floors != 0)
+		parsed.floors = floors;
 
 	return parsed;
 }
