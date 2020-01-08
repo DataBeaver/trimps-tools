@@ -1091,8 +1091,9 @@ void Spire::Worker::main()
 
 				if(ok && spire.no_core_downgrade)
 				{
+					const Core &start_core = spire.start_layout.get_core();
 					for(unsigned j=0; (ok && j<Core::N_MODS); ++j)
-						ok = (core.get_mod(j)>=mutated.get_core().get_mod(j));
+						ok = (core.get_mod(j)>=start_core.get_mod(j));
 				}
 
 				if(ok)
