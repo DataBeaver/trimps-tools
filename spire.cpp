@@ -1077,6 +1077,10 @@ void Spire::Worker::main()
 			if(!mutated.is_valid())
 				continue;
 
+			mutated.update(Layout::COST_ONLY);
+			if(mutated.get_cost()>spire.budget)
+				continue;
+
 			if(spire.core_rate && random()%1000<spire.core_rate)
 			{
 				Core core = mutated.get_core();
@@ -1094,10 +1098,6 @@ void Spire::Worker::main()
 				if(ok)
 					mutated.set_core(core);
 			}
-
-			mutated.update(Layout::COST_ONLY);
-			if(mutated.get_cost()>spire.budget)
-				continue;
 
 			mutated.update(spire.update_mode);
 			pool.add_layout(mutated);
