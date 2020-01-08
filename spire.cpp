@@ -19,6 +19,12 @@ struct FancyCell
 using namespace std;
 using namespace std::placeholders;
 
+ostream& operator<<(ostream& os, const ParsedLayoutValues& p)
+{
+	 os << "upgrades: [" << p.upgrades << "] floors: [" << p.floors << "] traps: [" << p.traps << "]";
+	 return os;
+}
+
 #if defined(_WIN32) && !defined(_POSIX_THREAD_SAFE_FUNCTIONS)
 struct tm *localtime_r(const time_t *timep, struct tm *result)
 {
@@ -237,7 +243,7 @@ Spire::Spire(int argc, char **argv):
 	if(prune_interval)
 		next_prune = prune_interval;
 
-	init_start_layout(layout_str, upgrades, floors, core);
+	init_start_layout(parse_layout(layout_str, upgrades, core, floors));
 	init_pools(pool_size);
 
 	if(!budget_str.empty())
@@ -277,29 +283,37 @@ Spire::Spire(int argc, char **argv):
 		init_network(false);
 }
 
-void Spire::init_start_layout(const string &layout_in, const string &upgrades_in, unsigned floors, const string &core_in)
+ParsedLayoutValues Spire::parse_layout(const string &layout_in, const string &upgrades_in, const string& core_in, unsigned floors)
 {
+	ParsedLayoutValues parsed;
+
 	string traps;
 	string upgrades = upgrades_in;
 
-	if(!layout_in.empty())
+	string::size_type plus = layout_in.find('+');
+	traps = layout_in.substr(0, plus);
+	if(plus!=string::npos && upgrades.empty())
 	{
-		string::size_type plus = layout_in.find('+');
-		traps = layout_in.substr(0, plus);
-		if(plus!=string::npos && upgrades.empty())
-		{
-			upgrades = layout_in.substr(plus+1);
-			plus = upgrades.find('+');
-			if(plus!=string::npos)
-				upgrades.erase(plus);
-		}
+		upgrades = layout_in.substr(plus+1);
+		plus = upgrades.find('+');
+		if(plus!=string::npos)
+			upgrades.erase(plus);
 	}
 
-	if(!upgrades.empty())
+	parsed.upgrades = upgrades;
+	parsed.traps = traps;
+	parsed.floors = floors;
+
+	return parsed;
+}
+
+void Spire::init_start_layout(const ParsedLayoutValues &layout)
+{
+	if(!layout.upgrades.empty())
 	{
 		try
 		{
-			start_layout.set_upgrades(upgrades);
+			start_layout.set_upgrades(layout.upgrades);
 		}
 		catch(const exception &)
 		{
@@ -317,11 +331,11 @@ void Spire::init_start_layout(const string &layout_in, const string &upgrades_in
 	if(start_upgrades.lightning>6)
 		throw usage_error("Invalid lightning trap upgrade level");
 
-	if(!core_in.empty())
+	if(!layout.core.empty())
 	{
 		try
 		{
-			Core core = core_in;
+			Core core = layout.core;
 			core.update();
 			start_layout.set_core(core);
 		}
@@ -331,11 +345,11 @@ void Spire::init_start_layout(const string &layout_in, const string &upgrades_in
 		}
 	}
 
-	if(!traps.empty())
+	if(!layout.traps.empty())
 	{
 		string clean_data;
-		clean_data.reserve(traps.size());
-		for(char c: traps)
+		clean_data.reserve(layout.traps.size());
+		for(char c: layout.traps)
 		{
 			if(c>='0' && c<='7')
 				clean_data += Layout::traps[c-'0'];
@@ -347,12 +361,12 @@ void Spire::init_start_layout(const string &layout_in, const string &upgrades_in
 			}
 		}
 
-		start_layout.set_traps(clean_data, floors);
+		start_layout.set_traps(clean_data, layout.floors);
 		start_layout.update(report_update_mode);
 	}
 	else
 	{
-		start_layout.set_traps(string(), (floors ? floors : 7));
+		start_layout.set_traps(string(), (layout.floors ? layout.floors : 7));
 		start_layout.update(Layout::COST_ONLY);
 	}
 }
