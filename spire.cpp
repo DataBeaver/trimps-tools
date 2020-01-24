@@ -421,19 +421,19 @@ void Spire::init_network(bool reconnect)
 			if(fancy_output)
 			{
 				console.set_cursor_position(58, 15);
-				cout << "Online      ";
+				console << "Online      ";
 			}
 			else
-				cout << "Reconnected to online build database" << endl;
+				console << "Reconnected to online build database" << endl;
 		}
 	}
 	catch(const exception &e)
 	{
 		if(!fancy_output && !reconnect)
 		{
-			cout << "Can't connect to online build database:" << endl;
-			cout << e.what() << endl;
-			cout << "Connection will be reattempted automatically" << endl;
+			console << "Can't connect to online build database:" << endl;
+			console << e.what() << endl;
+			console << "Connection will be reattempted automatically" << endl;
 		}
 		reconnect_timeout = chrono::steady_clock::now()+chrono::seconds(30);
 	}
@@ -450,8 +450,8 @@ int Spire::main()
 	if(debug_layout)
 	{
 		start_layout.debug(start_layout.get_damage());
-		cout << "Threat: " << start_layout.get_threat() << endl;
-		cout << "Runestones: " << start_layout.get_runestones_per_second() << "/s" << endl;
+		console << "Threat: " << start_layout.get_threat() << endl;
+		console << "Runestones: " << start_layout.get_runestones_per_second() << "/s" << endl;
 		return 0;
 	}
 
@@ -468,7 +468,7 @@ int Spire::main()
 	if(connection)
 	{
 		if(!fancy_output)
-			cout << "Querying online database for best known layout" << endl;
+			console << "Querying online database for best known layout" << endl;
 		if(query_network())
 		{
 			if(!show_pools)
@@ -477,7 +477,7 @@ int Spire::main()
 		else
 		{
 			if(!fancy_output)
-				cout << "Database returned no better layout" << endl;
+				console << "Database returned no better layout" << endl;
 
 			submit_best();
 		}
@@ -637,13 +637,13 @@ void Spire::update_output(bool new_best_found)
 				for(++count; count>0; --count)
 				{
 					console.clear_current_line();
-					cout << endl;
+					console << endl;
 				}
 			}
 		}
 
 		console.clear_current_line();
-		cout << loops_per_second << " loops/sec" << endl;
+		console << loops_per_second << " loops/sec" << endl;
 	}
 	else
 	{
@@ -652,9 +652,9 @@ void Spire::update_output(bool new_best_found)
 		else if(fancy_output)
 		{
 			console.set_cursor_position(69, 13);
-			cout << cycle;
+			console << cycle;
 			console.set_cursor_position(69, 14);
-			cout << NumberIO(loops_per_second) << "    ";
+			console << NumberIO(loops_per_second) << "    ";
 			cout.flush();
 		}
 	}
@@ -706,10 +706,10 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 		if(fancy_output)
 		{
 			console.set_cursor_position(58, 15);
-			cout << "Disconnected";
+			console << "Disconnected";
 		}
 		else
-			cout << "Connection to online database lost" << endl;
+			console << "Connection to online database lost" << endl;
 		reconnect_timeout = chrono::steady_clock::now()+chrono::seconds(30);
 		connection = 0;
 		return;
@@ -745,48 +745,48 @@ void Spire::report(const Layout &layout, const string &message)
 
 	time_t t = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	struct tm lt;
-	cout << '[' << put_time(localtime_r(&t, &lt), "%Y-%m-%d %H:%M:%S") << "] " << message;
+	console << '[' << put_time(localtime_r(&t, &lt), "%Y-%m-%d %H:%M:%S") << "] " << message;
 	if(!fancy_output)
-		cout << " (" << print_num(layout.get_damage()) << " damage, " << layout.get_threat() << " threat, "
+		console << " (" << print_num(layout.get_damage()) << " damage, " << layout.get_threat() << " threat, "
 			<< print_num(layout.get_runestones_per_second()) << " Rs/s, cost " << print_num(layout.get_cost())
 			<< " Rs, cycle " << layout.get_cycle() << "):";
-	cout << endl << "  ";
+	console << endl << "  ";
 	unsigned count = 1;
 	print(layout, count);
 	if((core_budget || fancy_output) && layout.get_core().tier>=0)
-		cout << "  Core: " << layout.get_core().str() << endl;
+		console << "  Core: " << layout.get_core().str() << endl;
 
 	if(fancy_output)
 	{
 		print_fancy(layout);
 		console.set_cursor_position(58, 4);
-		cout << "Mode:   " << (income ? "income" : "damage");
+		console << "Mode:   " << (income ? "income" : "damage");
 		if(towers)
-			cout << "+towers";
+			console << "+towers";
 		console.set_cursor_position(58, 5);
-		cout << "Budget: " << print_num(budget) << " Rs";
+		console << "Budget: " << print_num(budget) << " Rs";
 		console.set_cursor_position(58, 7);
-		cout << "Damage: " << print_num(layout.get_damage()) << "    ";
+		console << "Damage: " << print_num(layout.get_damage()) << "    ";
 		console.set_cursor_position(58, 8);
-		cout << "Threat: " << layout.get_threat();
+		console << "Threat: " << layout.get_threat();
 		console.set_cursor_position(58, 9);
-		cout << "Income: " << print_num(layout.get_runestones_per_second()) << " Rs/s    ";
+		console << "Income: " << print_num(layout.get_runestones_per_second()) << " Rs/s    ";
 		console.set_cursor_position(58, 10);
-		cout << "Cost:   " << print_num(layout.get_cost()) << " Rs    ";
+		console << "Cost:   " << print_num(layout.get_cost()) << " Rs    ";
 		console.set_cursor_position(58, 11);
-		cout << "Cycle:  " << layout.get_cycle();
+		console << "Cycle:  " << layout.get_cycle();
 		if(!layout.get_cycle())
-			cout << "        ";
+			console << "        ";
 		console.set_cursor_position(58, 13);
-		cout << "Cycle now: " << cycle;
+		console << "Cycle now: " << cycle;
 		console.set_cursor_position(58, 14);
-		cout << "Speed:     " << NumberIO(loops_per_second);
+		console << "Speed:     " << NumberIO(loops_per_second);
 		if(network)
 		{
 			console.set_cursor_position(58, 15);
-			cout << (connection ? "Online      " : "Disconnected");
+			console << (connection ? "Online      " : "Disconnected");
 		}
-		cout << endl;
+		console << endl;
 	}
 }
 
@@ -821,10 +821,10 @@ bool Spire::print(const Layout &layout, unsigned &count)
 	if(show_pools)
 	{
 		console.clear_current_line();
-		cout << descr << ' ' << score_func(layout) << ' ' << layout.get_cost() << ' ' << layout.get_cycle() << endl;
+		console << descr << ' ' << score_func(layout) << ' ' << layout.get_cost() << ' ' << layout.get_cycle() << endl;
 	}
 	else
-		cout << descr << endl;
+		console << descr << endl;
 
 	return (count && --count);
 }
@@ -912,16 +912,16 @@ void Spire::print_fancy(const Layout &layout)
 		}
 
 		console.set_text_color(border_color, 0);
-		cout << topleft;
+		console << topleft;
 		for(unsigned i=0; i<5; ++i)
-			cout << topline;
-		cout << endl;
+			console << topline;
+		console << endl;
 	}
 
 	for(unsigned i=floors*lines_per_floor; i-->0; )
 	{
 		console.set_text_color(border_color, 0);
-		cout << vsep;
+		console << vsep;
 
 		unsigned line = lines_per_floor-1-i%lines_per_floor;
 		for(unsigned j=0; j<5; ++j)
@@ -930,18 +930,18 @@ void Spire::print_fancy(const Layout &layout)
 			if(line==2)
 			{
 				console.set_text_color(border_color, fc.bg_color[line]);
-				cout << hsep;
+				console << hsep;
 			}
 			else
 			{
 				console.set_text_color(fc.text_color, fc.bg_color[line]);
-				cout << (line==0 ? fc.line1 : fc.line2);
+				console << (line==0 ? fc.line1 : fc.line2);
 				console.set_text_color(border_color, fc.bg_color[line]);
-				cout << vsep;
+				console << vsep;
 			}
 		}
 
-		cout << endl;
+		console << endl;
 	}
 
 	console.restore_default_text_color();

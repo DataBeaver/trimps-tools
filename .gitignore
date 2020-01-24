@@ -1,3 +1,6 @@
 /spire
 /spiredb
 /temp
+*.o
+spire
+perks

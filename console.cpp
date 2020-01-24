@@ -126,7 +126,8 @@ Console::Console():
 	has_256color(false),
 	width(80),
 	height(25),
-	top(0)
+	top(0),
+	written(0)
 {
 #ifdef _WIN32
 	stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -160,6 +161,7 @@ void Console::update_size()
 
 void Console::set_cursor_position(unsigned x, unsigned y)
 {
+	written = x;
 #ifdef _WIN32
 	if(!has_ansi)
 	{
@@ -176,6 +178,7 @@ void Console::set_cursor_position(unsigned x, unsigned y)
 
 void Console::clear_screen()
 {
+	written = 0;
 #ifdef _WIN32
 	if(!has_ansi)
 	{
@@ -197,6 +200,7 @@ void Console::clear_screen()
 
 void Console::clear_current_line()
 {
+	written = 0;
 #ifdef _WIN32
 	if(!has_ansi)
 	{
@@ -249,4 +253,53 @@ void Console::restore_default_text_color()
 #endif
 
 	cout << "\033[0m";
+}
+
+Console& Console::operator<< (STRFUNC func)
+{
+	// Test this stream manipulator to see what it does...
+	stringstream out;
+	func(out);
+
+	handle_newlines(out.str());
+
+	// and then pass the manipulator the real stream, too:
+	func(cout);
+
+	return *this;
+}
+
+// If the string to add contains a newline (e.g. like it would after endl or a literal '\n' was written)
+// then write spaces to workaround buffer clear bug:
+void Console::handle_newlines(const string& str)
+{
+	string copy = string(str);
+
+	// NB: This will be subtly wrong for encodings where 1 character is not strictly one byte...
+	auto newline = copy.find('\n');
+	while (newline != string::npos)
+	{
+		cout << copy.substr(0, newline);
+		copy = copy.substr(newline + 1);
+
+		written += newline;
+		restore_default_text_color();
+		if (written < width)
+			cout << string(width - written, ' ');
+		written = 0;
+
+		newline = copy.find('\n');
+	}
+
+	written += copy.length();
+	std::cout << copy;
+}
+
+Console& Console::stream_manip (const stringstream& ss)
+{
+	string output = ss.str();
+
+	handle_newlines(output);
+
+	return *this;
 }
