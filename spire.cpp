@@ -356,7 +356,7 @@ ParsedLayoutValues Spire::parse_layout(const string &layout_in, const string &up
 	{
 	        parsed = parse_alpha_layout(layout_in);
 	}
-	else
+	else if(!layout_in.empty())
 	{
 		throw usage_error("This isn't a format string I know how to parse");
 	}
