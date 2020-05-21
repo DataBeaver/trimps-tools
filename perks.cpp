@@ -401,7 +401,7 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 	equip_tier_cost *= pow(prestige_cost_multi, stats.prestige_level)/prestige_cost_offset;
 	double affordable_level = max(log(income*equip_time/equip_tier_cost)/log(1.2), 1.0);
 	if(stats.prestige_level<max_prestige)
-		affordable_level = max(affordable_level, 9.0);
+		affordable_level = min(affordable_level, 9.0);
 	stats.equipment_level = affordable_level;
 	if(!fractional)
 		affordable_level = floor(affordable_level);
