@@ -1,3 +1,4 @@
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -26,6 +27,7 @@ struct Heirloom
 	double crit_damage;
 	double attack;
 	double health;
+	double prismatic;
 	double miner;
 };
 
@@ -48,6 +50,8 @@ class Perks
 private:
 	typedef std::map<std::string, Number> LevelMap;
 
+	const PerkInfo *perk_info;
+	double (Perks::*eval_func)(EvalStats &, bool) const;
 	double base_pop;
 	unsigned target_zone;
 	double target_breed_time;
@@ -67,7 +71,8 @@ private:
 	unsigned amalgamators;
 	bool amalgagreater;
 
-	static const PerkInfo perk_info[];
+	static const PerkInfo perk_info_u1[];
+	static const PerkInfo perk_info_u2[];
 
 public:
 	Perks(int, char **);
@@ -78,6 +83,8 @@ private:
 	void print_perks() const;
 	Number get_perk(const std::string &) const;
 	double get_perk_cost(const PerkInfo &, Number, Number = 1) const;
+	double evaluate_u1(EvalStats &, bool = false) const;
+	double evaluate_u2(EvalStats &, bool = false) const;
 	double evaluate(EvalStats &, bool = false) const;
 	double evaluate(bool = false) const;
 };
@@ -98,7 +105,7 @@ int main(int argc, char **argv)
 	}
 }
 
-const PerkInfo Perks::perk_info[] =
+const PerkInfo Perks::perk_info_u1[] =
 {
 	{ "looting", 1, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "toughness", 1, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
@@ -129,7 +136,25 @@ const PerkInfo Perks::perk_info[] =
 	{ 0, 0, PerkInfo::ADDITIVE, 0, 0 }
 };
 
+const PerkInfo Perks::perk_info_u2[] =
+{
+	{ "prismal", 1, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "looting", 1, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "toughness", 1, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "power", 1, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "motivation", 2, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "pheromones", 3, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "agility", 4, PerkInfo::MULTIPLICATIVE, 1.3, 20 },
+	{ "range", 1, PerkInfo::MULTIPLICATIVE, 1.3, 10 },
+	{ "artisanistry", 15, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "carpentry", 25, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "equality", 1, PerkInfo::MULTIPLICATIVE, 1.5, 0 },
+	{ 0, 0, PerkInfo::ADDITIVE, 0, 0 }
+};
+
 Perks::Perks(int argc, char **argv):
+	perk_info(perk_info_u1),
+	eval_func(&Perks::evaluate_u1),
 	base_pop(1),
 	target_zone(10),
 	target_breed_time(45),
@@ -155,6 +180,14 @@ Perks::Perks(int argc, char **argv):
 	DoubleIO base_pop_io;
 	DoubleIO helium_io;
 
+	if(argc>=2 && !strcmp(argv[1], "u2"))
+	{
+		perk_info = perk_info_u2;
+		eval_func = &Perks::evaluate_u2;
+		--argc;
+		++argv;
+	}
+
 	GetOpt getopt;
 	for(unsigned i=0; perk_info[i].name; ++i)
 		getopt.add_option(perk_info[i].name, base_levels[perk_info[i].name], GetOpt::REQUIRED_ARG);
@@ -164,6 +197,7 @@ Perks::Perks(int argc, char **argv):
 	getopt.add_option("challenge2", challenge2, GetOpt::REQUIRED_ARG);
 	getopt.add_option("heirloom-attack", heirloom.attack, GetOpt::REQUIRED_ARG);
 	getopt.add_option("heirloom-health", heirloom.health, GetOpt::REQUIRED_ARG);
+	getopt.add_option("heirloom-prismatic", heirloom.prismatic, GetOpt::REQUIRED_ARG);
 	getopt.add_option("heirloom-crit-chance", heirloom.crit_chance, GetOpt::REQUIRED_ARG);
 	getopt.add_option("heirloom-crit-damage", heirloom.crit_damage, GetOpt::REQUIRED_ARG);
 	getopt.add_option("heirloom-miner", heirloom.miner, GetOpt::REQUIRED_ARG);
@@ -324,7 +358,7 @@ double Perks::get_perk_cost(const PerkInfo &perk, Number level, Number count) co
 	}
 }
 
-double Perks::evaluate(EvalStats &stats, bool fractional) const
+double Perks::evaluate_u1(EvalStats &stats, bool fractional) const
 {
 	stats.population = base_pop;
 	stats.population *= pow(1.1, get_perk("carpentry"));
@@ -479,6 +513,119 @@ double Perks::evaluate(EvalStats &stats, bool fractional) const
 	score += log(fluffy_xp)*fluffy_weight;
 
 	return score;
+}
+
+double Perks::evaluate_u2(EvalStats &stats, bool fractional) const
+{
+	stats.population = base_pop;
+	stats.population *= pow(1.1, get_perk("carpentry"));
+	stats.population *= 1-0.01*large;
+
+	unsigned max_coords = target_zone-1;
+
+	double coord_factor = 1+0.25*pow(0.98, get_perk("coordinated"));
+	stats.coordinations = 0;
+	stats.army = 1;
+	unsigned reserve_factor = 3;
+	while(stats.coordinations<max_coords && stats.army*reserve_factor<stats.population)
+	{
+		++stats.coordinations;
+		stats.army = ceil(stats.army*coord_factor);
+	}
+
+	double coords = stats.coordinations;
+	if(fractional && coords<max_coords)
+	{
+		coords += log(stats.population/reserve_factor/stats.army)/log(coord_factor);
+		coords = min<double>(coords, max_coords);
+	}
+
+	double imp_ort = pow(1.003, target_zone*3);
+
+	stats.production = stats.population/4;
+	stats.production *= 1+0.05*get_perk("motivation");
+	stats.production *= 1+0.01*heirloom.miner;
+	// Speed books
+	stats.production *= pow(1.25, min(target_zone, 59U));
+	// Bounty
+	if(target_zone>=11)
+		stats.production *= 2;
+	// Whipimp
+	stats.production *= imp_ort;
+
+	double speed = 1/pow(0.95, get_perk("agility"));
+
+	// Assume loot mostly comes from caches on perfect maps
+	stats.loot = stats.production*20/25*speed;
+	stats.loot *= 1+0.05*get_perk("looting");
+	// Magnimp
+	stats.loot *= imp_ort;
+
+	double income = stats.production+stats.loot;
+
+	double equip_tier_cost = 40+40+55+80+100+140+160+230+275+375+415+450+500;
+	equip_tier_cost *= pow(0.95, get_perk("artisanistry"));
+	static const double prestige_cost_multi = pow(1.069, 45.05);
+	static const double prestige_cost_offset = pow(1.069, 28.15);
+	unsigned affordable_prestige = log(income*equip_time/equip_tier_cost*prestige_cost_offset)/log(prestige_cost_multi);
+	unsigned max_prestige = target_zone/5;
+	stats.prestige_level = min(affordable_prestige, max_prestige);
+
+	equip_tier_cost *= pow(prestige_cost_multi, stats.prestige_level)/prestige_cost_offset;
+	double affordable_level = max(log(income*equip_time/equip_tier_cost)/log(1.2), 1.0);
+	if(stats.prestige_level<max_prestige)
+		affordable_level = min(affordable_level, 9.0);
+	stats.equipment_level = affordable_level;
+	if(!fractional)
+		affordable_level = floor(affordable_level);
+
+	double coord_stats = pow(1.25, coords);
+
+	double breed_rate = 0.0085;
+	breed_rate *= 1+0.1*get_perk("pheromones");
+	// Potency upgrades
+	breed_rate *= pow(1.1, target_zone/5);
+	// Venimp
+	breed_rate *= imp_ort;
+
+	double equality = pow(0.9, get_perk("equality"));
+
+	stats.health = 50;
+	stats.health += (4+6+10+14+23+35+60)*pow(1.19, 14*(stats.prestige_level-1))*affordable_level;
+	stats.health *= coord_stats;
+	stats.health *= 1+0.05*get_perk("toughness");
+	stats.health *= 2.25+heirloom.prismatic*0.01+0.01*get_perk("prismal");
+	stats.health *= pow(1.1, get_perk("resilience"));
+	stats.health /= equality;
+	stats.health *= 1+challenge2*0.01;
+	stats.health *= 1+heirloom.health*0.01;
+
+	stats.attack = 6;
+	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*(stats.prestige_level-1))*affordable_level;
+	stats.attack *= coord_stats;
+	stats.attack *= 1+0.05*get_perk("power");
+	stats.attack *= 1+0.01*get_perk("range");
+	stats.attack *= 1+(0.01*heirloom.crit_chance)*(1+0.01*heirloom.crit_damage);
+	stats.attack *= equality;
+	stats.attack *= 1+achievements*0.01;
+	stats.attack *= 1+challenge2*0.01;
+	stats.attack *= 1+heirloom.attack*0.01;
+
+	double radon = 1;
+	radon *= 1+0.05*get_perk("looting");
+	radon *= 1+challenge2*0.001;
+
+	double score = 0;
+	score += log(stats.health)*health_weight;
+	score += (log(stats.attack)+log(speed))*attack_weight;
+	score += log(radon)*helium_weight;
+
+	return score;
+}
+
+double Perks::evaluate(EvalStats &stats, bool fractional) const
+{
+	return (this->*eval_func)(stats, fractional);
 }
 
 double Perks::evaluate(bool fractional) const
