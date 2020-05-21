@@ -291,9 +291,9 @@ string alpha_from_numeric(const string& numeric)
 	alpha.resize(numeric.length());
 
 	std::transform(numeric.begin(), numeric.end(), alpha.begin(), [](char c) {
-		if (c < '0' || '7' < c)
-			throw usage_error("Trap ID in numer format string must be between '0' and '7'.");
-		return Layout::traps[c - '0'];
+		if(c<'0' || '7'<c)
+			throw usage_error("Trap ID in numeric format string must be between '0' and '7'.");
+		return Layout::traps[c-'0'];
 	});
 
 	return alpha;
@@ -341,7 +341,7 @@ ParsedLayoutValues Spire::parse_layout(const string &layout_in, const string &up
 	// traps ::=		r'(\d{5})+'
 	// upgrades ::=		r'\d{4}'
 	// floors ::=		r'\d'
-	if (regex_match(layout_in, regex("(\\d{5})+\\+\\d{4}\\+\\d{1,2}")))
+	if(regex_match(layout_in, regex("(\\d{5})+\\+\\d{4}\\+\\d{1,2}")))
 	{
 		parsed = parse_numeric_layout(layout_in);
 	}
@@ -352,7 +352,7 @@ ParsedLayoutValues Spire::parse_layout(const string &layout_in, const string &up
 	// upgrades ::=         r'\d{4}'
 	// traps ::=            [trap_row] | [trap_row] ' ' [trap_row] | [trap_row] [trap_row]
 	// trap_row :=          r'[FZPLSCK_]{5}'
-	else if (regex_match(layout_in, regex("\\d{4} ?([FZPLSCK_]{5} ?)*[FZPLSCK_]{5}+")))
+	else if(regex_match(layout_in, regex("\\d{4} ?([FZPLSCK_]{5} ?)*[FZPLSCK_]{5}+")))
 	{
 	        parsed = parse_alpha_layout(layout_in);
 	}
@@ -361,13 +361,13 @@ ParsedLayoutValues Spire::parse_layout(const string &layout_in, const string &up
 		throw usage_error("This isn't a format string I know how to parse");
 	}
 
-	if (!upgrades_in.empty())
+	if(!upgrades_in.empty())
 		parsed.upgrades = upgrades_in;
 
-	if (!core_in.empty())
+	if(!core_in.empty())
 		parsed.core = core_in;
 
-	if (floors != 0)
+	if(floors!=0)
 		parsed.floors = floors;
 
 	return parsed;

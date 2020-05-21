@@ -255,7 +255,7 @@ void Console::restore_default_text_color()
 	cout << "\033[0m";
 }
 
-Console& Console::operator<< (STRFUNC func)
+Console& Console::operator<<(StrFunc func)
 {
 	// Test this stream manipulator to see what it does...
 	stringstream out;
@@ -277,25 +277,25 @@ void Console::handle_newlines(const string& str)
 
 	// NB: This will be subtly wrong for encodings where 1 character is not strictly one byte...
 	auto newline = copy.find('\n');
-	while (newline != string::npos)
+	while(newline!=string::npos)
 	{
 		cout << copy.substr(0, newline);
-		copy = copy.substr(newline + 1);
+		copy = copy.substr(newline+1);
 
 		written += newline;
 		restore_default_text_color();
-		if (written < width)
-			cout << string(width - written, ' ');
+		if(written<width)
+			cout << string(width-written, ' ');
 		written = 0;
 
 		newline = copy.find('\n');
 	}
 
 	written += copy.length();
-	std::cout << copy;
+	cout << copy;
 }
 
-Console& Console::stream_manip (const stringstream& ss)
+Console& Console::stream_manip(const stringstream& ss)
 {
 	string output = ss.str();
 

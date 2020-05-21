@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sstream>
 
-typedef std::ostream& (*STRFUNC)(std::ostream&);
+typedef std::ostream &(*StrFunc)(std::ostream&);
 
 class Console
 {
@@ -37,7 +37,7 @@ public:
 		temp << data;
 		return stream_manip(temp);
 	}
-	Console& operator<< (STRFUNC func);
+	Console& operator<<(StrFunc func);
 
 private:
 	Console& stream_manip(const std::stringstream&);
