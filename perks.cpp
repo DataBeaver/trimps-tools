@@ -551,9 +551,9 @@ double Perks::evaluate_u2(EvalStats &stats, bool fractional) const
 	stats.production *= 1+0.05*get_perk("motivation");
 	stats.production *= 1+0.01*heirloom.miner;
 	// Speed books
-	stats.production *= pow(1.25, min(target_zone, 59U));
+	stats.production *= pow(1.25, target_zone);
 	// Bounty
-	if(target_zone>=11)
+	if(target_zone>=7)
 		stats.production *= 2;
 	// Whipimp
 	stats.production *= imp_ort;
