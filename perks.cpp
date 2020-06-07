@@ -149,6 +149,8 @@ const PerkInfo Perks::perk_info_u2[] =
 	{ "artisanistry", 15, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "carpentry", 25, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "equality", 1, PerkInfo::MULTIPLICATIVE, 1.5, 0 },
+	{ "criticality", 100, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "resilience", 100, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ 0, 0, PerkInfo::ADDITIVE, 0, 0 }
 };
 
@@ -603,12 +605,14 @@ double Perks::evaluate_u2(EvalStats &stats, bool fractional) const
 	stats.health *= 1+challenge2*0.01;
 	stats.health *= 1+heirloom.health*0.01;
 
+	Number crit = get_perk("criticality");
+
 	stats.attack = 6;
 	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*(stats.prestige_level-1))*affordable_level;
 	stats.attack *= coord_stats;
 	stats.attack *= 1+0.05*get_perk("power");
 	stats.attack *= 1+0.01*get_perk("range");
-	stats.attack *= 1+(0.01*heirloom.crit_chance)*(1+0.01*heirloom.crit_damage);
+	stats.attack *= 1+min(0.01*heirloom.crit_chance, 1.0)*(1+0.01*heirloom.crit_damage+0.1*crit);
 	stats.attack *= equality;
 	stats.attack *= 1+achievements*0.01;
 	stats.attack *= 1+challenge2*0.01;
