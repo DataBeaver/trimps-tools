@@ -388,7 +388,7 @@ double Perks::evaluate_u1(EvalStats &stats, bool fractional) const
 	stats.army *= amal_factor;
 
 	double coords = stats.coordinations;
-	if(fractional && coords<max_coords)
+	if(fractional && coords<max_coords && stats.population>stats.army*reserve_factor)
 	{
 		coords += log(stats.population/reserve_factor/stats.army)/log(coord_factor);
 		coords = min<double>(coords, max_coords);
@@ -534,7 +534,7 @@ double Perks::evaluate_u2(EvalStats &stats, bool fractional) const
 	}
 
 	double coords = stats.coordinations;
-	if(fractional && coords<max_coords)
+	if(fractional && coords<max_coords && stats.population>stats.army*reserve_factor)
 	{
 		coords += log(stats.population/reserve_factor/stats.army)/log(coord_factor);
 		coords = min<double>(coords, max_coords);
