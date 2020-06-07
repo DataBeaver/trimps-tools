@@ -222,18 +222,19 @@ int Perks::main()
 	double best_score = 0;
 	unsigned best_gators = 0;
 	LevelMap best_levels;
-	for(unsigned i=0; i<10; ++i)
+	for(unsigned i=0; i<10; )
 	{
 		amalgamators = i;
-		Number carp = get_perk("carpentry")/2;
-		Number carp2 = get_perk("carpentry2")/2;
-		Number coord = get_perk("coordinated")/2;
+		Number carp = get_perk("carpentry");
+		Number carp2 = get_perk("carpentry2");
+		Number coord = get_perk("coordinated");
 		perk_levels = base_levels;
 		perk_levels["carpentry"] = max(perk_levels["carpentry"], carp);
 		perk_levels["carpentry2"] = max(perk_levels["carpentry2"], carp2);
 		perk_levels["coordinated"] = max(perk_levels["coordinated"], coord);
 		optimize();
-		double score = evaluate();
+		EvalStats stats;
+		double score = evaluate(stats);
 		if(score>best_score)
 		{
 			best_score = score;
@@ -242,6 +243,8 @@ int Perks::main()
 		}
 		else if(score<best_score*0.99)
 			break;
+
+		i += max(floor(log(stats.population/stats.army/3)/log(1e3)), 1.0);
 	}
 
 	amalgamators = best_gators;
