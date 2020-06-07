@@ -417,6 +417,8 @@ double Perks::evaluate_u1(EvalStats &stats, bool fractional) const
 		stats.production *= 2;
 	// Whipimp
 	stats.production *= imp_ort;
+	// Turkimp
+	stats.production *= 2;
 
 	double speed = 1/pow(0.95, get_perk("agility"));
 
@@ -557,6 +559,8 @@ double Perks::evaluate_u2(EvalStats &stats, bool fractional) const
 		stats.production *= 2;
 	// Whipimp
 	stats.production *= imp_ort;
+	// Turkimp
+	stats.production *= 2;
 
 	double speed = 1/pow(0.95, get_perk("agility"));
 
