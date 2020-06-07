@@ -222,7 +222,7 @@ int Perks::main()
 	double best_score = 0;
 	unsigned best_gators = 0;
 	LevelMap best_levels;
-	for(unsigned i=0; i<10; )
+	for(unsigned i=0; i<15; )
 	{
 		amalgamators = i;
 		Number carp = get_perk("carpentry");
