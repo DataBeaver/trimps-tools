@@ -2,7 +2,7 @@
 #define SPIREPOOL_H_
 
 #include <list>
-#include <mutex>
+#include "mingw.mutex.h"
 #include "types.h"
 
 class Layout;

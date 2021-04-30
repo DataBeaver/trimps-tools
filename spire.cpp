@@ -79,9 +79,7 @@ Spire::Spire(int argc, char **argv):
 	raw_values(false),
 	fancy_output(false),
 	show_pools(false),
-	network(0),
 	live(false),
-	connection(0),
 	intr_flag(false),
 	budget(0),
 	core_budget(0),
@@ -280,9 +278,6 @@ Spire::Spire(int argc, char **argv):
 
 	if(!core_budget)
 		core_rate = 0;
-
-	if(online || live)
-		init_network(false);
 }
 
 string alpha_from_numeric(const string& numeric)
@@ -489,36 +484,6 @@ void Spire::init_pools(unsigned pool_size)
 	}
 }
 
-void Spire::init_network(bool reconnect)
-{
-	if(!network)
-		network = new Network;
-	try
-	{
-		connection = network->connect("spiredb.tdb.fi", 8676, bind(&Spire::receive, this, _1, _2));
-		if(reconnect)
-		{
-			if(fancy_output)
-			{
-				console.set_cursor_position(58, 15);
-				console << "Online      ";
-			}
-			else
-				console << "Reconnected to online build database" << endl;
-		}
-	}
-	catch(const exception &e)
-	{
-		if(!fancy_output && !reconnect)
-		{
-			console << "Can't connect to online build database:" << endl;
-			console << e.what() << endl;
-			console << "Connection will be reattempted automatically" << endl;
-		}
-		reconnect_timeout = chrono::steady_clock::now()+chrono::seconds(30);
-	}
-}
-
 Spire::~Spire()
 {
 	for(auto p: pools)
@@ -544,24 +509,6 @@ int Spire::main()
 	best_layout = pools.front()->get_best_layout();
 	if(best_layout.get_damage() && !show_pools)
 		report(best_layout, "Initial layout");
-
-	if(connection)
-	{
-		if(!fancy_output)
-			console << "Querying online database for best known layout" << endl;
-		if(query_network())
-		{
-			if(!show_pools)
-				report(best_layout, "Layout from database");
-		}
-		else
-		{
-			if(!fancy_output)
-				console << "Database returned no better layout" << endl;
-
-			submit_best();
-		}
-	}
 
 	signal(SIGINT, sighandler);
 
@@ -592,8 +539,6 @@ int Spire::main()
 			leave_loop = true;
 		}
 
-		check_reconnect(current_time);
-
 		lock_guard<mutex> lock(best_mutex);
 		bool new_best_found = check_results();
 		update_output(new_best_found);
@@ -611,62 +556,6 @@ int Spire::main()
 	return 0;
 }
 
-bool Spire::query_network()
-{
-	if(!network)
-		return false;
-
-	unsigned floors = best_layout.get_traps().size()/5;
-	string query = format("query %s %s %s", best_layout.get_upgrades().str(), floors, budget);
-	if(income)
-		query += " income";
-	if(live)
-		query += " live";
-	if(best_layout.get_core().tier>=0)
-		query += format(" core=%s", best_layout.get_core().str(true));
-	string reply = network->communicate(connection, query);
-	if(reply.empty())
-		return false;
-
-	vector<string> parts = split(reply);
-	if(parts[0]=="ok")
-	{
-		Layout layout;
-		layout.set_upgrades(best_layout.get_upgrades());
-		layout.set_core(best_layout.get_core());
-		layout.set_traps(parts[2], floors);
-		layout.update(report_update_mode);
-
-		if(score_func(layout)>score_func(best_layout))
-		{
-			best_layout = layout;
-			pools.front()->add_layout(best_layout);
-			return true;
-		}
-	}
-
-	return false;
-}
-
-void Spire::check_reconnect(const chrono::steady_clock::time_point &current_time)
-{
-	if(!network || connection || current_time<reconnect_timeout)
-		return;
-
-	init_network(true);
-	if(connection)
-	{
-		lock_guard<mutex> lock(best_mutex);
-		if(query_network())
-		{
-			if(!show_pools)
-				report(best_layout, "New best layout from database");
-		}
-		else
-			submit_best();
-	}
-}
-
 bool Spire::check_results()
 {
 	bool new_best = false;
@@ -681,24 +570,12 @@ bool Spire::check_results()
 	if(new_best)
 	{
 		best_layout.update(report_update_mode);
-		submit_best();
 	}
 
 	if(next_prune && cycle>=next_prune)
 		prune_pools();
 
 	return new_best;
-}
-
-void Spire::submit_best()
-{
-	if(!network || !score_func(best_layout))
-		return;
-
-	string submit = format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps());
-	if(best_layout.get_core().tier>=0)
-		submit += format(" core=%s", best_layout.get_core().str(true));
-	network->send_message(connection, submit);
 }
 
 void Spire::update_output(bool new_best_found)
@@ -779,42 +656,6 @@ void Spire::prune_pools()
 	}
 }
 
-void Spire::receive(Network::ConnectionTag, const string &message)
-{
-	if(message.empty())
-	{
-		if(fancy_output)
-		{
-			console.set_cursor_position(58, 15);
-			console << "Disconnected";
-		}
-		else
-			console << "Connection to online database lost" << endl;
-		reconnect_timeout = chrono::steady_clock::now()+chrono::seconds(30);
-		connection = 0;
-		return;
-	}
-
-	vector<string> parts = split(message);
-	if(parts[0]=="push" && parts.size()>=3)
-	{
-		Layout layout;
-		layout.set_upgrades(parts[1]);
-		layout.set_traps(parts[2]);
-		layout.update(report_update_mode);
-
-		lock_guard<mutex> lock_best(best_mutex);
-		if(score_func(layout)>score_func(best_layout))
-		{
-			best_layout = layout;
-			report(best_layout, "New best layout from database");
-
-			lock_guard<mutex> lock_pools(pools_mutex);
-			pools.front()->add_layout(layout);
-		}
-	}
-}
-
 void Spire::report(const Layout &layout, const string &message)
 {
 	if(fancy_output)
@@ -861,11 +702,6 @@ void Spire::report(const Layout &layout, const string &message)
 		console << "Cycle now: " << cycle;
 		console.set_cursor_position(58, 14);
 		console << "Speed:     " << NumberIO(loops_per_second);
-		if(network)
-		{
-			console.set_cursor_position(58, 15);
-			console << (connection ? "Online      " : "Disconnected");
-		}
 		console << endl;
 	}
 }
