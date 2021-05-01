@@ -157,9 +157,9 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 		++chill_dur;
 		frost_damage *= 5;
 	}
-	if(upgrades.frost>=6)
-		frost_damage *= 2;
 	if(upgrades.frost>=7)
+		frost_damage *= 2;
+	if(upgrades.frost>=8)
 		frost_damage *= 2;
 
 	if(upgrades.poison>=2)
