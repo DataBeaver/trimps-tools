@@ -3,10 +3,11 @@
 
 #include <atomic>
 #include <list>
-#include "mingw.mutex.h"
-#include "mingw.thread.h"
+#include <mutex>
+#include <thread>
 #include <vector>
 #include "console.h"
+#include "network.h"
 #include "spirelayout.h"
 #include "spirepool.h"
 #include "types.h"
@@ -72,7 +73,10 @@ private:
 	bool raw_values;
 	bool fancy_output;
 	bool show_pools;
+	Network *network;
 	bool live;
+	Network::ConnectionTag connection;
+	std::chrono::steady_clock::time_point reconnect_timeout;
 	bool intr_flag;
 
 	Number budget;
@@ -96,16 +100,20 @@ private:
 	ParsedLayoutValues parse_layout(const std::string &, const std::string &, const std::string &, unsigned);
 	void init_start_layout(const ParsedLayoutValues &);
 	void init_pools(unsigned);
+	void init_network(bool);
 public:
 	~Spire();
 
 	int main();
 private:
+	bool query_network();
+	void check_reconnect(const std::chrono::steady_clock::time_point &);
 	bool check_results();
 	void submit_best();
 	void update_output(bool);
 	unsigned get_next_cycle();
 	void prune_pools();
+	void receive(Network::ConnectionTag, const std::string &);
 	void report(const Layout &, const std::string &);
 	bool print(const Layout &, unsigned &);
 	void print_fancy(const Layout &);

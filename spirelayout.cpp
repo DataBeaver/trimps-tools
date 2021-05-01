@@ -609,7 +609,7 @@ void Layout::update_threat(const vector<SimResult> &results)
 	unsigned floors = cells/5;
 
 	static double log_base = log(1.012);
-	unsigned low = log((double) damage-4*log((double) damage)/log_base)/log_base*16;
+	unsigned low = log(damage-4*log(damage)/log_base)/log_base*16;
 	unsigned high = low+1024;
 
 	while(low+1<high)
