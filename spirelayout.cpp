@@ -350,9 +350,9 @@ void Layout::build_steps(vector<Step> &steps) const
 
 		if(repeat>1 && upgrades.frost>=5)
 			step.rs_bonus = 2;
-        if(repeat>1 && upgrades.frost>=7)
+		if(repeat>1 && upgrades.frost>=7)
 			step.rs_bonus += 2;
-        if(repeat>1 && upgrades.frost>=8)
+		if(repeat>1 && upgrades.frost>=8)
 			step.rs_bonus += 2;
 		steps.push_back(step);
 
