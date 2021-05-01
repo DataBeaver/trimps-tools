@@ -172,7 +172,6 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 		poison_damage *= 2;
 	if(upgrades.poison>=7)
 		poison_damage *= 2;
-	// tmp comment for whitespace-only change
 	if(upgrades.poison>=8)
 		poison_damage *= 3;
 	if(upgrades.poison>=9)
