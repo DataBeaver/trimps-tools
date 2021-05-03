@@ -390,9 +390,9 @@ void Spire::init_start_layout(const ParsedLayoutValues &layout)
 	const TrapUpgrades &start_upgrades = start_layout.get_upgrades();
 	if(start_upgrades.fire>8)
 		throw usage_error("Invalid fire trap upgrade level");
-	if(start_upgrades.frost>6)
+	if(start_upgrades.frost>8)
 		throw usage_error("Invalid frost trap upgrade level");
-	if(start_upgrades.poison>7)
+	if(start_upgrades.poison>9)
 		throw usage_error("Invalid poison trap upgrade level");
 	if(start_upgrades.lightning>6)
 		throw usage_error("Invalid lightning trap upgrade level");
