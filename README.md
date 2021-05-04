@@ -29,7 +29,8 @@ options.  Some of the more important are:
 
 -u, --upgrades  
   Set upgrade levels of all trap types at once.  The argument should be four
-  numbers, one for each trap type.
+  numbers, one for each trap type.  Poison and lightning traps can be set to
+  zero to indicate that trap isn't unlocked yet.
 
 -c, --core  
   Set stats of the spire core in use.  Core description must start with a tier
