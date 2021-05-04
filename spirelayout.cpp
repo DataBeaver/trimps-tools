@@ -157,6 +157,10 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 		++chill_dur;
 		frost_damage *= 5;
 	}
+	if(upgrades.frost>=7)
+		frost_damage *= 2;
+	if(upgrades.frost>=8)
+		frost_damage *= 2;
 
 	if(upgrades.poison>=2)
 		poison_damage *= 2;
@@ -168,6 +172,10 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 		poison_damage *= 2;
 	if(upgrades.poison>=7)
 		poison_damage *= 2;
+	if(upgrades.poison>=8)
+		poison_damage *= 3;
+	if(upgrades.poison>=9)
+		poison_damage *= 4;
 
 	poison_damage = (poison_damage*(core_scale+core.poison)+core_scale/2)/core_scale;
 
@@ -342,6 +350,10 @@ void Layout::build_steps(vector<Step> &steps) const
 
 		if(repeat>1 && upgrades.frost>=5)
 			step.rs_bonus = 2;
+		if(repeat>1 && upgrades.frost>=7)
+			step.rs_bonus += 2;
+		if(repeat>1 && upgrades.frost>=8)
+			step.rs_bonus += 2;
 		steps.push_back(step);
 
 		if(shocked && !--shocked)
