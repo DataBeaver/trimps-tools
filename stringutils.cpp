@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cctype>
 #include "stringutils.h"
 
 using namespace std;
@@ -17,4 +19,11 @@ vector<string> split(const string &str, char sep)
 	}
 
 	return parts;
+}
+
+string remove_spaces(const string &input)
+{
+	string result = input;
+	result.erase(remove_if(result.begin(), result.end(), [](unsigned char c){ return isspace(c); }), result.end());
+	return result;
 }

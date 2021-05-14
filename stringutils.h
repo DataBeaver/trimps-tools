@@ -43,5 +43,6 @@ inline std::string format(const std::string &fmt, const T &arg, Args... args)
 }
 
 std::vector<std::string> split(const std::string &, char = ' ');
+std::string remove_spaces(const std::string &);
 
 #endif

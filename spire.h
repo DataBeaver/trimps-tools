@@ -12,16 +12,6 @@
 #include "spirepool.h"
 #include "types.h"
 
-struct ParsedLayoutValues
-{
-	unsigned floors;
-	std::string upgrades;
-	std::string core;
-	std::string traps;
-};
-
-std::ostream& operator<<(std::ostream& os, const ParsedLayoutValues& p);
-
 class Spire
 {
 private:
@@ -41,6 +31,14 @@ private:
 
 	private:
 		void main();
+	};
+
+	struct ParsedLayout
+	{
+		unsigned floors;
+		std::string upgrades;
+		std::string core;
+		std::string traps;
 	};
 
 	struct PrintNum
@@ -97,8 +95,10 @@ private:
 public:
 	Spire(int, char **);
 private:
-	ParsedLayoutValues parse_layout(const std::string &, const std::string &, const std::string &, unsigned);
-	void init_start_layout(const ParsedLayoutValues &);
+	static void parse_numeric_layout(const std::string &, ParsedLayout &);
+	static void parse_alpha_layout(const std::string &, ParsedLayout &);
+	static ParsedLayout parse_layout(const std::string &, const std::string &, const std::string &, unsigned);
+	void init_start_layout(const ParsedLayout &);
 	void init_pools(unsigned);
 	void init_network(bool);
 public:

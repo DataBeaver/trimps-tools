@@ -2,10 +2,9 @@
 #include <signal.h>
 #include <chrono>
 #include <functional>
-#include <algorithm>
-#include <regex>
 #include <iomanip>
 #include <iostream>
+#include <regex>
 #include "console.h"
 #include "getopt.h"
 #include "spirepool.h"
@@ -20,12 +19,6 @@ struct FancyCell
 
 using namespace std;
 using namespace std::placeholders;
-
-ostream& operator<<(ostream& os, const ParsedLayoutValues& p)
-{
-	 os << "upgrades: [" << p.upgrades << "] floors: [" << p.floors << "] traps: [" << p.traps << "]";
-	 return os;
-}
 
 #if defined(_WIN32) && !defined(_POSIX_THREAD_SAFE_FUNCTIONS)
 struct tm *localtime_r(const time_t *timep, struct tm *result)
@@ -285,81 +278,55 @@ Spire::Spire(int argc, char **argv):
 		init_network(false);
 }
 
-string alpha_from_numeric(const string& numeric)
+void Spire::parse_numeric_layout(const string& layout, ParsedLayout &parsed)
 {
-	string alpha;
-	alpha.resize(numeric.length());
+	auto first_plus = layout.find('+');
+	auto second_plus = first_plus+5;
 
-	std::transform(numeric.begin(), numeric.end(), alpha.begin(), [](char c) {
+	parsed.traps = layout.substr(0, first_plus-1);
+	for(char &c: parsed.traps)
+	{
 		if(c<'0' || '7'<c)
-			throw usage_error("Trap ID in numeric format string must be between '0' and '7'.");
-		return Layout::traps[c-'0'];
-	});
-
-	return alpha;
+			throw usage_error(format("Invalid trap '%c'", c));
+		c = Layout::traps[c-'0'];
+	}
+	parsed.upgrades = layout.substr(first_plus+1, 4);
+	parsed.floors = parse_value<unsigned>(layout.substr(second_plus+1));
 }
 
-ParsedLayoutValues parse_numeric_layout(const string& layout)
+void Spire::parse_alpha_layout(const string &layout_in, ParsedLayout &parsed)
 {
-	auto firstPlus = layout.find('+');
-	auto secondPlus = firstPlus + 5;
-
-	ParsedLayoutValues parsed;
-
-	parsed.traps = alpha_from_numeric(layout.substr(0, firstPlus-1));
-	parsed.upgrades = layout.substr(firstPlus+1, 4);
-	parsed.floors = stoi(layout.substr(secondPlus + 1));
-
-	return parsed;
-}
-
-string remove_spaces(const string& input)
-{
-	string result = string(input);
-	result.erase(remove_if(result.begin(), result.end(), [](char c) {return isspace(c); }), result.end());
-	return result;
-}
-
-ParsedLayoutValues parse_alpha_layout(const string &layout_in)
-{
-	ParsedLayoutValues parsed;
-
-	parsed.upgrades = layout_in.substr(0,4);
+	parsed.upgrades = layout_in.substr(0, 4);
 	parsed.traps = remove_spaces(layout_in.substr(5));
 	parsed.floors = parsed.traps.length()/5;
-
-	return parsed;
 }
 
-ParsedLayoutValues Spire::parse_layout(const string &layout_in, const string &upgrades_in, const string& core_in, unsigned floors)
+Spire::ParsedLayout Spire::parse_layout(const string &layout_in, const string &upgrades_in, const string& core_in, unsigned floors)
 {
-	ParsedLayoutValues parsed;
+	ParsedLayout parsed;
 
-	// Is it a numeric (i.e. swaq TD) format string? That format is:
+	/* Checks for a layout string in Swaq format:
+	swaq ::=      [traps] '+' [upgrades] '+' [floors]
+	traps ::=     r'(\d{5})+'
+	upgrades ::=  r'\d{4}'
+	floors ::=    r'\d' */
+	static regex numeric_regex("(\\d{5})+\\+\\d{4}\\+\\d{1,2}");
 
-	// swaq ::=			[traps] '+' [upgrades] '+' [floors]
-	// traps ::=		r'(\d{5})+'
-	// upgrades ::=		r'\d{4}'
-	// floors ::=		r'\d'
-	if(regex_match(layout_in, regex("(\\d{5})+\\+\\d{4}\\+\\d{1,2}")))
-	{
-		parsed = parse_numeric_layout(layout_in);
-	}
+	/* Checks for a layout string in the optimizer format:
+	tower ::=     [upgrades] ' ' [traps] | [upgrades] [traps]
+	upgrades ::=  r'\d{4}'
+	traps ::=     [trap_row] | [trap_row] ' ' [trap_row] | [trap_row] [trap_row]
+	trap_row :=   r'[FZPLSCK_]{5}' */
+	static regex alpha_regex("\\d{4} ?([FZPLSCK_]{5} ?)*[FZPLSCK_]{5}+");
 
-	// Is it our alphabetic format string? That format (allowing for removal of spaces) is:
-	//
-	// tower ::=            [upgrades] ' ' [traps] | [upgrades] [traps]
-	// upgrades ::=         r'\d{4}'
-	// traps ::=            [trap_row] | [trap_row] ' ' [trap_row] | [trap_row] [trap_row]
-	// trap_row :=          r'[FZPLSCK_]{5}'
-	else if(regex_match(layout_in, regex("\\d{4} ?([FZPLSCK_]{5} ?)*[FZPLSCK_]{5}+")))
-	{
-	        parsed = parse_alpha_layout(layout_in);
-	}
+	if(regex_match(layout_in, numeric_regex))
+		parse_numeric_layout(layout_in, parsed);
+	else if(regex_match(layout_in, alpha_regex))
+		parse_alpha_layout(layout_in, parsed);
 	else if(!layout_in.empty())
-	{
-		throw usage_error("This isn't a format string I know how to parse");
-	}
+		throw usage_error("Unknown layout format");
+	else
+		parsed.floors = 0;
 
 	if(!upgrades_in.empty())
 		parsed.upgrades = upgrades_in;
@@ -373,7 +340,7 @@ ParsedLayoutValues Spire::parse_layout(const string &layout_in, const string &up
 	return parsed;
 }
 
-void Spire::init_start_layout(const ParsedLayoutValues &layout)
+void Spire::init_start_layout(const ParsedLayout &layout)
 {
 	if(!layout.upgrades.empty())
 	{
