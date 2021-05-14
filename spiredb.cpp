@@ -420,8 +420,8 @@ void SpireDB::check_live_queries(Network::ConnectionTag tag, const Layout &layou
 
 int SpireDB::compare_layouts(const Layout &layout1, const Layout &layout2, bool income)
 {
-	unsigned score1 = (income ? layout1.get_runestones_per_second() : layout1.get_damage());
-	unsigned score2 = (income ? layout2.get_runestones_per_second() : layout2.get_damage());
+	Number score1 = (income ? layout1.get_runestones_per_second() : layout1.get_damage());
+	Number score2 = (income ? layout2.get_runestones_per_second() : layout2.get_damage());
 	if(score1<score2)
 		return -1;
 	else if(score1>score2)
