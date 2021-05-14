@@ -587,6 +587,8 @@ bool Spire::query_network()
 	string query = format("query upg=%s f=%s rs=%s", best_layout.get_upgrades().str(), floors, budget);
 	if(best_layout.get_core().tier>=0)
 		query += format(" core=%s", best_layout.get_core().str(true));
+	if(core_budget>0)
+		query += format(" ss=%s", core_budget);
 	if(income)
 		query += " income";
 	if(live)
