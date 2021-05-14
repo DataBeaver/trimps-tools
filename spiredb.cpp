@@ -13,6 +13,22 @@
 using namespace std;
 using namespace std::placeholders;
 
+#ifdef WITH_128BIT
+namespace pqxx {
+
+template<>
+struct string_traits<Number>
+{
+	static constexpr const char *name() { return "Number"; }
+	static constexpr bool has_null() noexcept { return false; }
+	static bool is_null(Number) { return false; }
+	static void from_string(const char *str, Number &n) { n = parse_value<Number>(str); }
+	static std::string to_string(Number n) { return stringify(n); }
+};
+
+} // namespace pqxx
+#endif
+
 int main(int argc, char **argv)
 {
 	SpireDB spiredb(argc, argv);
