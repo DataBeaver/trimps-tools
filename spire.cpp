@@ -584,13 +584,13 @@ bool Spire::query_network()
 		return false;
 
 	unsigned floors = best_layout.get_traps().size()/5;
-	string query = format("query %s %s %s", best_layout.get_upgrades().str(), floors, budget);
+	string query = format("query upg=%s f=%s rs=%s", best_layout.get_upgrades().str(), floors, budget);
+	if(best_layout.get_core().tier>=0)
+		query += format(" core=%s", best_layout.get_core().str(true));
 	if(income)
 		query += " income";
 	if(live)
 		query += " live";
-	if(best_layout.get_core().tier>=0)
-		query += format(" core=%s", best_layout.get_core().str(true));
 	string reply = network->communicate(connection, query);
 	if(reply.empty())
 		return false;
@@ -601,7 +601,11 @@ bool Spire::query_network()
 		Layout layout;
 		layout.set_upgrades(best_layout.get_upgrades());
 		layout.set_core(best_layout.get_core());
-		layout.set_traps(parts[2], floors);
+
+		for(unsigned i=1; i<parts.size(); ++i)
+			if(!parts[i].compare(0, 2, "t="))
+				layout.set_traps(parts[i].substr(2), floors);
+
 		layout.update(report_update_mode);
 
 		if(score_func(layout)>score_func(best_layout))
@@ -662,7 +666,7 @@ void Spire::submit_best()
 	if(!network || !score_func(best_layout))
 		return;
 
-	string submit = format("submit %s %s", best_layout.get_upgrades().str(), best_layout.get_traps());
+	string submit = format("submit upg=%s t=%s", best_layout.get_upgrades().str(), best_layout.get_traps());
 	if(best_layout.get_core().tier>=0)
 		submit += format(" core=%s", best_layout.get_core().str(true));
 	network->send_message(connection, submit);
@@ -762,11 +766,17 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 	}
 
 	vector<string> parts = split(message);
-	if(parts[0]=="push" && parts.size()>=3)
+	if(parts[0]=="push")
 	{
 		Layout layout;
-		layout.set_upgrades(parts[1]);
-		layout.set_traps(parts[2]);
+		for(unsigned i=1; i<parts.size(); ++i)
+		{
+			if(!parts[i].compare(0, 4, "upg="))
+				layout.set_upgrades(parts[i].substr(4));
+			else if(!parts[i].compare(0, 2, "t="))
+				layout.set_traps(parts[i].substr(2));
+		}
+
 		layout.update(report_update_mode);
 
 		lock_guard<mutex> lock_best(best_mutex);

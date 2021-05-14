@@ -201,15 +201,21 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 	if(args.size()<3)
 		throw invalid_argument("SpireDB::query");
 
-	TrapUpgrades upgrades(args[0]);
+	TrapUpgrades upgrades("8896");
+	unsigned floors = 20;
+	Number budget = static_cast<Number>(-1);
 	Core core;
-	unsigned floors = parse_value<unsigned>(args[1]);
-	Number budget = parse_value<Number>(args[2]);
 	bool income = false;
 	bool live = false;
-	for(unsigned i=3; i<args.size(); ++i)
+	for(unsigned i=0; i<args.size(); ++i)
 	{
-		if(args[i]=="income")
+		if(!args[i].compare(0, 2, "f="))
+			floors = parse_value<unsigned>(args[i].substr(2));
+		else if(!args[i].compare(0, 4, "upg="))
+			upgrades = args[i].substr(4);
+		else if(!args[i].compare(0, 3, "rs="))
+			budget = parse_value<Number>(args[i].substr(3));
+		else if(args[i]=="income")
 			income = true;
 		else if(args[i]=="damage")
 			income = false;
@@ -253,9 +259,10 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 
 	if(!best.get_traps().empty())
 	{
-		string result = format("ok %s %s", best.get_upgrades().str(), best.get_traps());
+		string result;
+		result = format("ok upg=%s t=%s", best.get_upgrades().str(), best.get_traps());
 		if(best.get_core().tier>=0)
-			result += format(" %s", best.get_core().str(true));
+			result += format(" core=%s", best.get_core().str(true));
 		return result;
 	}
 	else
@@ -318,13 +325,28 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, c
 	if(args.size()<2)
 		throw invalid_argument("SpireDB::submit");
 
+	unsigned kw_start = 0;
+
 	Layout layout;
-	layout.set_upgrades(args[0]);
-	layout.set_traps(args[1]);
-	for(unsigned i=2; i<args.size(); ++i)
+	if(args[0].find('=')==string::npos)
 	{
-		if(!args[i].compare(0, 5, "core="))
-			layout.set_core(args[i].substr(5));
+		layout.set_upgrades(args[0]);
+		layout.set_traps(args[1]);
+		kw_start = 2;
+	}
+
+	for(unsigned i=kw_start; i<args.size(); ++i)
+	{
+		if(!args[i].compare(0, 4, "upg="))
+			layout.set_upgrades(args[i]);
+		else if(!args[i].compare(0, 2, "t="))
+			layout.set_traps(args[i]);
+		else if(!args[i].compare(0, 5, "core="))
+		{
+			Core core = args[i].substr(5);
+			core.update();
+			layout.set_core(core);
+		}
 		else
 			throw invalid_argument("SpireDB::submit");
 	}
@@ -411,7 +433,7 @@ void SpireDB::check_live_queries(Network::ConnectionTag tag, const Layout &layou
 	{
 		if(tag!=lq.first && up_str==lq.second.upgrades && floors==lq.second.floors && core_type==lq.second.core_type && cost<=lq.second.budget)
 		{
-			string push = format("push %s %s", up_str, layout.get_traps());
+			string push = format("push upg=%s t=%s", up_str, layout.get_traps());
 			cout << '[' << network.get_remote_host(lq.first) << "] <- " << push << endl;
 			network.send_message(lq.first, push);
 		}
