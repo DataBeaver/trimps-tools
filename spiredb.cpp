@@ -80,6 +80,7 @@ SpireDB::SpireDB(int argc, char **argv):
 	pq_conn = new pqxx::connection(dbopts);
 	pq_conn->prepare("select_all", "SELECT "+common_fields+" FROM layouts");
 	pq_conn->prepare("select_old", "SELECT "+common_fields+" FROM layouts WHERE version<$1");
+	pq_conn->prepare("select_core_tier", "SELECT core_tier FROM layouts WHERE id=$1");
 	pq_conn->prepare("select_mods", "SELECT mod, value, damage_delta, rs_delta FROM core_mods WHERE layout_id=$1");
 	pq_conn->prepare("update_values", "UPDATE layouts SET damage=$2, threat=$3, rs_per_sec=$4, cost=$5, version=$6 WHERE id=$1");
 	pq_conn->prepare("insert_layout", "INSERT INTO layouts (floors, fire, frost, poison, lightning, traps, core_tier, core_type, damage, threat, rs_per_sec, cost, submitter, version) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id");
@@ -301,11 +302,7 @@ Layout SpireDB::query_layout(pqxx::transaction_base &xact, unsigned floors, cons
 		layout.set_traps(row[5].c_str());
 
 		if(core)
-		{
-			Core res_core = query_core(xact, id);
-			res_core.tier = row[6].as<int16_t>();
-			layout.set_core(res_core);
-		}
+			layout.set_core(query_core(xact, id));
 	}
 
 	return layout;
@@ -314,9 +311,14 @@ Layout SpireDB::query_layout(pqxx::transaction_base &xact, unsigned floors, cons
 Core SpireDB::query_core(pqxx::transaction_base &xact, unsigned layout_id)
 {
 	Core core;
-	pqxx::result result = xact.exec_prepared("select_mods", layout_id);
+
+	pqxx::result result = xact.exec_prepared("select_core_tier", layout_id);
+	core.tier = result.front()[0].as<int16_t>();
+
+	result = xact.exec_prepared("select_mods", layout_id);
 	for(const auto &row: result)
 		core.set_mod(row[0].as<unsigned>(), row[1].as<uint16_t>());
+
 	return core;
 }
 
