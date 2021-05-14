@@ -150,7 +150,10 @@ const PerkInfo Perks::perk_info_u2[] =
 	{ "carpentry", 25, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "equality", 1, PerkInfo::MULTIPLICATIVE, 1.5, 0 },
 	{ "criticality", 100, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "tenacity", 50e6, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "greed", 10e9, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
 	{ "resilience", 100, PerkInfo::MULTIPLICATIVE, 1.3, 0 },
+	{ "overkill", 1e6, PerkInfo::MULTIPLICATIVE, 1.3, 30 },
 	{ 0, 0, PerkInfo::ADDITIVE, 0, 0 }
 };
 
@@ -572,6 +575,21 @@ double Perks::evaluate_u2(EvalStats &stats, bool fractional) const
 
 	double income = stats.production+stats.loot;
 
+	Number greed = get_perk("greed");
+	double greed_bonus = 1;
+	if(greed)
+	{
+		double loot;
+		for(unsigned i=0; i<5; ++i)
+		{
+			double bonus_tributes = max(min(log(income*equip_time/1e4)/log(1.05), 1250.0)-600, 0.0);
+			greed_bonus = pow(1.025+bonus_tributes*0.00015+floor(bonus_tributes/25)*0.0035, greed);
+			loot = stats.loot*greed_bonus;
+			income = stats.production+loot;
+		}
+		stats.loot = loot;
+	}
+
 	double equip_tier_cost = 40+40+55+80+100+140+160+230+275+375+415+450+500;
 	equip_tier_cost *= pow(0.95, get_perk("artisanistry"));
 	static const double prestige_cost_multi = pow(1.069, 45.05);
@@ -610,6 +628,7 @@ double Perks::evaluate_u2(EvalStats &stats, bool fractional) const
 	stats.health *= 1+heirloom.health*0.01;
 
 	Number crit = get_perk("criticality");
+	double tenacity_factor = 1.1+min(0.01*floor(equip_time/240), 0.3);
 
 	stats.attack = 6;
 	stats.attack += (2+3+4+7+9+15)*pow(1.19, 13*(stats.prestige_level-1))*affordable_level;
@@ -618,6 +637,7 @@ double Perks::evaluate_u2(EvalStats &stats, bool fractional) const
 	stats.attack *= 1+0.01*get_perk("range");
 	stats.attack *= 1+min(0.01*heirloom.crit_chance, 1.0)*(1+0.01*heirloom.crit_damage+0.1*crit);
 	stats.attack *= equality;
+	stats.attack *= pow(tenacity_factor, get_perk("tenacity"));
 	stats.attack *= 1+achievements*0.01;
 	stats.attack *= 1+challenge2*0.01;
 	stats.attack *= 1+heirloom.attack*0.01;
@@ -625,6 +645,7 @@ double Perks::evaluate_u2(EvalStats &stats, bool fractional) const
 	double radon = 1;
 	radon *= 1+0.05*get_perk("looting");
 	radon *= 1+challenge2*0.001;
+	radon *= greed_bonus;
 
 	double score = 0;
 	score += log(stats.health)*health_weight;
