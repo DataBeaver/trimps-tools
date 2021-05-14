@@ -249,7 +249,7 @@ int Perks::main()
 		else if(score<best_score*0.99)
 			break;
 
-		i += max(floor(log(stats.population/stats.army/3)/log(1e3)), 1.0);
+		i += max(floor(log(stats.population/stats.army/3)/log(1e3)-1.0), 1.0);
 	}
 
 	amalgamators = best_gators;
