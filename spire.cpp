@@ -689,8 +689,7 @@ void Spire::update_output(bool new_best_found)
 			}
 		}
 
-		console.clear_current_line();
-		console << loops_per_second << " loops/sec" << endl;
+		console << loops_per_second << " loops/sec" << endl_clear;
 	}
 	else
 	{
@@ -701,7 +700,7 @@ void Spire::update_output(bool new_best_found)
 			console.set_cursor_position(69, 13);
 			console << cycle;
 			console.set_cursor_position(69, 14);
-			console << NumberIO(loops_per_second) << "    ";
+			console << NumberIO(loops_per_second) << clear_to_end;
 			cout.flush();
 		}
 	}
@@ -801,7 +800,7 @@ void Spire::report(const Layout &layout, const string &message)
 	unsigned count = 1;
 	print(layout, count);
 	if((core_budget || fancy_output) && layout.get_core().tier>=0)
-		console << "  Core: " << layout.get_core().str() << endl;
+		console << "  Core: " << layout.get_core().str() << endl_clear;
 
 	if(fancy_output)
 	{
@@ -813,27 +812,25 @@ void Spire::report(const Layout &layout, const string &message)
 		console.set_cursor_position(58, 5);
 		console << "Budget: " << print_num(budget) << " Rs";
 		console.set_cursor_position(58, 7);
-		console << "Damage: " << print_num(layout.get_damage()) << "    ";
+		console << "Damage: " << print_num(layout.get_damage()) << clear_to_end;
 		console.set_cursor_position(58, 8);
-		console << "Threat: " << layout.get_threat();
+		console << "Threat: " << layout.get_threat() << clear_to_end;
 		console.set_cursor_position(58, 9);
-		console << "Income: " << print_num(layout.get_runestones_per_second()) << " Rs/s    ";
+		console << "Income: " << print_num(layout.get_runestones_per_second()) << " Rs/s" << clear_to_end;
 		console.set_cursor_position(58, 10);
-		console << "Cost:   " << print_num(layout.get_cost()) << " Rs    ";
+		console << "Cost:   " << print_num(layout.get_cost()) << " Rs" << clear_to_end;
 		console.set_cursor_position(58, 11);
-		console << "Cycle:  " << layout.get_cycle();
-		if(!layout.get_cycle())
-			console << "        ";
+		console << "Cycle:  " << layout.get_cycle() << clear_to_end;
 		console.set_cursor_position(58, 13);
 		console << "Cycle now: " << cycle;
 		console.set_cursor_position(58, 14);
-		console << "Speed:     " << NumberIO(loops_per_second);
+		console << "Speed:     " << NumberIO(loops_per_second) << clear_to_end;
 		if(network)
 		{
 			console.set_cursor_position(58, 15);
 			console << (connection ? "Online      " : "Disconnected");
 		}
-		console << endl;
+		cout.flush();
 	}
 }
 

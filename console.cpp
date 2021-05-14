@@ -126,8 +126,7 @@ Console::Console():
 	has_256color(false),
 	width(80),
 	height(25),
-	top(0),
-	written(0)
+	top(0)
 {
 #ifdef _WIN32
 	stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -161,7 +160,6 @@ void Console::update_size()
 
 void Console::set_cursor_position(unsigned x, unsigned y)
 {
-	written = x;
 #ifdef _WIN32
 	if(!has_ansi)
 	{
@@ -178,7 +176,6 @@ void Console::set_cursor_position(unsigned x, unsigned y)
 
 void Console::clear_screen()
 {
-	written = 0;
 #ifdef _WIN32
 	if(!has_ansi)
 	{
@@ -198,24 +195,47 @@ void Console::clear_screen()
 	cout << "\033[2J";
 }
 
-void Console::clear_current_line()
+void Console::clear_current_line(ClearLineMode mode)
 {
-	written = 0;
 #ifdef _WIN32
 	if(!has_ansi)
 	{
+		cout.flush();
+
 		CONSOLE_SCREEN_BUFFER_INFO info;
 		GetConsoleScreenBufferInfo(stdout_handle, &info);
+
 		COORD start_pos;
-		start_pos.X = 0;
+		DWORD count;
+		switch(mode)
+		{
+		case CLEAR_WHOLE_LINE:
+			start_pos.X = 0;
+			count = width;
+			break;
+		case CLEAR_FROM_START:
+			start_pos.X = 0;
+			count = info.dwCursorPosition.X;
+			break;
+		case CLEAR_TO_END:
+			start_pos.X = info.dwCursorPosition.X;
+			count = width-info.dwCursorPosition.X;
+			break;
+		}
 		start_pos.Y = info.dwCursorPosition.Y;
+
 		DWORD n_filled = 0;
-		FillConsoleOutputCharacter(stdout_handle, ' ', width, start_pos, &n_filled);
+		FillConsoleOutputCharacter(stdout_handle, ' ', count, start_pos, &n_filled);
 		return;
 	}
 #endif
 
-	cout << "\033[2K";
+	switch(mode)
+	{
+	case CLEAR_WHOLE_LINE: cout << "\033[2K"; break;
+	case CLEAR_FROM_START: cout << "\033[1K"; break;
+	case CLEAR_TO_END: cout << "\033[K"; break;
+	}
 }
 
 void Console::set_text_color(unsigned fore, unsigned back)
@@ -255,51 +275,28 @@ void Console::restore_default_text_color()
 	cout << "\033[0m";
 }
 
-Console& Console::operator<<(StrFunc func)
+
+Console &operator<<(Console &console, Console &(*manip)(Console &))
 {
-	// Test this stream manipulator to see what it does...
-	stringstream out;
-	func(out);
-
-	handle_newlines(out.str());
-
-	// and then pass the manipulator the real stream, too:
-	func(cout);
-
-	return *this;
+	manip(console);
+	return console;
 }
 
-// If the string to add contains a newline (e.g. like it would after endl or a literal '\n' was written)
-// then write spaces to workaround buffer clear bug:
-void Console::handle_newlines(const string& str)
+Console &operator<<(Console &console, ostream &(*manip)(ostream &))
 {
-	string copy = string(str);
-
-	// NB: This will be subtly wrong for encodings where 1 character is not strictly one byte...
-	auto newline = copy.find('\n');
-	while(newline!=string::npos)
-	{
-		cout << copy.substr(0, newline);
-		copy = copy.substr(newline+1);
-
-		written += newline;
-		restore_default_text_color();
-		if(written<width)
-			cout << string(width-written, ' ');
-		written = 0;
-
-		newline = copy.find('\n');
-	}
-
-	written += copy.length();
-	cout << copy;
+	manip(cout);
+	return console;
 }
 
-Console& Console::stream_manip(const stringstream& ss)
+Console &clear_to_end(Console &console)
 {
-	string output = ss.str();
+	console.clear_current_line(Console::CLEAR_TO_END);
+	return console;
+}
 
-	handle_newlines(output);
-
-	return *this;
+Console &endl_clear(Console &console)
+{
+	console.clear_current_line(Console::CLEAR_TO_END);
+	cout << endl;
+	return console;
 }
