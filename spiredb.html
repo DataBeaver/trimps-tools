@@ -1,0 +1,46 @@
+<html>
+<head>
+<title>Trimps spire database</title>
+</head>
+<link rel="stylesheet" href="/spiredb.css">
+<script src="/spiredb.js"></script>
+<body>
+<h1>Trimps spire database</h1>
+<div id="flex-wrapper">
+<div><table id="spire"></table>
+<p id="core">Submitted with core: <span>none</span></p></div>
+<div id="ui">
+<form>
+<div class="form-row"><label>Upgrades:</label> <div class="form-group">
+	<input type="text" class="fire" name="fire" value="6" size="1" maxlength="1">
+	<input type="text" class="frost" name="frost" value="6" size="1" maxlength="1">
+	<input type="text" class="poison" name="poison" value="5" size="1" maxlength="1">
+	<input type="text" class="lightning" name="lightning" value="4" size="1" maxlength="1">
+</div></div>
+<div class="form-row"><label for="floors">Floors:</label> <input type="text" name="floors" value="17"></div>
+<div class="form-row"><label for="budget">Budget:</label> <input type="text" name="budget" value="4T"> Rs</div>
+<div class="form-row"><label for="core-tier">Core tier:</label> <select name="core_tier">
+	<option value="1">Common</option>
+	<option value="2">Uncommon</option>
+	<option value="3">Rare</option>
+	<option value="4" selected>Epic</option>
+	<option value="5">Legendary</option>
+	<option value="6">Magnificent</option>
+	<option value="7">Ethereal</option>
+</select></div>
+<div class="form-row"><label>Core mods:</label> <div class="form-group">
+	<input type="text" class="fire" name="core_fire" size="5">
+	<input type="text" class="poison" name="core_poison" value="60" size="5">
+	<input type="text" class="lightning" name="core_lightning" size="5">
+</div><div class="form-group">
+	<input type="text" class="strength" name="core_strength" size="5">
+	<input type="text" class="condenser" name="core_condenser" value="10" size="5">
+	<input type="text" class="runestones" name="core_runestones" size="5">
+</div></div>
+<div class="form-row"><input type="submit" value="Find spire"></div>
+</form>
+<div id="error"></div>
+</div>
+</div>
+</body>
+</html>

@@ -53,6 +53,7 @@ private:
 	{
 		ConnectionTag tag;
 		int sock;
+		int http_mode;
 		std::string remote_host;
 		std::string received_data;
 		ReceiveFunc *recv_func;

@@ -1,0 +1,191 @@
+body
+{
+	font-family: sans-serif;
+	background: #EEE;
+}
+
+h1
+{
+	margin: 2rem 10rem 1rem;
+}
+
+#flex-wrapper
+{
+	display: flex;
+	flex-direction: row;
+}
+
+#flex-wrapper > div
+{
+	background: #FFF;
+	border: 1px solid #888;
+	border-radius: 3px;
+	padding: 0.5rem;
+	margin: 0.5rem;
+}
+
+.F
+{
+	color: #600;
+}
+
+.Z
+{
+	color: #226;
+}
+
+.P
+{
+	color: #060;
+}
+
+.L
+{
+	color: #660;
+}
+
+.S
+{
+	color: #640;
+}
+
+.C
+{
+	color: #666;
+}
+
+.K
+{
+	color: #604;
+}
+
+#spire
+{
+	border-collapse: collapse;
+}
+
+#spire td
+{
+	border: 1px solid black;
+	width: 5rem;
+	height: 2rem;
+	padding: 0.2rem 0.5rem;
+	font-weight: bold;
+}
+
+#spire td.F
+{
+	background: #E77;
+}
+
+#spire td.Z
+{
+	background: #88E;
+}
+
+#spire td.P
+{
+	background: #6D6;
+}
+
+#spire td.L
+{
+	background: #EE6;
+}
+
+#spire td.S
+{
+	background: #DA6;
+}
+
+#spire td.C
+{
+	background: #CCC;
+}
+
+#spire td.K
+{
+	background: #B6D;
+}
+
+#core
+{
+	max-width: 30rem;
+}
+
+.form-row
+{
+	margin-top: 0.5rem;
+}
+
+.form-row label
+{
+	position: absolute;
+}
+
+.form-row input,
+.form-row select,
+.form-row .form-group
+{
+	margin-left: 7rem;
+}
+
+.form-row .form-group + .form-group
+{
+	margin-top: 0.5rem;
+}
+
+.form-row .form-group input
+{
+	margin-left: 0;
+}
+
+.form-row .form-group input + input
+{
+	margin-left: 0.5rem;
+}
+
+input[type=text],
+select
+{
+	appearance: none;
+	background: #FFF;
+	border: 1px solid #888;
+	border-radius: 2px;
+	padding: 2px;
+}
+
+input.fire
+{
+	background: #FCC;
+}
+
+input.frost
+{
+	background: #CCF;
+}
+
+input.poison
+{
+	background: #CFC;
+}
+
+input.lightning
+{
+	background: #EEB;
+}
+
+input.strength
+{
+	background: #ECA;
+}
+
+input.condenser
+{
+	background: #DDD;
+}
+
+#error
+{
+	color: #C00;
+}

@@ -10,6 +10,7 @@
 #include <unistd.h>
 #endif
 #include <future>
+#include "http.h"
 #include "stringutils.h"
 
 using namespace std;
@@ -165,18 +166,25 @@ string Network::communicate(ConnectionTag tag, const string &data)
 
 void Network::communicate_(ConnectionTag tag, const string &data, ReceiveFunc *func)
 {
-	if(data.find('\n')!=string::npos)
-	{
-		delete func;
-		throw invalid_argument("Network::communicate");
-	}
-
-	string msg_data = data+"\n";
-
 	lock_guard<mutex> lock(connections_mutex);
 	auto i = connections.find(tag);
 	if(i==connections.end())
+	{
+		delete func;
 		return;
+	}
+
+	string msg_data = data;
+	if(i->second->http_mode==0)
+	{
+		if(data.find('\n')!=string::npos)
+		{
+			delete func;
+			throw invalid_argument("Network::communicate");
+		}
+
+		msg_data += '\n';
+	}
 
 	if(i->second->next_recv!=i->second->recv_func)
 	{
@@ -216,6 +224,7 @@ Network::Message::Message(ConnectionTag c, const string &d, ReceiveFunc *f):
 Network::Connection::Connection(ConnectionTag t, int s, const string &h, ReceiveFunc *f):
 	tag(t),
 	sock(s),
+	http_mode(-1),
 	remote_host(h),
 	recv_func(f),
 	next_recv(f)
@@ -357,6 +366,10 @@ void Network::Worker::process_connection(Connection *conn)
 	else
 		stale_connections.push_back(conn);
 
+	if(conn->http_mode<0)
+		if(!conn->received_data.compare(0, 4, "GET ") || !conn->received_data.compare(0, 5, "POST "))
+			conn->http_mode = 1;
+
 	string::size_type start = 0;
 	while(1)
 	{
@@ -364,13 +377,44 @@ void Network::Worker::process_connection(Connection *conn)
 		if(newline==string::npos)
 			break;
 
+		if(conn->http_mode<0)
+			conn->http_mode = 0;
+
+		string::size_type message_end = newline;
 		if(conn->next_recv && newline>0)
 		{
-			receive_queue.emplace_back(conn->tag, conn->received_data.substr(start, newline-start), conn->next_recv);
+			if(conn->http_mode)
+			{
+				string::size_type headers_end = conn->received_data.find("\r\n\r\n");
+				if(headers_end==string::npos)
+				{
+					headers_end = conn->received_data.find("\n\n");
+					if(headers_end==string::npos)
+						break;
+					else
+						headers_end += 2;
+				}
+				else
+					headers_end += 4;
+
+				HttpMessage message(conn->received_data.substr(start, headers_end-start));
+
+				string::size_type content_length = 0;
+				auto i = message.headers.find("Content-Length");
+				if(i!=message.headers.end())
+					content_length = parse_value<string::size_type>(i->second);
+
+				if(headers_end+content_length>conn->received_data.size())
+					break;
+
+				message_end = headers_end+content_length;
+			}
+
+			receive_queue.emplace_back(conn->tag, conn->received_data.substr(start, message_end-start), conn->next_recv);
 			conn->next_recv = conn->recv_func;
 		}
 
-		start = newline+1;
+		start = message_end+1;
 	}
 
 	conn->received_data.erase(0, start);

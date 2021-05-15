@@ -7,6 +7,7 @@
 #include <pqxx/result>
 #include <pqxx/transaction>
 #include "getopt.h"
+#include "http.h"
 #include "spirelayout.h"
 #include "stringutils.h"
 
@@ -158,6 +159,9 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 		return;
 	}
 
+	if(!data.compare(0, 4, "GET ") || !data.compare(0, 5, "POST "))
+		return serve_http(tag, data);
+
 	vector<string> parts = split(data);
 	string cmd;
 	if(!parts.empty())
@@ -194,6 +198,63 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 
 	cout << '[' << remote << "] <- " << result << endl;
 	network.send_message(tag, result);
+}
+
+void SpireDB::serve_http(Network::ConnectionTag tag, const string &data)
+{
+	const string &remote = network.get_remote_host(tag);
+	HttpMessage request(data);
+	cout << '[' << remote << "] -> " << request.method << ' ' << request.path << endl;
+
+	HttpMessage response(404);
+	try
+	{
+		if(request.method=="GET" && (request.path=="/index.html" || request.path=="/"))
+			serve_http_file("spiredb.html", response);
+		else if(request.method=="GET" && request.path=="/spiredb.css")
+			serve_http_file("spiredb.css", response);
+		else if(request.method=="GET" && request.path=="/spiredb.js")
+			serve_http_file("spiredb.js", response);
+		else if(request.method=="POST" && request.path=="/query")
+		{
+			response.response = 200;
+			vector<string> parts = split(request.body);
+			response.body = query(tag, parts);
+		}
+	}
+	catch(const exception &e)
+	{
+		response.response = 500;
+		response.body = format("error %s %s", typeid(e).name(), e.what());
+	}
+
+	response.add_header("Content-Length", response.body.size());
+
+	cout << '[' << remote << "] <- HTTP " << response.response << endl;
+	network.send_message(tag, response.str());
+}
+
+void SpireDB::serve_http_file(const string &filename, HttpMessage &response)
+{
+	ifstream in_file(filename);
+	char buffer[16384];
+	while(in_file)
+	{
+		in_file.read(buffer, sizeof(buffer));
+		response.body.append(buffer, in_file.gcount());
+	}
+
+	response.response = 200;
+
+	string::size_type fn_dot = filename.rfind('.');
+	if(!filename.compare(fn_dot, string::npos, ".html"))
+		response.add_header("Content-Type", "text/html");
+	else if(!filename.compare(fn_dot, string::npos, ".js"))
+		response.add_header("Content-Type", "text/javascript");
+	else if(!filename.compare(fn_dot, string::npos, ".css"))
+		response.add_header("Content-Type", "text/css");
+	else
+		response.add_header("Content-Type", "text/plain");
 }
 
 string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
