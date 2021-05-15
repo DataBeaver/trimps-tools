@@ -319,6 +319,9 @@ Core SpireDB::query_core(pqxx::transaction_base &xact, unsigned layout_id)
 	Core core;
 
 	pqxx::result result = xact.exec_prepared("select_core_tier", layout_id);
+	if (result.front()[0].is_null())
+		return core;
+
 	core.tier = result.front()[0].as<int16_t>();
 
 	result = xact.exec_prepared("select_mods", layout_id);
