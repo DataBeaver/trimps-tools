@@ -215,7 +215,7 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 		else if(!args[i].compare(0, 4, "upg="))
 			upgrades = args[i].substr(4);
 		else if(!args[i].compare(0, 3, "rs="))
-			budget = parse_value<Number>(args[i].substr(3));
+			budget = parse_value<NumberIO>(args[i].substr(3));
 		else if(args[i]=="income")
 			income = true;
 		else if(args[i]=="damage")
@@ -225,7 +225,7 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 		else if(!args[i].compare(0, 5, "core="))
 			core = args[i].substr(5);
 		else if(!args[i].compare(0, 3, "ss="))
-			core_budget = parse_value<Number>(args[i].substr(3));
+			core_budget = parse_value<NumberIO>(args[i].substr(3));
 		else
 			throw invalid_argument("SpireDB::query");
 	}
