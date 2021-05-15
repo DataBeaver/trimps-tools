@@ -604,11 +604,25 @@ bool Spire::query_network()
 		layout.set_upgrades(best_layout.get_upgrades());
 		layout.set_core(best_layout.get_core());
 
+		Core received_core;
+
 		for(unsigned i=1; i<parts.size(); ++i)
+		{
 			if(!parts[i].compare(0, 2, "t="))
 				layout.set_traps(parts[i].substr(2), floors);
+			else if(!parts[i].compare(0, 5, "core="))
+			{
+				received_core = parts[i].substr(5);
+				received_core.update();
+			}
+		}
 
 		layout.update(report_update_mode);
+		if(received_core.tier>=0 && check_better_core(layout, received_core))
+		{
+			layout.set_core(received_core);
+			layout.update(report_update_mode);
+		}
 
 		if(score_func(layout)>score_func(best_layout))
 		{
@@ -619,6 +633,42 @@ bool Spire::query_network()
 	}
 
 	return false;
+}
+
+bool Spire::check_better_core(const Layout &layout, const Core &core)
+{
+	if(!validate_core(core))
+		return false;
+
+	Layout with_core = layout;
+	with_core.set_core(core);
+	with_core.update(report_update_mode);
+	return score_func(with_core)>score_func(layout);
+}
+
+bool Spire::validate_core(const Core &core)
+{
+	if(core.cost>core_budget)
+		return false;
+
+	if(core_mutate==Core::ALL_MUTATIONS)
+		return true;
+
+	const Core &start_core = start_layout.get_core();
+	if(no_core_downgrade)
+	{
+		for(unsigned j=0; j<Core::N_MODS; ++j)
+			if(core.get_mod(j)<start_core.get_mod(j))
+				return false;
+	}
+	else
+	{
+		for(unsigned j=0; j<Core::N_MODS; ++j)
+			if((core.get_mod(j)!=0) != (start_core.get_mod(j)!=0))
+				return false;
+	}
+
+	return true;
 }
 
 void Spire::check_reconnect(const chrono::steady_clock::time_point &current_time)
@@ -771,15 +821,32 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 	if(parts[0]=="push")
 	{
 		Layout layout;
+		{
+			lock_guard<mutex> lock_best(best_mutex);
+			layout.set_core(best_layout.get_core());
+		}
+
+		Core received_core;
+
 		for(unsigned i=1; i<parts.size(); ++i)
 		{
 			if(!parts[i].compare(0, 4, "upg="))
 				layout.set_upgrades(parts[i].substr(4));
 			else if(!parts[i].compare(0, 2, "t="))
 				layout.set_traps(parts[i].substr(2));
+			else if(!parts[i].compare(0, 5, "core="))
+			{
+				received_core = parts[i].substr(5);
+				received_core.update();
+			}
 		}
 
 		layout.update(report_update_mode);
+		if(received_core.tier>=0 && check_better_core(layout, received_core))
+		{
+			layout.set_core(received_core);
+			layout.update(report_update_mode);
+		}
 
 		lock_guard<mutex> lock_best(best_mutex);
 		if(score_func(layout)>score_func(best_layout))
@@ -1143,16 +1210,7 @@ void Spire::Worker::main()
 				core.mutate(spire.core_mutate, 1+random()%5, random);
 				core.update();
 
-				bool ok = (core.cost<=spire.core_budget);
-
-				if(ok && spire.no_core_downgrade)
-				{
-					const Core &start_core = spire.start_layout.get_core();
-					for(unsigned j=0; (ok && j<Core::N_MODS); ++j)
-						ok = (core.get_mod(j)>=start_core.get_mod(j));
-				}
-
-				if(ok)
+				if(spire.validate_core(core))
 					mutated.set_core(core);
 			}
 

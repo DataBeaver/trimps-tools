@@ -441,6 +441,8 @@ void SpireDB::check_live_queries(Network::ConnectionTag tag, const Layout &layou
 			&& core_type==lq.second.core_type && core_cost<=lq.second.core_budget)
 		{
 			string push = format("push upg=%s t=%s", up_str, layout.get_traps());
+			if(layout.get_core().tier>=0)
+				push += format(" core=%s", layout.get_core().str(true));
 			cout << '[' << network.get_remote_host(lq.first) << "] <- " << push << endl;
 			network.send_message(lq.first, push);
 		}

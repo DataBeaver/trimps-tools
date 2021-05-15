@@ -107,6 +107,8 @@ public:
 	int main();
 private:
 	bool query_network();
+	bool check_better_core(const Layout &, const Core &);
+	bool validate_core(const Core &);
 	void check_reconnect(const std::chrono::steady_clock::time_point &);
 	bool check_results();
 	void submit_best();
