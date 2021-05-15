@@ -67,7 +67,7 @@ SpireDB::SpireDB(int argc, char **argv):
 		"LEFT JOIN core_mods AS core_strength ON core_strength.layout_id=layouts.id AND core_strength.mod=3 "
 		"LEFT JOIN core_mods AS core_condenser ON core_condenser.layout_id=layouts.id AND core_condenser.mod=4";
 	string filter_base = "floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND cost<=$6";
-	string filter_core = "core_type=$7 AND core_cost<=$8";
+	string filter_core = "core_type=$7 AND core_tier<=$8 AND core_cost<=$9";
 
 	pq_conn = new pqxx::connection(dbopts);
 	pq_conn->prepare("select_all", "SELECT "+common_fields+" FROM layouts");
@@ -245,6 +245,7 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 		lq.floors = floors;
 		lq.budget = budget;
 		lq.core_type = core.get_type();
+		lq.core_tier = core.tier;
 		lq.core_budget = core_budget;
 		live_queries[tag] = lq;
 	}
@@ -305,7 +306,7 @@ Layout SpireDB::query_layout(pqxx::transaction_base &xact, unsigned floors, cons
 	{
 		query = (income ? "select_best_income_with_core" : "select_best_damage_with_core");
 		process(xact.exec_prepared(query, floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, budget,
-			core->get_type(), core_budget));
+			core->get_type(), core->tier, core_budget));
 	}
 
 	best.set_core(query_core(xact, best_id));
@@ -434,11 +435,12 @@ void SpireDB::check_live_queries(Network::ConnectionTag tag, const Layout &layou
 	unsigned floors = layout.get_traps().size()/5;
 	Number cost = layout.get_cost();
 	string core_type = layout.get_core().get_type();
+	unsigned core_tier = layout.get_core().tier;
 	Number core_cost = layout.get_core().cost;
 	for(const auto &lq: live_queries)
 	{
 		if(tag!=lq.first && up_str==lq.second.upgrades && floors==lq.second.floors && cost<=lq.second.budget
-			&& core_type==lq.second.core_type && core_cost<=lq.second.core_budget)
+			&& core_type==lq.second.core_type && core_tier<=lq.second.core_tier && core_cost<=lq.second.core_budget)
 		{
 			string push = format("push upg=%s t=%s", up_str, layout.get_traps());
 			if(layout.get_core().tier>=0)

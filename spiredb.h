@@ -21,6 +21,7 @@ private:
 		unsigned floors;
 		Number budget;
 		std::string core_type;
+		unsigned core_tier;
 		Number core_budget;
 	};
 
