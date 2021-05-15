@@ -20,7 +20,7 @@ ostream &operator<<(ostream &os, unsigned __int128 value)
 	char buf[40];
 	unsigned i = 39;
 	buf[i] = 0;
-	while(value)
+	while(value || i==39)
 	{
 		buf[--i] = '0'+value%10;
 		value /= 10;

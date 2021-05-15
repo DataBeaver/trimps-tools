@@ -8,7 +8,10 @@
 
 #ifdef WITH_128BIT
 #ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 typedef unsigned __int128 Number;
+#pragma GCC diagnostic pop
 #else
 #error "128-bit integers are not available with this compiler"
 #endif
