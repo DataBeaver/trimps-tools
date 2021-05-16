@@ -1,4 +1,4 @@
-CXXFLAGS := -pthread -O2 -std=c++11
+CXXFLAGS := -pthread -O2 -std=c++17
 LDFLAGS := -pthread
 
 PQXX_CFLAGS = $(shell pkg-config --cflags libpqxx)

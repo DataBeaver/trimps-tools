@@ -39,7 +39,7 @@ public:
 
 	int main();
 private:
-	void update_layouts();
+	void update_data();
 	void serve(Network::ConnectionTag, const std::string &);
 	void serve_http(Network::ConnectionTag, const std::string &);
 	void serve_http_file(const std::string &, HttpMessage &);
