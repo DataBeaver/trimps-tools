@@ -302,9 +302,6 @@ void SpireDB::serve_http_file(const string &filename, HttpMessage &response)
 
 string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 {
-	if(args.size()<3)
-		throw invalid_argument("SpireDB::query");
-
 	TrapUpgrades upgrades("8896");
 	unsigned floors = 20;
 	Number budget = static_cast<Number>(-1);
@@ -434,25 +431,13 @@ Core SpireDB::query_core(pqxx::transaction_base &xact, unsigned core_id)
 
 string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, const string &submitter)
 {
-	if(args.size()<2)
-		throw invalid_argument("SpireDB::submit");
-
-	unsigned kw_start = 0;
-
 	Layout layout;
-	if(args[0].find('=')==string::npos)
-	{
-		layout.set_upgrades(args[0]);
-		layout.set_traps(args[1]);
-		kw_start = 2;
-	}
-
-	for(unsigned i=kw_start; i<args.size(); ++i)
+	for(unsigned i=0; i<args.size(); ++i)
 	{
 		if(!args[i].compare(0, 4, "upg="))
-			layout.set_upgrades(args[i]);
+			layout.set_upgrades(args[i].substr(4));
 		else if(!args[i].compare(0, 2, "t="))
-			layout.set_traps(args[i]);
+			layout.set_traps(args[i].substr(2));
 		else if(!args[i].compare(0, 5, "core="))
 		{
 			Core core = args[i].substr(5);
