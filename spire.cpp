@@ -580,7 +580,7 @@ int Spire::main()
 
 bool Spire::query_network()
 {
-	if(!network)
+	if(!connection)
 		return false;
 
 	unsigned floors = best_layout.get_traps().size()/5;
@@ -604,25 +604,8 @@ bool Spire::query_network()
 		layout.set_upgrades(best_layout.get_upgrades());
 		layout.set_core(best_layout.get_core());
 
-		Core received_core;
-
-		for(unsigned i=1; i<parts.size(); ++i)
-		{
-			if(!parts[i].compare(0, 2, "t="))
-				layout.set_traps(parts[i].substr(2), floors);
-			else if(!parts[i].compare(0, 5, "core="))
-			{
-				received_core = parts[i].substr(5);
-				received_core.update();
-			}
-		}
-
-		layout.update(report_update_mode);
-		if(received_core.tier>=0 && check_better_core(layout, received_core))
-		{
-			layout.set_core(received_core);
-			layout.update(report_update_mode);
-		}
+		parts.erase(parts.begin());
+		process_network_reply(parts, layout);
 
 		if(score_func(layout)>score_func(best_layout))
 		{
@@ -633,6 +616,33 @@ bool Spire::query_network()
 	}
 
 	return false;
+}
+
+void Spire::process_network_reply(const vector<string> &args, Layout &layout)
+{
+	unsigned floors = layout.get_traps().size()/5;
+
+	Core received_core;
+
+	for(const auto &arg: args)
+	{
+		if(!arg.compare(0, 4, "upg="))
+			layout.set_upgrades(arg.substr(4));
+		else if(!arg.compare(0, 2, "t="))
+			layout.set_traps(arg.substr(2), floors);
+		else if(!arg.compare(0, 5, "core="))
+		{
+			received_core = arg.substr(5);
+			received_core.update();
+		}
+	}
+
+	layout.update(report_update_mode);
+	if(received_core.tier>=0 && check_better_core(layout, received_core))
+	{
+		layout.set_core(received_core);
+		layout.update(report_update_mode);
+	}
 }
 
 bool Spire::check_better_core(const Layout &layout, const Core &core)
@@ -818,7 +828,10 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 	}
 
 	vector<string> parts = split(message);
-	if(parts[0]=="push")
+	string cmd = parts.front();
+	parts.erase(parts.begin());
+
+	if(cmd=="push")
 	{
 		Layout layout;
 		{
@@ -826,27 +839,7 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 			layout.set_core(best_layout.get_core());
 		}
 
-		Core received_core;
-
-		for(unsigned i=1; i<parts.size(); ++i)
-		{
-			if(!parts[i].compare(0, 4, "upg="))
-				layout.set_upgrades(parts[i].substr(4));
-			else if(!parts[i].compare(0, 2, "t="))
-				layout.set_traps(parts[i].substr(2));
-			else if(!parts[i].compare(0, 5, "core="))
-			{
-				received_core = parts[i].substr(5);
-				received_core.update();
-			}
-		}
-
-		layout.update(report_update_mode);
-		if(received_core.tier>=0 && check_better_core(layout, received_core))
-		{
-			layout.set_core(received_core);
-			layout.update(report_update_mode);
-		}
+		process_network_reply(parts, layout);
 
 		lock_guard<mutex> lock_best(best_mutex);
 		if(score_func(layout)>score_func(best_layout))

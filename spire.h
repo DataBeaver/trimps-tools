@@ -107,6 +107,7 @@ public:
 	int main();
 private:
 	bool query_network();
+	void process_network_reply(const std::vector<std::string> &, Layout &);
 	bool check_better_core(const Layout &, const Core &);
 	bool validate_core(const Core &);
 	void check_reconnect(const std::chrono::steady_clock::time_point &);
