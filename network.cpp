@@ -175,6 +175,8 @@ void Network::communicate_(ConnectionTag tag, const string &data, ReceiveFunc *f
 	}
 
 	string msg_data = data;
+	if(i->second->http_mode==-1)
+		i->second->http_mode = 0;
 	if(i->second->http_mode==0)
 	{
 		if(data.find('\n')!=string::npos)
