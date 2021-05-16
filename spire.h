@@ -20,13 +20,17 @@ private:
 	private:
 		Spire &spire;
 		Random random;
-		bool intr_flag;
+		std::atomic<bool> intr_flag;
+		std::atomic<bool> pause_flag;
+		std::atomic<bool> working;
 		std::thread thread;
 
 	public:
-		Worker(Spire &, unsigned);
+		Worker(Spire &, unsigned, bool);
 
+		bool is_working() const { return working.load(); }
 		void interrupt();
+		void set_paused(bool);
 		void join();
 
 	private:
@@ -73,8 +77,10 @@ private:
 	bool show_pools;
 	Network *network;
 	bool live;
+	bool athome;
 	Network::ConnectionTag connection;
 	std::chrono::steady_clock::time_point reconnect_timeout;
+	std::chrono::steady_clock::time_point next_work_timeout;
 	bool intr_flag;
 
 	Number budget;
@@ -111,6 +117,7 @@ private:
 	bool check_better_core(const Layout &, const Core &);
 	bool validate_core(const Core &);
 	void check_reconnect(const std::chrono::steady_clock::time_point &);
+	void check_athome_work(const std::chrono::steady_clock::time_point &);
 	bool check_results();
 	void submit_best();
 	void update_output(bool);

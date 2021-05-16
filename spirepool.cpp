@@ -8,6 +8,12 @@ Pool::Pool(unsigned s, ScoreFunc *f):
 	score_func(f)
 { }
 
+void Pool::clear()
+{
+	lock_guard<mutex> lock(layouts_mutex);
+	layouts.clear();
+}
+
 void Pool::add_layout(const Layout &layout)
 {
 	lock_guard<mutex> lock(layouts_mutex);

@@ -21,6 +21,7 @@ private:
 public:
 	Pool(unsigned, ScoreFunc *);
 
+	void clear();
 	void add_layout(const Layout &);
 	Layout get_best_layout() const;
 	bool get_best_layout(Layout &) const;

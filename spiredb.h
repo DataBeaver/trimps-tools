@@ -1,17 +1,17 @@
 #ifndef SPIREDB_H_
 #define SPIREDB_H_
 
+#include <deque>
 #include <string>
 #define PQXX_HIDE_EXP_OPTIONAL
 #include <pqxx/connection>
 #include <pqxx/transaction>
 #include "network.h"
 #include "spirecore.h"
+#include "spirelayout.h"
 #include "types.h"
 
 struct HttpMessage;
-class Layout;
-class TrapUpgrades;
 
 class SpireDB
 {
@@ -26,10 +26,22 @@ private:
 		Number core_budget;
 	};
 
+	struct RecentQuery: LiveQuery
+	{
+		std::chrono::steady_clock::time_point time;
+	};
+
 	Network network;
+	std::mutex database_mutex;
 	pqxx::connection *pq_conn;
 	bool force_update;
 	std::map<Network::ConnectionTag, LiveQuery> live_queries;
+	std::mutex recent_mutex;
+	std::deque<RecentQuery> recent_queries;
+	Random random;
+	std::mutex work_mutex;
+	Layout current_work;
+	bool gave_out_work;
 
 	static const unsigned current_version;
 
@@ -50,6 +62,8 @@ private:
 	int check_better_layout(pqxx::transaction_base &, const Layout &, bool);
 	void check_live_queries(Network::ConnectionTag, const Layout &);
 	static int compare_layouts(const Layout &, const Layout &, bool);
+	void select_random_work();
+	std::string get_work();
 };
 
 #endif

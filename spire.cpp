@@ -74,6 +74,7 @@ Spire::Spire(int argc, char **argv):
 	show_pools(false),
 	network(0),
 	live(false),
+	athome(false),
 	connection(0),
 	intr_flag(false),
 	budget(0),
@@ -117,6 +118,9 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("towers", tower_type, GetOpt::OPTIONAL_ARG).set_help("Try to use as many towers as possible").bind_seen_count(towers_seen);
 	getopt.add_option("online", online, GetOpt::NO_ARG).set_help("Use the online layout database");
 	getopt.add_option("live", live, GetOpt::NO_ARG).set_help("Perform a live query to the database");
+#ifdef WITH_128BIT
+	getopt.add_option("athome", athome, GetOpt::NO_ARG).set_help("Work on random layouts provided by the database");
+#endif
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on", "NAME");
 	getopt.add_option("fancy", fancy_output, GetOpt::NO_ARG).set_help("Produce fancy output");
 	getopt.add_option('e', "exact", exact, GetOpt::NO_ARG).set_help("Use exact calculations, at cost of performance");
@@ -149,7 +153,15 @@ Spire::Spire(int argc, char **argv):
 	if(prune_limit<1)
 		throw usage_error("Invalid prune limit");
 
-	if(preset=="single")
+	if(athome)
+	{
+		prune_interval = 0;
+		heterogeneous = false;
+		online = true;
+		live = false;
+		towers_seen = false;
+	}
+	else if(preset=="single")
 	{
 		if(!n_pools_seen)
 			n_pools = 1;
@@ -238,7 +250,8 @@ Spire::Spire(int argc, char **argv):
 	if(prune_interval)
 		next_prune = prune_interval;
 
-	init_start_layout(parse_layout(layout_str, upgrades, core, floors));
+	if(!athome)
+		init_start_layout(parse_layout(layout_str, upgrades, core, floors));
 	init_pools(pool_size);
 
 	if(!budget_str.empty())
@@ -514,9 +527,11 @@ int Spire::main()
 
 	if(connection)
 	{
-		if(!fancy_output)
+		if(!athome && !fancy_output)
 			console << "Querying online database for best known layout" << endl;
-		if(query_network())
+		if(athome)
+			;
+		else if(query_network())
 		{
 			if(!show_pools)
 				report(best_layout, "Layout from database");
@@ -534,7 +549,7 @@ int Spire::main()
 
 	Random random;
 	for(unsigned i=0; i<n_workers; ++i)
-		workers.push_back(new Worker(*this, random()));
+		workers.push_back(new Worker(*this, random(), athome));
 
 	chrono::steady_clock::time_point period_start_time = chrono::steady_clock::now();
 	unsigned period_start_cycle = cycle;
@@ -560,6 +575,7 @@ int Spire::main()
 		}
 
 		check_reconnect(current_time);
+		check_athome_work(current_time);
 
 		lock_guard<mutex> lock(best_mutex);
 		bool new_best_found = check_results();
@@ -638,7 +654,7 @@ void Spire::process_network_reply(const vector<string> &args, Layout &layout)
 	}
 
 	layout.update(report_update_mode);
-	if(received_core.tier>=0 && check_better_core(layout, received_core))
+	if(received_core.tier>=0 && (athome || check_better_core(layout, received_core)))
 	{
 		layout.set_core(received_core);
 		layout.update(report_update_mode);
@@ -690,7 +706,9 @@ void Spire::check_reconnect(const chrono::steady_clock::time_point &current_time
 	if(connection)
 	{
 		lock_guard<mutex> lock(best_mutex);
-		if(query_network())
+		if(athome)
+			;
+		else if(query_network())
 		{
 			if(!show_pools)
 				report(best_layout, "New best layout from database");
@@ -698,6 +716,15 @@ void Spire::check_reconnect(const chrono::steady_clock::time_point &current_time
 		else
 			submit_best();
 	}
+}
+
+void Spire::check_athome_work(const chrono::steady_clock::time_point &current_time)
+{
+	if(!athome || !connection || current_time<next_work_timeout)
+		return;
+
+	network->send_message(connection, "getwork");
+	next_work_timeout = current_time+chrono::minutes(1);
 }
 
 bool Spire::check_results()
@@ -714,6 +741,7 @@ bool Spire::check_results()
 	if(new_best)
 	{
 		best_layout.update(report_update_mode);
+		next_work_timeout = chrono::steady_clock::now()+chrono::minutes(1);
 		submit_best();
 	}
 
@@ -850,6 +878,47 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 			lock_guard<mutex> lock_pools(pools_mutex);
 			pools.front()->add_layout(layout);
 		}
+	}
+	else if(cmd=="work")
+	{
+		Layout layout;
+		process_network_reply(parts, layout);
+
+		for(auto w: workers)
+			w->set_paused(true);
+
+		bool all_paused = false;
+		while(!all_paused)
+		{
+			this_thread::sleep_for(chrono::milliseconds(100));
+
+			all_paused = true;
+			for(auto w: workers)
+				if(w->is_working())
+					all_paused = false;
+		}
+
+		Layout empty;
+		empty.set_upgrades(layout.get_upgrades());
+		empty.set_core(layout.get_core());
+		empty.set_traps(string(), layout.get_traps().size()/5);
+
+		for(auto i=pools.begin(); i!=pools.end(); ++i)
+		{
+			(*i)->clear();
+			(*i)->add_layout(i==pools.begin() ? layout : empty);
+		}
+
+		{
+			lock_guard<mutex> lock(best_mutex);
+			best_layout = layout;
+		}
+		budget = layout.get_cost();
+
+		for(auto w: workers)
+			w->set_paused(false);
+
+		report(layout, "New spire@home work from database");
 	}
 }
 
@@ -1125,17 +1194,24 @@ void Spire::sighandler(int)
 }
 
 
-Spire::Worker::Worker(Spire &s, unsigned e):
+Spire::Worker::Worker(Spire &s, unsigned e, bool p):
 	spire(s),
 	random(e),
 	intr_flag(false),
+	pause_flag(p),
+	working(true),
 	thread(&Worker::main, this)
 {
 }
 
 void Spire::Worker::interrupt()
 {
-	intr_flag = true;
+	intr_flag.store(true);
+}
+
+void Spire::Worker::set_paused(bool p)
+{
+	pause_flag.store(p);
 }
 
 void Spire::Worker::join()
@@ -1146,8 +1222,17 @@ void Spire::Worker::join()
 void Spire::Worker::main()
 {
 	unique_lock<mutex> pools_lock(spire.pools_mutex, defer_lock);
-	while(!intr_flag)
+	while(!intr_flag.load())
 	{
+		while(pause_flag.load() && !intr_flag.load())
+		{
+			working.store(false);
+			this_thread::sleep_for(chrono::milliseconds(100));
+		}
+		if(intr_flag.load())
+			break;
+		working.store(true);
+
 		unsigned cycle = spire.get_next_cycle();
 
 		pools_lock.lock();

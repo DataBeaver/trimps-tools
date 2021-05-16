@@ -8,7 +8,6 @@
 #include <pqxx/transaction>
 #include "getopt.h"
 #include "http.h"
-#include "spirelayout.h"
 #include "stringutils.h"
 
 using namespace std;
@@ -72,6 +71,9 @@ SpireDB::SpireDB(int argc, char **argv):
 		"LEFT JOIN core_mods AS core_runestone ON core_runestone.core_id=cores.id AND core_condenser.mod=4";
 	string filter_base = "floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND layouts.cost<=$6";
 	string filter_core = "cores.type=$7 AND cores.tier<=$8 AND cores.cost<=$9";
+	string filter_config = "floors=$1 AND fire=$2 AND frost=$3 AND poison=$4 AND lightning=$5";
+	string filter_core_config = "cores.type=$6 AND cores.tier=$7";
+	string empty_traps = "LENGTH(REGEXP_REPLACE(traps, '[^_]', '', 'g')) AS empty_count";
 
 	pq_conn = new pqxx::connection(dbopts);
 	pq_conn->prepare("select_all_layouts", "SELECT "+layout_fields+" FROM layouts");
@@ -109,6 +111,18 @@ SpireDB::SpireDB(int argc, char **argv):
 		"AND damage<$6 AND rs_per_sec<$7 AND cost>=$8 AND core_id IN (SELECT cores.id FROM cores "+join_core_mods+" WHERE type=$9 AND tier>=$10 "
 		"AND coalesce(core_fire.value, 0)>=$11 AND coalesce(core_poison.value, 0)>=$12 AND coalesce(core_lightning.value, 0)>=$13 "
 		"AND coalesce(core_strength.value, 0)>=$14 AND coalesce(core_condenser.value, 0)>=$15 AND coalesce(core_runestone.value, 0)>=$16)");
+
+	pq_conn->prepare("select_configs", "SELECT floors, fire, frost, poison, lightning, type, tier FROM layouts "+join_core+" "
+		"WHERE floors>=7 AND floors<=20 AND fire>=4 AND frost>=4 AND poison>=3 AND lightning>=1 "
+		"GROUP BY floors, fire, frost, poison, lightning, type, tier");
+	pq_conn->prepare("select_incomplete", "SELECT "+layout_fields+", "+empty_traps+" FROM layouts "+join_core+" "
+		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY empty_count DESC");
+	pq_conn->prepare("select_incomplete_no_core", "SELECT "+layout_fields+", "+empty_traps+" FROM layouts "
+		"WHERE "+filter_config+" AND core_id IS NULL ORDER BY empty_count DESC");
+	pq_conn->prepare("select_underperforming", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
+		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY damage/layouts.cost ASC");
+	pq_conn->prepare("select_underperforming_no_core", "SELECT "+layout_fields+" FROM layouts "
+		"WHERE "+filter_config+" AND core_id IS NULL ORDER BY damage/cost ASC");
 }
 
 SpireDB::~SpireDB()
@@ -137,13 +151,26 @@ int SpireDB::main()
 		}
 	}
 
+	select_random_work();
+
 	cout << "Begin serving requests" << endl;
 	while(1)
-		this_thread::sleep_for(chrono::milliseconds(100));
+	{
+		this_thread::sleep_for(chrono::seconds(60));
+
+		chrono::steady_clock::time_point now = chrono::steady_clock::now();
+		lock_guard<mutex> lock(recent_mutex);
+		while(!recent_queries.empty() && recent_queries.front().time+chrono::hours(1)<now)
+			recent_queries.pop_front();
+
+		if(gave_out_work)
+			select_random_work();
+	}
 }
 
 void SpireDB::update_data()
 {
+	lock_guard<mutex> lock_db(database_mutex);
 	pqxx::work xact(*pq_conn);
 
 	pqxx::result result;
@@ -226,6 +253,8 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 			result = submit(tag, parts, remote);
 		else if(cmd=="query")
 			result = query(tag, parts);
+		else if(cmd=="getwork")
+			result = get_work();
 		else
 			throw logic_error("bad command");
 	}
@@ -339,18 +368,20 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 	else
 		core_budget = 0;
 
-	if(live)
-	{
-		LiveQuery lq;
-		lq.upgrades = upgrades.str();
-		lq.floors = floors;
-		lq.budget = budget;
-		lq.core = core;
-		lq.core_type = core.get_type();
-		lq.core_budget = core_budget;
-		live_queries[tag] = lq;
-	}
+	RecentQuery rq;
+	rq.upgrades = upgrades.str();
+	rq.floors = floors;
+	rq.budget = budget;
+	rq.core = core;
+	rq.core_type = core.get_type();
+	rq.core_budget = core_budget;
+	rq.time = chrono::steady_clock::now();
+	recent_queries.push_back(rq);
 
+	if(live)
+		live_queries[tag] = rq;
+
+	lock_guard<mutex> lock_db(database_mutex);
 	pqxx::work xact(*pq_conn);
 	Layout best = query_layout(xact, floors, upgrades, budget, (core.tier>=0 ? &core : 0), core_budget, income);
 
@@ -451,6 +482,7 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, c
 		throw invalid_argument("SpireDB::submit");
 	layout.update(Layout::FULL);
 
+	lock_guard<mutex> lock_db(database_mutex);
 	pqxx::work xact(*pq_conn);
 	int verdict = check_better_layout(xact, layout, false);
 	verdict = max(verdict, check_better_layout(xact, layout, true));
@@ -559,4 +591,89 @@ int SpireDB::compare_layouts(const Layout &layout1, const Layout &layout2, bool 
 		return 1;
 	else
 		return 0;
+}
+
+void SpireDB::select_random_work()
+{
+	lock_guard<mutex> lock_db(database_mutex);
+	pqxx::work xact(*pq_conn);
+
+	pqxx::result result = xact.exec_prepared("select_configs");
+	unsigned i = random()%result.size();
+
+	const pqxx::row &config_row = result[i];
+	unsigned floors = config_row[0].as<unsigned>();
+	uint16_t fire = config_row[1].as<uint16_t>();
+	uint16_t frost = config_row[2].as<uint16_t>();
+	uint16_t poison = config_row[3].as<uint16_t>();
+	uint16_t lightning = config_row[4].as<uint16_t>();
+
+	string query_name;
+	unsigned work_type = random()%2;
+	switch(work_type)
+	{
+	case 0: query_name = "select_incomplete"; break;
+	case 1: query_name = "select_underperforming"; break;
+	}
+
+	if(config_row[5].is_null())
+		result = xact.exec_prepared(query_name+"_no_core", floors, fire, frost, poison, lightning);
+	else
+	{
+		string core_type = config_row[5].c_str();
+		int16_t core_tier = (config_row[6].is_null() ? -1 : config_row[6].as<int16_t>());
+		result = xact.exec_prepared(query_name, floors, fire, frost, poison, lightning, core_type, core_tier);
+	}
+	const pqxx::row &row = result.front();
+
+	TrapUpgrades upg;
+	upg.fire = row[1].as<uint16_t>();
+	upg.frost = row[2].as<uint16_t>();
+	upg.poison = row[3].as<uint16_t>();
+	upg.lightning = row[4].as<uint16_t>();
+
+	lock_guard<mutex> lock(work_mutex);
+	current_work.set_upgrades(upg);
+	current_work.set_traps(row[5].c_str());
+	if(!row[6].is_null())
+		current_work.set_core(query_core(xact, row[6].as<unsigned>()));
+	gave_out_work = false;
+
+	cout << "Selected random work: " << upg.str() << ' ' << current_work.get_traps() << ' ' << current_work.get_core().str() << endl;
+}
+
+string SpireDB::get_work()
+{
+	Layout layout;
+	{
+		lock_guard<mutex> lock(recent_mutex);
+		if(!recent_queries.empty())
+		{
+			auto last_query_age = chrono::steady_clock::now()-recent_queries.back().time;
+			if(last_query_age<chrono::minutes(2) || random()%2)
+			{
+				unsigned i = random()%recent_queries.size();
+				const RecentQuery &rq = recent_queries[i];
+				lock_guard<mutex> lock_db(database_mutex);
+				pqxx::work xact(*pq_conn);
+				layout = query_layout(xact, rq.floors, rq.upgrades, rq.budget, (rq.core.tier>=0 ? &rq.core : 0), rq.core_budget, false);
+
+				string work = format("work upg=%s t=%s", rq.upgrades, layout.get_traps());
+				if(rq.core.tier>=0)
+					work += format(" core=%s", rq.core.str(true));
+
+				return work;
+			}
+		}
+	}
+
+	lock_guard<mutex> lock(work_mutex);
+	layout = current_work;
+	gave_out_work = true;
+
+	string work = format("work upg=%s t=%s", layout.get_upgrades().str(), layout.get_traps());
+	if(layout.get_core().tier>=0)
+		work += format(" core=%s", layout.get_core().str(true));
+
+	return work;
 }
