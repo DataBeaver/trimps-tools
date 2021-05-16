@@ -6,9 +6,9 @@
 #include <pqxx/connection>
 #include <pqxx/transaction>
 #include "network.h"
+#include "spirecore.h"
 #include "types.h"
 
-class Core;
 struct HttpMessage;
 class Layout;
 class TrapUpgrades;
@@ -21,8 +21,8 @@ private:
 		std::string upgrades;
 		unsigned floors;
 		Number budget;
+		Core core;
 		std::string core_type;
-		unsigned core_tier;
 		Number core_budget;
 	};
 

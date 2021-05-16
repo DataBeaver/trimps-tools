@@ -345,8 +345,8 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 		lq.upgrades = upgrades.str();
 		lq.floors = floors;
 		lq.budget = budget;
+		lq.core = core;
 		lq.core_type = core.get_type();
-		lq.core_tier = core.tier;
 		lq.core_budget = core_budget;
 		live_queries[tag] = lq;
 	}
@@ -533,12 +533,12 @@ void SpireDB::check_live_queries(Network::ConnectionTag tag, const Layout &layou
 	unsigned floors = layout.get_traps().size()/5;
 	Number cost = layout.get_cost();
 	string core_type = layout.get_core().get_type();
-	unsigned core_tier = layout.get_core().tier;
+	int16_t core_tier = layout.get_core().tier;
 	Number core_cost = layout.get_core().cost;
 	for(const auto &lq: live_queries)
 	{
 		if(tag!=lq.first && up_str==lq.second.upgrades && floors==lq.second.floors && cost<=lq.second.budget
-			&& core_type==lq.second.core_type && core_tier<=lq.second.core_tier && core_cost<=lq.second.core_budget)
+			&& core_type==lq.second.core_type && core_tier<=lq.second.core.tier && core_cost<=lq.second.core_budget)
 		{
 			string push = format("push upg=%s t=%s", up_str, layout.get_traps());
 			if(layout.get_core().tier>=0)
