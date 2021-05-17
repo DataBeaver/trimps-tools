@@ -55,7 +55,7 @@ private:
 	void serve(Network::ConnectionTag, const std::string &);
 	void serve_http(Network::ConnectionTag, const std::string &);
 	void serve_http_file(const std::string &, HttpMessage &);
-	std::string query(Network::ConnectionTag, const std::vector<std::string> &);
+	std::string query(Network::ConnectionTag, const std::vector<std::string> &, bool = false);
 	Layout query_layout(pqxx::transaction_base &, unsigned, const TrapUpgrades &, Number, const Core *, Number, bool);
 	Core query_core(pqxx::transaction_base &, unsigned);
 	std::string submit(Network::ConnectionTag, const std::vector<std::string> &, const std::string &);

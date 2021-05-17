@@ -1,9 +1,26 @@
 var core_tiers = ["common", "uncommon", "rare", "epic", "legendary", "magnificent", "ethereal"];
 var core_mods = {"F":"fire", "P":"poison", "L":"lightning", "S":"strength", "C":"condenser", "R":"runestones"};
+var number_suffices = ["", "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc"];
+
+function format_number(num)
+{
+	var magnitude = 0;
+	while(num>1000)
+	{
+		magnitude += 1;
+		num /= 1000;
+	}
+	if(magnitude>0)
+		return num.toFixed(2)+number_suffices[magnitude];
+	else
+		return num;
+}
 
 function SpireClient()
 {
 	this.spire = document.getElementById("spire");
+	this.stats = document.getElementById("stats");
+	this.upgrades = document.getElementById("upgrades");
 	this.core = document.getElementById("core");
 	this.ui = document.getElementById("ui");
 	this.query_form = this.ui.querySelector("form");
@@ -79,6 +96,16 @@ function SpireClient()
 			}
 
 			this.create_spire(fields.t.length/5, fields.t);
+
+			this.stats.style.display = "block";
+			this.stats.querySelector("#cost").innerText = format_number(fields.rs);
+			this.stats.querySelector("#damage").innerText = format_number(fields.damage);
+			this.stats.querySelector("#income_sec").innerText = format_number(fields.income);
+			this.stats.querySelector("#income_hr").innerText = format_number(fields.income*3600);
+			this.stats.querySelector("#threat").innerText = fields.threat;
+
+			this.upgrades.style.display = "block";
+			this.upgrades.querySelector("span").innerText = fields.upg;
 
 			if(fields.core)
 			{

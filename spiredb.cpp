@@ -291,7 +291,7 @@ void SpireDB::serve_http(Network::ConnectionTag tag, const string &data)
 		{
 			response.response = 200;
 			vector<string> parts = split(request.body);
-			response.body = query(tag, parts);
+			response.body = query(tag, parts, true);
 		}
 	}
 	catch(const exception &e)
@@ -331,7 +331,7 @@ void SpireDB::serve_http_file(const string &filename, HttpMessage &response)
 	response.add_header("Content-Type", content_type+";charset=utf-8");
 }
 
-string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
+string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, bool report_stats)
 {
 	TrapUpgrades upgrades("8896");
 	unsigned floors = 20;
@@ -393,6 +393,13 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
 		result = format("ok upg=%s t=%s", best.get_upgrades().str(), best.get_traps());
 		if(best.get_core().tier>=0)
 			result += format(" core=%s", best.get_core().str(true));
+		if(report_stats)
+		{
+			best.set_upgrades(upgrades);
+			best.set_core(core);
+			best.update(Layout::FULL);
+			result += format(" rs=%s damage=%s income=%s threat=%s", best.get_cost(), best.get_damage(), best.get_runestones_per_second(), best.get_threat());
+		}
 		return result;
 	}
 	else

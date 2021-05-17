@@ -161,6 +161,8 @@ a:hover
 	background: #B6D;
 }
 
+#stats,
+#upgrades,
 #core
 {
 	display: none;
