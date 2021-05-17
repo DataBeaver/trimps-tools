@@ -277,7 +277,7 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 		if(cmd=="submit")
 			result = submit(tag, parts, remote);
 		else if(cmd=="query")
-			result = query(tag, parts);
+			result = query(tag, parts, remote);
 		else if(cmd=="getwork")
 			result = get_work();
 		else
@@ -316,7 +316,7 @@ void SpireDB::serve_http(Network::ConnectionTag tag, const string &data)
 		{
 			response.response = 200;
 			vector<string> parts = split(request.body);
-			response.body = query(tag, parts, true);
+			response.body = query(tag, parts, remote, true);
 		}
 	}
 	catch(const exception &e)
@@ -356,7 +356,7 @@ void SpireDB::serve_http_file(const string &filename, HttpMessage &response)
 	response.add_header("Content-Type", content_type+";charset=utf-8");
 }
 
-string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, bool report_stats)
+string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, const string &client, bool report_stats)
 {
 	TrapUpgrades upgrades("8896");
 	unsigned floors = 20;
@@ -395,10 +395,14 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, bo
 	rq.core_type = core.get_type();
 	rq.core_budget = core_budget;
 	rq.income = income;
+	rq.client = client;
 	rq.time = chrono::steady_clock::now();
 	rq.work_given_count = 0;
 	{
 		lock_guard<mutex> lock(recent_mutex);
+		auto i = find_if(recent_queries.begin(), recent_queries.end(), [client](const RecentQuery &q){ return q.client==client; });
+		if(i!=recent_queries.end())
+			recent_queries.erase(i);
 		recent_queries.push_back(rq);
 	}
 
