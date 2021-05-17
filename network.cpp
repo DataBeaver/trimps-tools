@@ -366,7 +366,17 @@ void Network::Worker::process_connection(Connection *conn)
 	if(res>0)
 		conn->received_data.append(buf, res);
 	else
+	{
 		stale_connections.push_back(conn);
+		return;
+	}
+
+	if(conn->received_data.size()>65536)
+	{
+		closesocket(conn->sock);
+		stale_connections.push_back(conn);
+		return;
+	}
 
 	if(conn->http_mode<0)
 		if(!conn->received_data.compare(0, 4, "GET ") || !conn->received_data.compare(0, 5, "POST "))
