@@ -14,6 +14,8 @@ const Core::TierInfo Core::tiers[N_TIERS] =
 	{ "ethereal", 20000000, 110, 4, {{ 64, 3200, 6400, 0 }, { 64, 3200, 6400, 0 }, { 64, 1600, 3184, 0 }, { 64, 1600, 3184, 0 }, { 8, 320, 480, 800 }, { 64, 3200, 6400, 0 }} }
 };
 
+Number Core::upgrade_cost_lookup[N_TIERS*100] = { };
+
 const char *Core::mod_names[N_MODS] = { "fire", "poison", "lightning", "strength", "condenser", "runestones" };
 
 const unsigned Core::value_scale = 16;
@@ -115,11 +117,31 @@ Number Core::get_mod_cost(unsigned mod, uint16_t value)
 	unsigned steps = (min<unsigned>(value, mod_vals.soft_cap)-mod_vals.base)/mod_vals.step;
 	Number step_cost = tiers[tier].upgrade_cost;
 	result += step_cost*steps;
-	unsigned increase = tiers[tier].cost_increase;
-	for(unsigned j=mod_vals.soft_cap; j<value; j+=mod_vals.step)
+
+	if(value>mod_vals.soft_cap)
 	{
-		result += step_cost;
-		step_cost = step_cost*increase/100;
+		steps = (value-mod_vals.soft_cap)/mod_vals.step;
+		if(steps>=100)
+		{
+			double increase = tiers[tier].cost_increase/100.0;
+			result += step_cost*static_cast<Number>((pow(increase, steps+1)-1)/(increase-1));
+		}
+		else if(steps>0)
+		{
+			if(!upgrade_cost_lookup[tier*100])
+			{
+				unsigned increase = tiers[tier].cost_increase;
+				Number lookup_cost = 0;
+				for(unsigned i=0; i<100; ++i)
+				{
+					lookup_cost += step_cost;
+					upgrade_cost_lookup[tier*100+i] = lookup_cost;
+					step_cost = step_cost*increase/100;
+				}
+			}
+
+			result += upgrade_cost_lookup[tier*100+steps];
+		}
 	}
 
 	return result;
@@ -220,7 +242,9 @@ void Core::mutate(MutateMode mode, unsigned count, Random &random)
 			uint16_t value = get_mod(mod);
 			Number mod_cost = get_mod_cost(mod, value);
 			const ModValues &other_vals = tier_info.mods[other];
-			value = other_vals.base+mod_cost/tier_info.upgrade_cost*other_vals.step;
+			value = other_vals.soft_cap+(value-mod_vals.base)*other_vals.step/mod_vals.step;
+			if(other_vals.hard_cap)
+				value = min(value, other_vals.hard_cap);
 			while(get_mod_cost(other, value)>mod_cost)
 				value -= other_vals.step;
 

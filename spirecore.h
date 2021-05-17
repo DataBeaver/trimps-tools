@@ -46,6 +46,7 @@ struct Core
 	Number cost;
 
 	static const TierInfo tiers[N_TIERS];
+	static Number upgrade_cost_lookup[N_TIERS*100];
 	static const char *mod_names[N_MODS];
 	static const unsigned value_scale;
 
