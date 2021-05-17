@@ -268,7 +268,9 @@ Spire::Spire(int argc, char **argv):
 		if(budget_str[0]=='+')
 			budget += start_layout.get_cost();
 	}
-	else if(!budget)
+	else if(!start_layout.get_traps().empty())
+		budget = start_layout.get_cost();
+	else
 		budget = 1000000;
 
 	if(!core_budget_str.empty())
