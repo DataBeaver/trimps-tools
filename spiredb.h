@@ -41,7 +41,7 @@ private:
 	std::deque<RecentQuery> recent_queries;
 	Random random;
 	std::mutex work_mutex;
-	Layout current_work;
+	std::string current_work;
 	bool gave_out_work;
 
 	static const unsigned current_version;

@@ -642,14 +642,20 @@ void SpireDB::select_random_work()
 	upg.poison = row[3].as<uint16_t>();
 	upg.lightning = row[4].as<uint16_t>();
 
-	lock_guard<mutex> lock(work_mutex);
-	current_work.set_upgrades(upg);
-	current_work.set_traps(row[5].c_str());
+	string traps = row[5].c_str();
+
+	Core core;
 	if(!row[6].is_null())
-		current_work.set_core(query_core(xact, row[6].as<unsigned>()));
+		core = query_core(xact, row[6].as<unsigned>());
+
+	lock_guard<mutex> lock(work_mutex);
+	current_work = format("work upg=%s t=%s", upg.str(), traps);
+	if(core.tier>=0)
+		current_work += format(" core=%s", core.str(true));
+
 	gave_out_work = false;
 
-	cout << "Selected random work: " << upg.str() << ' ' << current_work.get_traps() << ' ' << current_work.get_core().str() << endl;
+	cout << "Selected random work: " << upg.str() << ' ' << traps << ' ' << core.str() << endl;
 }
 
 string SpireDB::get_work()
@@ -679,12 +685,6 @@ string SpireDB::get_work()
 	}
 
 	lock_guard<mutex> lock(work_mutex);
-	Layout layout = current_work;
 	gave_out_work = true;
-
-	string work = format("work upg=%s t=%s", layout.get_upgrades().str(), layout.get_traps());
-	if(layout.get_core().tier>=0)
-		work += format(" core=%s", layout.get_core().str(true));
-
-	return work;
+	return current_work;
 }
