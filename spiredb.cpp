@@ -120,9 +120,9 @@ SpireDB::SpireDB(int argc, char **argv):
 	pq_conn->prepare("select_incomplete_no_core", "SELECT "+layout_fields+", "+empty_traps+" FROM layouts "
 		"WHERE "+filter_config+" AND core_id IS NULL ORDER BY empty_count DESC");
 	pq_conn->prepare("select_underperforming", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
-		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY damage/layouts.cost ASC");
+		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY rs_per_sec/layouts.cost ASC");
 	pq_conn->prepare("select_underperforming_no_core", "SELECT "+layout_fields+" FROM layouts "
-		"WHERE "+filter_config+" AND core_id IS NULL ORDER BY damage/cost ASC");
+		"WHERE "+filter_config+" AND core_id IS NULL ORDER BY rs_per_sec/cost ASC");
 }
 
 SpireDB::~SpireDB()
@@ -619,11 +619,11 @@ void SpireDB::select_random_work()
 	uint16_t lightning = config_row[4].as<uint16_t>();
 
 	string query_name;
-	unsigned work_type = random()%2;
+	WorkType work_type = static_cast<WorkType>(random()%2);
 	switch(work_type)
 	{
-	case 0: query_name = "select_incomplete"; break;
-	case 1: query_name = "select_underperforming"; break;
+	case INCOMPLETE: query_name = "select_incomplete"; break;
+	case UNDERPERFORMING: query_name = "select_underperforming"; break;
 	}
 
 	if(config_row[5].is_null())
@@ -649,7 +649,7 @@ void SpireDB::select_random_work()
 		core = query_core(xact, row[6].as<unsigned>());
 
 	lock_guard<mutex> lock(work_mutex);
-	current_work = format("work upg=%s t=%s", upg.str(), traps);
+	current_work = format("work upg=%s t=%s %s", upg.str(), traps, (work_type==INCOMPLETE ? "damage" : "income"));
 	if(core.tier>=0)
 		current_work += format(" core=%s", core.str(true));
 

@@ -32,6 +32,12 @@ private:
 		std::chrono::steady_clock::time_point time;
 	};
 
+	enum WorkType
+	{
+		INCOMPLETE,
+		UNDERPERFORMING
+	};
+
 	Network network;
 	std::mutex database_mutex;
 	pqxx::connection *pq_conn;
