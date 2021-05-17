@@ -53,6 +53,7 @@ function SpireClient()
 	this.query_spire = function query_spire()
 	{
 		var fe = this.query_form.elements;
+		var query_type = fe.query_type.value;
 		var upgrades = fe.fire.value+fe.frost.value+fe.poison.value+fe.lightning.value;
 		var floors = fe.floors.value;
 		var budget = fe.budget.value;
@@ -69,7 +70,7 @@ function SpireClient()
 			core += "/C:"+fe.core_condenser.value;
 		if(fe.core_runestones.value>0)
 			core += "/R:"+fe.core_runestones.value;
-		var query = "upg="+upgrades+" f="+floors+" rs="+budget+" core="+core;
+		var query = "upg="+upgrades+" f="+floors+" rs="+budget+" core="+core+" "+query_type;
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/query");
 		var _this = this;

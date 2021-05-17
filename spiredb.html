@@ -14,6 +14,10 @@
 <p id="core">Submitted with core: <span>none</span></p></div>
 <div id="ui" class="region">
 <form>
+<div class="form-row"><label for="query_type">Optimize:</label> <select name="query_type">
+	<option value="damage">Damage</option>
+	<option value="income" selected>Income</option>
+</select></div>
 <div class="form-row"><label>Upgrades:</label> <div class="form-group">
 	<input type="text" class="fire" name="fire" value="6" size="1" maxlength="1">
 	<input type="text" class="frost" name="frost" value="6" size="1" maxlength="1">
@@ -22,7 +26,7 @@
 </div></div>
 <div class="form-row"><label for="floors">Floors:</label> <input type="text" name="floors" value="17"></div>
 <div class="form-row"><label for="budget">Budget:</label> <input type="text" name="budget" value="4T"> Rs</div>
-<div class="form-row"><label for="core-tier">Core tier:</label> <select name="core_tier">
+<div class="form-row"><label for="core_tier">Core tier:</label> <select name="core_tier">
 	<option value="1">Common</option>
 	<option value="2">Uncommon</option>
 	<option value="3">Rare</option>
