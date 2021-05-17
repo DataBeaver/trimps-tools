@@ -397,7 +397,10 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, bo
 	rq.income = income;
 	rq.time = chrono::steady_clock::now();
 	rq.work_given_count = 0;
-	recent_queries.push_back(rq);
+	{
+		lock_guard<mutex> lock(recent_mutex);
+		recent_queries.push_back(rq);
+	}
 
 	if(live)
 		live_queries[tag] = rq;
