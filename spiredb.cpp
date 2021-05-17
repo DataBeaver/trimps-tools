@@ -319,14 +319,16 @@ void SpireDB::serve_http_file(const string &filename, HttpMessage &response)
 	response.response = 200;
 
 	string::size_type fn_dot = filename.rfind('.');
+	string content_type;
 	if(!filename.compare(fn_dot, string::npos, ".html"))
-		response.add_header("Content-Type", "text/html");
+		content_type = "text/html";
 	else if(!filename.compare(fn_dot, string::npos, ".js"))
-		response.add_header("Content-Type", "text/javascript");
+		content_type = "text/javascript";
 	else if(!filename.compare(fn_dot, string::npos, ".css"))
-		response.add_header("Content-Type", "text/css");
+		content_type = "text/css";
 	else
-		response.add_header("Content-Type", "text/plain");
+		content_type = "text/plain";
+	response.add_header("Content-Type", content_type+";charset=utf-8");
 }
 
 string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args)
