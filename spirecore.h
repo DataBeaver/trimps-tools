@@ -9,6 +9,7 @@ struct Core
 {
 	enum
 	{
+		N_TIERS = 7,
 		N_MODS = 6
 	};
 
@@ -44,8 +45,8 @@ struct Core
 	std::uint16_t runestones;
 	Number cost;
 
-	static const TierInfo tiers[];
-	static const char *mod_names[];
+	static const TierInfo tiers[N_TIERS];
+	static const char *mod_names[N_MODS];
 	static const unsigned value_scale;
 
 	Core();

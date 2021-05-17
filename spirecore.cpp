@@ -3,7 +3,7 @@
 
 using namespace std;
 
-const Core::TierInfo Core::tiers[] =
+const Core::TierInfo Core::tiers[N_TIERS] =
 {
 	{ "common", 20, 150, 1, {{ 16, 160, 400, 0 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 16, 16, 160, 0 }, { 0, 0, 0, 0 }, { 16, 160, 400, 0 }} },
 	{ "uncommon", 200, 150, 2, {{ 16, 160, 400, 0 }, { 16, 160, 400, 0 }, { 0, 0, 0, 0 }, { 16, 16, 160, 0 }, { 4, 16, 80, 160 }, { 16, 160, 400, 0 }} },
@@ -11,11 +11,10 @@ const Core::TierInfo Core::tiers[] =
 	{ "epic", 20000, 119, 3, {{ 16, 400, 800, 0 }, { 16, 400, 800, 0 }, { 16, 160, 320, 0 }, { 16, 160, 320, 0 }, { 4, 80, 160, 240 }, { 16, 400, 800, 0 }} },
 	{ "legendary", 200000, 115, 3, {{ 32, 800, 1600, 0 }, { 32, 800, 1600, 0 }, { 32, 320, 800, 0 }, { 32, 320, 800, 0 }, { 8, 80, 240, 400 }, { 32, 800, 1600, 0 }} },
 	{ "magnificent", 2000000, 112, 4, {{ 48, 1600, 3184, 0 }, { 48, 1600, 3184, 0 }, { 32, 800, 1600, 0 }, { 48, 800, 1600, 0 }, { 8, 160, 320, 560 }, {48, 1600, 3184, 0 }} },
-	{ "ethereal", 20000000, 110, 4, {{ 64, 3200, 6400, 0 }, { 64, 3200, 6400, 0 }, { 64, 1600, 3184, 0 }, { 64, 1600, 3184, 0 }, { 8, 320, 480, 800 }, { 64, 3200, 6400, 0 }} },
-	{ 0, 0, 0, 0, {} }
+	{ "ethereal", 20000000, 110, 4, {{ 64, 3200, 6400, 0 }, { 64, 3200, 6400, 0 }, { 64, 1600, 3184, 0 }, { 64, 1600, 3184, 0 }, { 8, 320, 480, 800 }, { 64, 3200, 6400, 0 }} }
 };
 
-const char *Core::mod_names[] = { "fire", "poison", "lightning", "strength", "condenser", "runestones", 0 };
+const char *Core::mod_names[N_MODS] = { "fire", "poison", "lightning", "strength", "condenser", "runestones" };
 
 const unsigned Core::value_scale = 16;
 
@@ -41,12 +40,12 @@ Core::Core(const string &desc):
 		tier = parse_value<unsigned>(parts[0])-1;
 	else
 	{
-		for(tier=0; tiers[tier].name; ++tier)
+		for(tier=0; tier<N_TIERS; ++tier)
 			if(parts[0]==tiers[tier].name)
 				break;
 	}
 
-	if(tier>=7)
+	if(tier>=N_TIERS)
 		throw invalid_argument("Invalid core tier "+parts[0]);
 	if(parts.size()>static_cast<unsigned>(tiers[tier].max_mods)+1)
 		throw invalid_argument("Too many mods for tier "+parts[0]);
@@ -57,7 +56,7 @@ Core::Core(const string &desc):
 		string::size_type colon = part.find(':');
 
 		unsigned mod = 0;
-		for(; mod_names[mod]; ++mod)
+		for(; mod<N_MODS; ++mod)
 			if(!part.compare(0, colon, mod_names[mod]) || (colon==1 && tolower(part[0])==mod_names[mod][0]))
 				break;
 
