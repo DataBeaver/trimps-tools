@@ -967,7 +967,7 @@ void Spire::report(const Layout &layout, const string &message)
 		if(towers)
 			console << "+towers";
 		console.set_cursor_position(58, 5);
-		console << "Budget: " << print_num(budget) << " Rs";
+		console << "Budget: " << print_num(budget) << " Rs" << clear_to_end;
 		console.set_cursor_position(58, 7);
 		console << "Damage: " << print_num(layout.get_damage()) << clear_to_end;
 		console.set_cursor_position(58, 8);
@@ -986,6 +986,11 @@ void Spire::report(const Layout &layout, const string &message)
 		{
 			console.set_cursor_position(58, 15);
 			console << (connection ? "Online      " : "Disconnected");
+			if(athome)
+			{
+				console.set_cursor_position(58, 16);
+				console << "Spire @ home";
+			}
 		}
 		cout.flush();
 	}
@@ -1024,6 +1029,8 @@ bool Spire::print(const Layout &layout, unsigned &count)
 		console.clear_current_line();
 		console << descr << ' ' << score_func(layout) << ' ' << layout.get_cost() << ' ' << layout.get_cycle() << endl;
 	}
+	else if(fancy_output && athome)
+		console << descr << endl_clear;
 	else
 		console << descr << endl;
 
@@ -1146,6 +1153,13 @@ void Spire::print_fancy(const Layout &layout)
 	}
 
 	console.restore_default_text_color();
+
+	if(athome)
+	{
+		for(unsigned i=floors; i<20; ++i)
+			for(unsigned j=0; j<lines_per_floor; ++j)
+				console << endl_clear;
+	}
 
 	if(lines_per_floor<3)
 		cout  << "Note: increase window height for even fancier output!" << endl;
