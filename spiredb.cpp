@@ -362,14 +362,6 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, bo
 			throw invalid_argument("SpireDB::query");
 	}
 
-	if(core.tier>=0)
-	{
-		core.update();
-		core_budget = max(core_budget, core.cost);
-	}
-	else
-		core_budget = 0;
-
 	RecentQuery rq;
 	rq.upgrades = upgrades.str();
 	rq.floors = floors;
@@ -377,11 +369,20 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, bo
 	rq.core = core;
 	rq.core_type = core.get_type();
 	rq.core_budget = core_budget;
+	rq.income = income;
 	rq.time = chrono::steady_clock::now();
 	recent_queries.push_back(rq);
 
 	if(live)
 		live_queries[tag] = rq;
+
+	if(core.tier>=0)
+	{
+		core.update();
+		core_budget = max(core_budget, core.cost);
+	}
+	else
+		core_budget = 0;
 
 	lock_guard<mutex> lock_db(database_mutex);
 	pqxx::work xact(*pq_conn);
@@ -653,7 +654,6 @@ void SpireDB::select_random_work()
 
 string SpireDB::get_work()
 {
-	Layout layout;
 	{
 		lock_guard<mutex> lock(recent_mutex);
 		if(!recent_queries.empty())
@@ -665,11 +665,13 @@ string SpireDB::get_work()
 				const RecentQuery &rq = recent_queries[i];
 				lock_guard<mutex> lock_db(database_mutex);
 				pqxx::work xact(*pq_conn);
-				layout = query_layout(xact, rq.floors, rq.upgrades, rq.budget, (rq.core.tier>=0 ? &rq.core : 0), rq.core_budget, false);
+				Layout layout = query_layout(xact, rq.floors, rq.upgrades, rq.budget, (rq.core.tier>=0 ? &rq.core : 0), rq.core_budget, false);
 
-				string work = format("work upg=%s t=%s", rq.upgrades, layout.get_traps());
+				string work = format("work upg=%s t=%s rs=%s %s", rq.upgrades, layout.get_traps(), rq.budget, (rq.income ? "income" : "damage"));
 				if(rq.core.tier>=0)
 					work += format(" core=%s", rq.core.str(true));
+				if(rq.core_budget>0)
+					work += format(" ss=%s", rq.core_budget);
 
 				return work;
 			}
@@ -677,7 +679,7 @@ string SpireDB::get_work()
 	}
 
 	lock_guard<mutex> lock(work_mutex);
-	layout = current_work;
+	Layout layout = current_work;
 	gave_out_work = true;
 
 	string work = format("work upg=%s t=%s", layout.get_upgrades().str(), layout.get_traps());

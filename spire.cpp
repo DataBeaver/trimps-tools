@@ -160,6 +160,7 @@ Spire::Spire(int argc, char **argv):
 		online = true;
 		live = false;
 		towers_seen = false;
+		core_mutate = Core::VALUES_ONLY;
 	}
 	else if(preset=="single")
 	{
@@ -651,6 +652,17 @@ void Spire::process_network_reply(const vector<string> &args, Layout &layout)
 			received_core = arg.substr(5);
 			received_core.update();
 		}
+		else if(athome)
+		{
+			if(!arg.compare(0, 3, "rs="))
+				budget = parse_value<NumberIO>(arg.substr(3));
+			else if(!arg.compare(0, 3, "ss="))
+				core_budget = parse_value<NumberIO>(arg.substr(3));
+			else if(arg=="income")
+				income = true;
+			else if(arg=="damage")
+				income = false;
+		}
 	}
 
 	layout.update(report_update_mode);
@@ -881,6 +893,10 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 	}
 	else if(cmd=="work")
 	{
+		budget = 0;
+		core_budget = 0;
+		income = false;
+
 		Layout layout;
 		process_network_reply(parts, layout);
 
@@ -913,7 +929,7 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 			lock_guard<mutex> lock(best_mutex);
 			best_layout = layout;
 		}
-		budget = layout.get_cost();
+		budget = max(budget, layout.get_cost());
 
 		for(auto w: workers)
 			w->set_paused(false);

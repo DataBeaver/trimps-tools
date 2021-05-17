@@ -28,6 +28,7 @@ private:
 
 	struct RecentQuery: LiveQuery
 	{
+		bool income;
 		std::chrono::steady_clock::time_point time;
 	};
 
