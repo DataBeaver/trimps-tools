@@ -23,6 +23,18 @@ h1
 	text-align: center;
 }
 
+a
+{
+	text-decoration: none;
+	font-weight: 700;
+	color: #008;
+}
+
+a:hover
+{
+	color: #44C;
+}
+
 #wrapper
 {
 	display: flex;
@@ -243,4 +255,10 @@ input.condenser
 .error
 {
 	color: #C00;
+}
+
+.copyright
+{
+	font-size: 0.7rem;
+	color: #666;
 }
