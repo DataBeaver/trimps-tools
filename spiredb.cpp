@@ -113,28 +113,18 @@ SpireDB::SpireDB(int argc, char **argv):
 		"AND coalesce(core_strength.value, 0)>=$14 AND coalesce(core_condenser.value, 0)>=$15 AND coalesce(core_runestone.value, 0)>=$16)");
 
 	pq_conn->prepare("select_configs", "SELECT floors, fire, frost, poison, lightning, type, tier FROM layouts "+join_core+" "
-		"WHERE floors>=7 AND floors<=20 AND fire>=4 AND frost>=4 AND poison>=3 AND lightning>=1 "
+		"WHERE floors>=7 AND floors<=20 AND fire>=4 AND frost>=4 AND poison>=3 AND lightning>=1 AND core_id IS NOT NULL "
 		"GROUP BY floors, fire, frost, poison, lightning, type, tier");
 	pq_conn->prepare("select_incomplete", "SELECT "+layout_fields+", "+empty_traps+" FROM layouts "+join_core+" "
 		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY empty_count DESC");
-	pq_conn->prepare("select_incomplete_no_core", "SELECT "+layout_fields+", "+empty_traps+" FROM layouts "
-		"WHERE "+filter_config+" AND core_id IS NULL ORDER BY empty_count DESC");
 	pq_conn->prepare("select_underperforming", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
 		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY rs_per_sec/layouts.cost ASC");
-	pq_conn->prepare("select_underperforming_no_core", "SELECT "+layout_fields+" FROM layouts "
-		"WHERE "+filter_config+" AND core_id IS NULL ORDER BY rs_per_sec/cost ASC");
 	pq_conn->prepare("select_missing_floor", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
 		"WHERE "+filter_config+" AND "+filter_core_config+" AND floors<20 AND threat/100>LENGTH(traps)/5");
-	pq_conn->prepare("select_missing_floor_no_core", "SELECT "+layout_fields+" FROM layouts "
-		"WHERE "+filter_config+" AND core_id IS NULL AND floors<20 AND threat/100>LENGTH(traps)/5");
 	pq_conn->prepare("select_best_for_config", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
 		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY rs_per_sec DESC");
-	pq_conn->prepare("select_best_for_config_no_core", "SELECT "+layout_fields+" FROM layouts "
-		"WHERE "+filter_config+" AND core_id IS NULL ORDER BY rs_per_sec DESC");
 	pq_conn->prepare("select_random", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
 		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY RANDOM()");
-	pq_conn->prepare("select_random_no_core", "SELECT "+layout_fields+" FROM layouts "
-		"WHERE "+filter_config+" AND core_id IS NULL ORDER BY RANDOM()");
 }
 
 SpireDB::~SpireDB()
@@ -662,14 +652,9 @@ void SpireDB::select_random_work()
 	case DECREASE_BUDGET: query_name = "select_random"; break;
 	}
 
-	if(config_row[5].is_null())
-		result = xact.exec_prepared(query_name+"_no_core", floors, fire, frost, poison, lightning);
-	else
-	{
-		string core_type = config_row[5].c_str();
-		int16_t core_tier = (config_row[6].is_null() ? -1 : config_row[6].as<int16_t>());
-		result = xact.exec_prepared(query_name, floors, fire, frost, poison, lightning, core_type, core_tier);
-	}
+	string core_type = config_row[5].c_str();
+	int16_t core_tier = config_row[6].as<int16_t>();
+	result = xact.exec_prepared(query_name, floors, fire, frost, poison, lightning, core_type, core_tier);
 	const pqxx::row &row = result.front();
 
 	TrapUpgrades upg;
