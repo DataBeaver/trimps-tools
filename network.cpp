@@ -419,6 +419,10 @@ void Network::Worker::process_connection(Connection *conn)
 				if(headers_end+content_length>conn->received_data.size())
 					break;
 
+				i = message.headers.find("X-Forwarded-For");
+				if(i!=message.headers.end())
+					conn->remote_host = i->second;
+
 				message_end = headers_end+content_length;
 			}
 
