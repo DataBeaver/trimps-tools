@@ -172,9 +172,16 @@ int SpireDB::main()
 		this_thread::sleep_for(chrono::seconds(5));
 
 		chrono::steady_clock::time_point now = chrono::steady_clock::now();
-		lock_guard<mutex> lock(recent_mutex);
-		while(!recent_queries.empty() && recent_queries.front().time+chrono::hours(1)<now)
-			recent_queries.pop_front();
+		{
+			lock_guard<mutex> lock(recent_mutex);
+			for(auto i=recent_queries.begin(); i!=recent_queries.end(); )
+			{
+				if(i->time+chrono::hours(1)<now || i->work_given_count>=5)
+					i = recent_queries.erase(i);
+				else
+					++i;
+			}
+		}
 
 		if(work_given_count>=5 || (work_given_count>0 && work_age>=12))
 		{
@@ -389,6 +396,7 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, bo
 	rq.core_budget = core_budget;
 	rq.income = income;
 	rq.time = chrono::steady_clock::now();
+	rq.work_given_count = 0;
 	recent_queries.push_back(rq);
 
 	if(live)
@@ -719,7 +727,7 @@ string SpireDB::get_work()
 			if(last_query_age<chrono::minutes(2) || random()%2)
 			{
 				unsigned i = random()%recent_queries.size();
-				const RecentQuery &rq = recent_queries[i];
+				RecentQuery &rq = recent_queries[i];
 				lock_guard<mutex> lock_db(database_mutex);
 				pqxx::work xact(*pq_conn);
 				Layout layout = query_layout(xact, rq.floors, rq.upgrades, rq.budget, (rq.core.tier>=0 ? &rq.core : 0), rq.core_budget, false);
@@ -729,6 +737,8 @@ string SpireDB::get_work()
 					work += format(" core=%s", rq.core.str(true));
 				if(rq.core_budget>0)
 					work += format(" ss=%s", rq.core_budget);
+
+				++rq.work_given_count;
 
 				return work;
 			}

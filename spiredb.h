@@ -30,6 +30,7 @@ private:
 	{
 		bool income;
 		std::chrono::steady_clock::time_point time;
+		unsigned work_given_count;
 	};
 
 	enum WorkType
