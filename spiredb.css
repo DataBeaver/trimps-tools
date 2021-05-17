@@ -1,27 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@800&family=Quicksand:wght@300;700&display=swap');
+
+html
+{
+	font-family: 'Quicksand', sans-serif;
+	font-weight: 300;
+	font-size: 20px;
+}
+
 body
 {
-	font-family: sans-serif;
 	background: #EEE;
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
 }
 
 h1
 {
-	margin: 2rem 10rem 1rem;
+	font-family: 'Quicksand', sans-serif;
+	font-weight: 700;
+	margin: 2rem 0 1rem;
+	text-align: center;
 }
 
-#flex-wrapper
+#wrapper
+{
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+}
+
+#main-content
 {
 	display: flex;
 	flex-direction: row;
+	flex-wrap: wrap-reverse;
 }
 
-#flex-wrapper > div
+#main-content > *
+{
+	flex-grow: 1;
+}
+
+.region
 {
 	background: #FFF;
 	border: 1px solid #888;
 	border-radius: 3px;
 	padding: 0.5rem;
 	margin: 0.5rem;
+}
+
+#wrapper > .region > *
+{
+	max-width: 40rem;
+	margin: 0.5rem auto;
+}
+
+#main-content > .region > *
+{
+	max-width: 25rem;
+	margin: 0.5rem auto;
 }
 
 .F
@@ -67,10 +106,12 @@ h1
 #spire td
 {
 	border: 1px solid black;
-	width: 5rem;
+	width: 4rem;
 	height: 2rem;
 	padding: 0.2rem 0.5rem;
-	font-weight: bold;
+	font-family: 'Open Sans', sans-serif;
+	font-size: 1rem;
+	font-weight: 800;
 }
 
 #spire td.F
@@ -110,7 +151,7 @@ h1
 
 #core
 {
-	max-width: 30rem;
+	display: none;
 }
 
 .form-row
@@ -149,10 +190,24 @@ input[type=text],
 select
 {
 	appearance: none;
+	font-family: 'Quicksand', sans-serif;
+	font-size: 0.9rem;
 	background: #FFF;
 	border: 1px solid #888;
 	border-radius: 2px;
-	padding: 2px;
+	padding: 2px 5px;
+}
+
+input[type=submit]
+{
+	appearance: none;
+	font-family: 'Quicksand', sans-serif;
+	font-size: 1rem;
+	font-weight: 300;
+	background: #EEE;
+	border: 1px solid #000;
+	border-radius: 2px;
+	padding: 0.2rem 0.5rem;
 }
 
 input.fire
@@ -185,7 +240,7 @@ input.condenser
 	background: #DDD;
 }
 
-#error
+.error
 {
 	color: #C00;
 }

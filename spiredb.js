@@ -4,10 +4,10 @@ var core_mods = {"F":"fire", "P":"poison", "L":"lightning", "S":"strength", "C":
 function SpireClient()
 {
 	this.spire = document.getElementById("spire");
-	this.core = document.getElementById("core").querySelector("span");
+	this.core = document.getElementById("core");
 	this.ui = document.getElementById("ui");
 	this.query_form = this.ui.querySelector("form");
-	this.error_display = this.ui.querySelector("#error");
+	this.error_display = this.ui.querySelector(".error");
 
 	this.create_spire = function create_spire(floors, traps)
 	{
@@ -82,20 +82,23 @@ function SpireClient()
 
 			if(fields.core)
 			{
+				var span = this.core.querySelector("span");
 				var core = {};
 				var parts = fields.core.split("/");
-				this.core.innerText = core_tiers[parts[0]-1];
+				span.innerText = core_tiers[parts[0]-1];
 				for(var i=1; i<parts.length; ++i)
 				{
-					this.core.appendChild(document.createTextNode(" "));
+					span.appendChild(document.createTextNode(" "));
 					var mod = document.createElement("span");
 					mod.classList.add(parts[i][0]);
 					mod.innerText = core_mods[parts[i][0]]+" "+parts[i].substring(2)+"%";
-					this.core.appendChild(mod);
+					span.appendChild(mod);
 				}
+
+				this.core.style.display = "block";
 			}
 			else
-				this.core.innerText = "none";
+				this.core.style.display = "none";
 		}
 		else
 		{

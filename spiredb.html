@@ -5,11 +5,12 @@
 <link rel="stylesheet" href="/spiredb.css">
 <script src="/spiredb.js"></script>
 <body>
+<div id="wrapper">
 <h1>Trimps spire database</h1>
-<div id="flex-wrapper">
-<div><table id="spire"></table>
+<div id="main-content">
+<div class="region"><table id="spire"></table>
 <p id="core">Submitted with core: <span>none</span></p></div>
-<div id="ui">
+<div id="ui" class="region">
 <form>
 <div class="form-row"><label>Upgrades:</label> <div class="form-group">
 	<input type="text" class="fire" name="fire" value="6" size="1" maxlength="1">
@@ -39,7 +40,8 @@
 </div></div>
 <div class="form-row"><input type="submit" value="Find spire"></div>
 </form>
-<div id="error"></div>
+<div class="error"></div>
+</div>
 </div>
 </div>
 </body>
