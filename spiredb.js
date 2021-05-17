@@ -1,3 +1,4 @@
+var traps = "_FZPLSCK";
 var core_tiers = ["common", "uncommon", "rare", "epic", "legendary", "magnificent", "ethereal"];
 var core_mods = {"F":"fire", "P":"poison", "L":"lightning", "S":"strength", "C":"condenser", "R":"runestones"};
 var number_suffices = ["", "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc"];
@@ -19,6 +20,7 @@ function format_number(num)
 function SpireClient()
 {
 	this.spire = document.getElementById("spire");
+	this.layout_display = document.getElementById("layout-string");
 	this.stats = document.getElementById("stats");
 	this.upgrades = document.getElementById("upgrades");
 	this.core = document.getElementById("core");
@@ -97,6 +99,12 @@ function SpireClient()
 
 			this.create_spire(fields.t.length/5, fields.t);
 
+			var layout_str = "";
+			for(var i=0; i<fields.t.length; ++i)
+				layout_str += traps.indexOf(fields.t[i]);
+			layout_str += "+"+fields.upg+"+"+fields.t.length/5;
+			this.layout_display.innerText = layout_str;
+
 			this.stats.style.display = "block";
 			this.stats.querySelector("#cost").innerText = format_number(fields.rs);
 			this.stats.querySelector("#damage").innerText = format_number(fields.damage);
@@ -128,9 +136,7 @@ function SpireClient()
 				this.core.style.display = "none";
 		}
 		else
-		{
 			this.error_display.innerText = xhr.response;
-		}
 	}
 
 	var _this = this;
