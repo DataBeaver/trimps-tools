@@ -1,7 +1,7 @@
 Tools to assist in decision-making for the browser game
 [Trimps](https://trimps.github.io/).
 
-Copyright © 2018-2019  Mikkosoft Productions
+Copyright © 2018-2021  Mikkosoft Productions
 Licensed under GPLv3.
 
 
@@ -9,6 +9,9 @@ Licensed under GPLv3.
 
 To compile the programs, simply type make.  No additional libraries are
 required.
+
+If using MinGW to compile for Windows, make sure to use the posix variant.
+The win32 variant of MinGW does not support C++ threads.
 
 
 ## Spire optimizer
@@ -18,7 +21,17 @@ utilizes a genetic algorithm to search for the layout with best damage or
 income.  In the simplest form, pass your current layout as a command line
 argument and the program will try to find a layout that does more damage while
 not requiring more runestones.  The behaviour can be further customized with
-options.  Some of the more important are:
+options described below.
+
+### 128-bit version
+
+The programs can use 128-bit math to work with numbers larger than about 9Qi.
+A 128-bit build is provided in the releases as spire128.exe.  To compile it
+yourself, set `-DWITH_128BIT` in `CXXFLAGS`;
+
+### Command-line options
+
+Some of the more important options are:
 
 -f, --floors  
   Set the number of floors in the spire
@@ -75,6 +88,12 @@ options.  Some of the more important are:
 --live  
   Perform database query in live mode and automatically obtain improvements
   that other users submit into the database.  Implies --online.
+
+--athome  
+  Run in spire@home mode, working on random layouts from the online layout
+  database.  Most other options are ignored, but you may want to use -w to
+  control how much processing power the program consumes.  Only available in
+  128-bit builds.
 
 More advanced options can be used to tweak the performance of the program or
 the genetic algorithm:
