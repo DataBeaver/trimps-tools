@@ -206,7 +206,9 @@ void Console::clear_current_line(ClearLineMode mode)
 		GetConsoleScreenBufferInfo(stdout_handle, &info);
 
 		COORD start_pos;
-		DWORD count;
+		DWORD count = 0;
+		start_pos.X = 0;
+		start_pos.Y = info.dwCursorPosition.Y;
 		switch(mode)
 		{
 		case CLEAR_WHOLE_LINE:
@@ -222,7 +224,6 @@ void Console::clear_current_line(ClearLineMode mode)
 			count = width-info.dwCursorPosition.X;
 			break;
 		}
-		start_pos.Y = info.dwCursorPosition.Y;
 
 		DWORD n_filled = 0;
 		FillConsoleOutputCharacter(stdout_handle, ' ', count, start_pos, &n_filled);
