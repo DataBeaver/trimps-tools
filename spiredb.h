@@ -35,7 +35,10 @@ private:
 	enum WorkType
 	{
 		INCOMPLETE,
-		UNDERPERFORMING
+		UNDERPERFORMING,
+		ADD_FLOOR,
+		INCREASE_BUDGET,
+		DECREASE_BUDGET
 	};
 
 	Network network;
