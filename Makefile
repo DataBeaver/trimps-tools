@@ -28,6 +28,7 @@ spirecore.o: spirecore.h stringutils.h types.h
 spiredb.o: getopt.h http.h network.h spirecore.h spiredb.h spirelayout.h stringutils.h types.h
 spiredb.o: EXTRA_CXXFLAGS = $(PQXX_CFLAGS)
 spirelayout.o: spirecore.h spirelayout.h types.h
+spirepool.o: spirelayout.h pirepool.h
 stringutils.o: stringutils.h
 types.o: types.h
 
