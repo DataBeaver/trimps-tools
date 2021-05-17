@@ -166,17 +166,23 @@ int SpireDB::main()
 	select_random_work();
 
 	cout << "Begin serving requests" << endl;
+	unsigned work_age = 0;
 	while(1)
 	{
-		this_thread::sleep_for(chrono::seconds(60));
+		this_thread::sleep_for(chrono::seconds(5));
 
 		chrono::steady_clock::time_point now = chrono::steady_clock::now();
 		lock_guard<mutex> lock(recent_mutex);
 		while(!recent_queries.empty() && recent_queries.front().time+chrono::hours(1)<now)
 			recent_queries.pop_front();
 
-		if(gave_out_work)
+		if(work_given_count>=5 || (work_given_count>0 && work_age>=12))
+		{
 			select_random_work();
+			work_age = 0;
+		}
+		else
+			++work_age;
 	}
 }
 
@@ -698,7 +704,7 @@ void SpireDB::select_random_work()
 	if(core.tier>=0)
 		current_work += format(" core=%s", core.str(true));
 
-	gave_out_work = false;
+	work_given_count = 0;
 
 	cout << "Selected random work: " << upg.str() << ' ' << traps << ' ' << core.str() << endl;
 }
@@ -730,6 +736,6 @@ string SpireDB::get_work()
 	}
 
 	lock_guard<mutex> lock(work_mutex);
-	gave_out_work = true;
+	++work_given_count;
 	return current_work;
 }

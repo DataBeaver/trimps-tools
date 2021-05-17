@@ -51,7 +51,7 @@ private:
 	Random random;
 	std::mutex work_mutex;
 	std::string current_work;
-	bool gave_out_work;
+	unsigned work_given_count;
 
 	static const unsigned current_version;
 
