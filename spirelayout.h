@@ -22,17 +22,23 @@ struct TrapUpgrades
 
 struct TrapEffects
 {
-	Number fire_damage;
-	Number frost_damage;
+	// Damage values are modified in 1% increments.
+	Fixed<100> fire_damage;
+	Fixed<100> frost_damage;
 	unsigned chill_dur;
-	Number poison_damage;
-	Number lightning_damage;
+	Fixed<100> poison_damage;
+	Fixed<100> lightning_damage;
 	unsigned shock_dur;
-	Fixed<1000, unsigned> shock_damage_multi;
+	// Shock damage multiplier starts at 200% and is modified in 1% increments.
+	Fixed<100, unsigned> shock_damage_multi;
 	unsigned special_multi;
+	// Lightning column bonus starts at 10% and is modified in 1% increments.
 	Fixed<1000, unsigned> lightning_column_bonus;
-	Fixed<1000, unsigned> strength_multi;
-	Fixed<1000, unsigned> condenser_bonus;
+	// Strength multiplier starts at 200% and is modified in 1% increments.
+	Fixed<100, unsigned> strength_multi;
+	// Condenser bonus starts at 25% and is modified in 0.25% increments.
+	Fixed<1600, unsigned> condenser_bonus;
+	// Runestone bonus occurs in 2% increments.
 	Fixed<100, unsigned> slow_rs_bonus;
 
 	TrapEffects(const TrapUpgrades &, const Core &);
@@ -91,8 +97,8 @@ private:
 		std::uint8_t slow;
 		bool shock;
 		Fixed<100, std::uint8_t> rs_bonus;
-		Fixed<1000, std::uint16_t> kill_frac;
-		Fixed<1000, std::uint16_t> toxic_bonus;
+		Fixed<100, std::uint16_t> kill_frac;
+		Fixed<1600, std::uint16_t> toxic_bonus;
 		Number direct_damage;
 		Number toxicity;
 

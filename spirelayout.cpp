@@ -140,7 +140,7 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	if(upgrades.fire>=8)
 		fire_damage *= 100;
 
-	fire_damage = (fire_damage*(core_scale+core.fire)+core_scale/2)/core_scale;
+	fire_damage = fire_damage*(core_scale+core.fire)/core_scale;
 
 	if(upgrades.frost>=2)
 	{
@@ -187,7 +187,7 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	if(upgrades.poison>=9)
 		poison_damage *= 4;
 
-	poison_damage = (poison_damage*(core_scale+core.poison)+core_scale/2)/core_scale;
+	poison_damage = poison_damage*(core_scale+core.poison)/core_scale;
 
 	if(upgrades.lightning>=2)
 	{
@@ -210,12 +210,12 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 		shock_damage_multi *= 2;
 	}
 
-	lightning_damage = (lightning_damage*(core_scale+core.lightning)+core_scale/2)/core_scale;
-	shock_damage_multi = (shock_damage_multi.rescale<2000>()*(core_scale+core.lightning)/core_scale).rescale<1000>();
-	lightning_column_bonus = (lightning_column_bonus.rescale<2000>()*(core_scale+core.lightning)/core_scale).rescale<1000>();
+	lightning_damage = lightning_damage*(core_scale+core.lightning)/core_scale;
+	shock_damage_multi = shock_damage_multi*(core_scale+core.lightning)/core_scale;
+	lightning_column_bonus = lightning_column_bonus*(core_scale+core.lightning)/core_scale;
 
-	strength_multi = (strength_multi.rescale<2000>()*(core_scale+core.strength)/core_scale).rescale<1000>();
-	condenser_bonus = (condenser_bonus.rescale<2000>()*(core_scale+core.condenser)/core_scale).rescale<1000>();
+	strength_multi = strength_multi*(core_scale+core.strength)/core_scale;
+	condenser_bonus = condenser_bonus*(core_scale+core.condenser)/core_scale;
 }
 
 
@@ -291,7 +291,7 @@ void Layout::build_steps(vector<Step> &steps) const
 	unsigned chilled = 0;
 	unsigned frozen = 0;
 	unsigned shocked = 0;
-	Fixed<1000> damage_multi = 1;
+	Fixed<100> damage_multi = 1;
 	unsigned special_multi = 1;
 	unsigned repeat = 1;
 	for(unsigned i=0; i<cells; )
@@ -314,7 +314,7 @@ void Layout::build_steps(vector<Step> &steps) const
 		{
 			step.direct_damage = (effects.fire_damage*damage_multi).round();
 			if(floor_flags[i/5]&0x08)
-				step.direct_damage = (step.direct_damage*Fixed<1000>(effects.strength_multi)).round();
+				step.direct_damage = (step.direct_damage*Fixed<100>(effects.strength_multi)).round();
 			if(chilled && upgrades.frost>=3)
 				step.direct_damage = step.direct_damage*5/4;
 			if(upgrades.lightning>=4)
@@ -341,16 +341,16 @@ void Layout::build_steps(vector<Step> &steps) const
 		{
 			step.direct_damage = (effects.lightning_damage*damage_multi).round();
 			shocked = effects.shock_dur+1;
-			damage_multi = Fixed<1000>(effects.shock_damage_multi);
+			damage_multi = Fixed<100>(effects.shock_damage_multi);
 			special_multi = effects.special_multi;
 		}
 		else if(t=='S')
 		{
 			uint16_t flags = floor_flags[i/5];
-			step.direct_damage = effects.fire_damage*(flags&0x07);
+			step.direct_damage = (effects.fire_damage*(flags&0x07)).round();
 			if(upgrades.lightning>=4)
 				step.direct_damage += (effects.fire_damage*Fixed<1000>(effects.lightning_column_bonus)*(flags>>4)).round();
-			step.direct_damage = (step.direct_damage*Fixed<1000>(effects.strength_multi)*damage_multi).round();
+			step.direct_damage = (step.direct_damage*Fixed<100>(effects.strength_multi)*damage_multi).round();
 			if(chilled && upgrades.frost>=3)
 				step.direct_damage = step.direct_damage*5/4;
 		}
@@ -364,7 +364,7 @@ void Layout::build_steps(vector<Step> &steps) const
 			repeat = 1;
 		}
 		else if(t=='C')
-			step.toxic_bonus = Fixed<1000, uint16_t>(effects.condenser_bonus*special_multi);
+			step.toxic_bonus = Fixed<1600, uint16_t>(effects.condenser_bonus*special_multi);
 
 		if(repeat>1)
 			step.rs_bonus = Fixed<100, uint8_t>(effects.slow_rs_bonus);
@@ -407,7 +407,7 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, vector<
 	{
 		result.damage += s.direct_damage;
 		if(s.kill_frac.value)
-			kill_damage = max(kill_damage, (Fixed<1000>(result.damage)/Fixed<1000>(1-s.kill_frac)).round());
+			kill_damage = max(kill_damage, (Fixed<100>(result.damage)/Fixed<100>(1-s.kill_frac)).round());
 		if(upgrades.poison>=5 && hp && result.damage*4>=hp)
 		{
 			toxicity += s.toxicity*5;
@@ -417,7 +417,7 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, vector<
 		else
 			toxicity += s.toxicity;
 		if(s.toxic_bonus.value)
-			toxicity = (toxicity*Fixed<1000>(1+s.toxic_bonus)).round();
+			toxicity = (toxicity*Fixed<1600>(1+s.toxic_bonus)).round();
 		result.damage += toxicity;
 		rs_multi += Fixed<100, uint16_t>(s.rs_bonus);
 		kill_damage = max(kill_damage, result.damage);
