@@ -632,6 +632,9 @@ void SpireDB::select_random_work()
 	pqxx::work xact(*pq_conn);
 
 	pqxx::result result = xact.exec_prepared("select_configs");
+	if(result.empty())
+		return;
+
 	unsigned i = random()%result.size();
 
 	const pqxx::row &config_row = result[i];
@@ -655,6 +658,13 @@ void SpireDB::select_random_work()
 	string core_type = config_row[5].c_str();
 	int16_t core_tier = config_row[6].as<int16_t>();
 	result = xact.exec_prepared(query_name, floors, fire, frost, poison, lightning, core_type, core_tier);
+	if(result.empty())
+	{
+		cout << "Couldn't find any work for " << floors << " floors " << fire << frost << poison << lightning
+			<< " with core " << core_tier << '/' << core_type << " using query " << query_name << endl;
+		return;
+	}
+
 	const pqxx::row &row = result.front();
 
 	TrapUpgrades upg;
@@ -739,5 +749,5 @@ string SpireDB::get_work()
 
 	lock_guard<mutex> lock(work_mutex);
 	++work_given_count;
-	return current_work;
+	return (current_work.empty() ? "nowork" : current_work);
 }
