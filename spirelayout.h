@@ -33,6 +33,7 @@ struct TrapEffects
 	Fixed<1000, unsigned> lightning_column_bonus;
 	Fixed<1000, unsigned> strength_multi;
 	Fixed<1000, unsigned> condenser_bonus;
+	Fixed<100, unsigned> slow_rs_bonus;
 
 	TrapEffects(const TrapUpgrades &, const Core &);
 };

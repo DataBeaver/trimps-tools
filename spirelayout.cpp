@@ -120,7 +120,8 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	special_multi(2),
 	lightning_column_bonus(0.1),
 	strength_multi(2),
-	condenser_bonus(0.25)
+	condenser_bonus(0.25),
+	slow_rs_bonus(0)
 {
 	unsigned core_scale = 100*Core::value_scale;
 
@@ -151,16 +152,25 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	if(upgrades.frost>=4)
 		frost_damage *= 5;
 	if(upgrades.frost>=5)
+	{
+		slow_rs_bonus += Fixed<100, unsigned>(0.02);
 		frost_damage *= 2;
+	}
 	if(upgrades.frost>=6)
 	{
 		++chill_dur;
 		frost_damage *= 5;
 	}
 	if(upgrades.frost>=7)
+	{
+		slow_rs_bonus += Fixed<100, unsigned>(0.02);
 		frost_damage *= 2;
+	}
 	if(upgrades.frost>=8)
+	{
+		slow_rs_bonus += Fixed<100, unsigned>(0.02);
 		frost_damage *= 2;
+	}
 
 	if(upgrades.poison>=2)
 		poison_damage *= 2;
@@ -356,12 +366,8 @@ void Layout::build_steps(vector<Step> &steps) const
 		else if(t=='C')
 			step.toxic_bonus = Fixed<1000, uint16_t>(effects.condenser_bonus*special_multi);
 
-		if(repeat>1 && upgrades.frost>=5)
-			step.rs_bonus = Fixed<100, uint8_t>::from_raw(2);
-		if(repeat>1 && upgrades.frost>=7)
-			step.rs_bonus += Fixed<100, uint8_t>::from_raw(2);
-		if(repeat>1 && upgrades.frost>=8)
-			step.rs_bonus += Fixed<100, uint8_t>::from_raw(2);
+		if(repeat>1)
+			step.rs_bonus = Fixed<100, uint8_t>(effects.slow_rs_bonus);
 		steps.push_back(step);
 
 		if(shocked && !--shocked)
