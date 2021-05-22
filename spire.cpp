@@ -610,6 +610,8 @@ bool Spire::query_network()
 		query += format(" ss=%s", core_budget);
 	if(income)
 		query += " income";
+	if(towers)
+		query += " towers";
 	if(live)
 		query += " live";
 	string reply = network->communicate(connection, query);
@@ -664,6 +666,8 @@ void Spire::process_network_reply(const vector<string> &args, Layout &layout)
 				income = true;
 			else if(arg=="damage")
 				income = false;
+			else if(arg=="towers")
+				towers = true;
 		}
 	}
 
@@ -921,7 +925,10 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 		empty.set_core(layout.get_core());
 		empty.set_traps(string(), layout.get_traps().size()/5);
 
-		score_func = (income ? &income_score : &damage_score);
+		if(towers)
+			score_func = (income ? &towers_score<income_score, 0x40404> : &towers_score<damage_score, 0x40404>);
+		else
+			score_func = (income ? &income_score : &damage_score);
 		for(auto i=pools.begin(); i!=pools.end(); ++i)
 		{
 			(*i)->reset(score_func);

@@ -29,6 +29,7 @@ private:
 	struct RecentQuery: LiveQuery
 	{
 		bool income;
+		bool towers;
 		std::string client;
 		std::chrono::steady_clock::time_point time;
 		unsigned work_given_count;
@@ -68,12 +69,12 @@ private:
 	void serve_http(Network::ConnectionTag, const std::string &);
 	void serve_http_file(const std::string &, HttpMessage &);
 	std::string query(Network::ConnectionTag, const std::vector<std::string> &, const std::string &, bool = false);
-	Layout query_layout(pqxx::transaction_base &, unsigned, const TrapUpgrades &, Number, const Core *, Number, bool);
+	Layout query_layout(pqxx::transaction_base &, unsigned, const TrapUpgrades &, Number, const Core *, Number, bool ,bool);
 	Core query_core(pqxx::transaction_base &, unsigned);
 	std::string submit(Network::ConnectionTag, const std::vector<std::string> &, const std::string &);
-	int check_better_layout(pqxx::transaction_base &, const Layout &, bool);
+	int check_better_layout(pqxx::transaction_base &, const Layout &, bool, bool);
 	void check_live_queries(Network::ConnectionTag, const Layout &);
-	static int compare_layouts(const Layout &, const Layout &, bool);
+	static int compare_layouts(const Layout &, const Layout &, bool, bool);
 	void select_random_work();
 	std::string get_work();
 };

@@ -246,6 +246,14 @@ void Layout::set_traps(const string &t, unsigned floors)
 	data.resize(floors*5, '_');
 }
 
+unsigned Layout::get_tower_count() const
+{
+	unsigned count = 0;
+	for(auto c: data)
+		count += (c=='S' || c=='C' || c=='K');
+	return count;
+}
+
 void Layout::build_steps(vector<Step> &steps) const
 {
 	unsigned cells = data.size();

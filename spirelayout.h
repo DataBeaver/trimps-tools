@@ -121,6 +121,7 @@ public:
 	void set_traps(const std::string &, unsigned = 0);
 	const TrapUpgrades &get_upgrades() const { return upgrades; }
 	const std::string &get_traps() const { return data; }
+	unsigned get_tower_count() const;
 	const Core &get_core() const { return core; }
 private:
 	void build_steps(std::vector<Step> &) const;
