@@ -299,7 +299,7 @@ void Spire::parse_numeric_layout(const string& layout, ParsedLayout &parsed)
 	auto first_plus = layout.find('+');
 	auto second_plus = first_plus+5;
 
-	parsed.traps = layout.substr(0, first_plus-1);
+	parsed.traps = layout.substr(0, first_plus);
 	for(char &c: parsed.traps)
 	{
 		if(c<'0' || '7'<c)
