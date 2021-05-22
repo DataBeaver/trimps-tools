@@ -93,18 +93,18 @@ SpireDB::SpireDB(int argc, char **argv):
 	pq_conn->prepare("insert_core", "INSERT INTO cores (type, tier, cost, version) VALUES ($1, $2, $3, $4) RETURNING id");
 	pq_conn->prepare("insert_mod", "INSERT INTO core_mods (core_id, mod, value) VALUES ($1, $2, $3)");
 
-	pq_conn->prepare("select_best_damage_no_core", "SELECT "+layout_fields+" FROM layouts "
-		"WHERE "+filter_base+" AND core_id IS NULL ORDER BY damage DESC LIMIT 1");
-	pq_conn->prepare("select_best_damage_with_core", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
-		"WHERE "+filter_base+" AND "+filter_core+" ORDER BY damage DESC LIMIT 5");
-	pq_conn->prepare("select_best_damage_any", "SELECT "+layout_fields+" FROM layouts "
-		"WHERE "+filter_base+" ORDER BY damage DESC LIMIT 5");
-	pq_conn->prepare("select_best_income_no_core", "SELECT "+layout_fields+" FROM layouts "
-		"WHERE "+filter_base+" AND core_id IS NULL ORDER BY rs_per_sec DESC LIMIT 1");
-	pq_conn->prepare("select_best_income_with_core", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
-		"WHERE "+filter_base+" AND "+filter_core+" ORDER BY rs_per_sec DESC LIMIT 5");
-	pq_conn->prepare("select_best_income_any", "SELECT "+layout_fields+" FROM layouts "
-		"WHERE "+filter_base+" ORDER BY rs_per_sec DESC LIMIT 5");
+	string select_no_core = "SELECT "+layout_fields+" FROM layouts WHERE "+filter_base+" AND core_id IS NULL";
+	string select_with_core = "SELECT "+layout_fields+" FROM layouts "+join_core+" WHERE "+filter_base+" AND "+filter_core;
+	string select_any = "SELECT "+layout_fields+" FROM layouts WHERE "+filter_base;
+	string best_damage = "ORDER BY damage DESC";
+	string best_income = "ORDER BY rs_per_sec DESC";
+	pq_conn->prepare("select_best_damage_no_core", select_no_core+" "+best_damage+" LIMIT 1");
+	pq_conn->prepare("select_best_damage_with_core", select_with_core+" "+best_damage+" LIMIT 5");
+	pq_conn->prepare("select_best_damage_any", select_any+" "+best_damage+" LIMIT 5");
+	pq_conn->prepare("select_best_income_no_core", select_no_core+" "+best_income+" LIMIT 1");
+	pq_conn->prepare("select_best_income_with_core", select_with_core+" "+best_income+" LIMIT 5");
+	pq_conn->prepare("select_best_income_any", select_any+" "+best_income+" LIMIT 5");
+
 	pq_conn->prepare("delete_worse_no_core", "DELETE FROM layouts WHERE floors>=$1 AND fire>=$2 AND frost>=$3 AND poison>=$4 AND lightning>=$5 "
 		"AND damage<$6 AND rs_per_sec<$7 AND cost>=$8 AND core_id IS NULL");
 	pq_conn->prepare("delete_worse_with_core", "DELETE FROM layouts WHERE floors>=$1 AND fire>=$2 AND frost>=$3 AND poison>=$4 AND lightning>=$5 "
