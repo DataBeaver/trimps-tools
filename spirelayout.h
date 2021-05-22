@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+#include "fixedpoint.h"
 #include "spirecore.h"
 #include "types.h"
 
@@ -27,11 +28,11 @@ struct TrapEffects
 	Number poison_damage;
 	Number lightning_damage;
 	unsigned shock_dur;
-	unsigned shock_damage_pml;
+	Fixed<1000, unsigned> shock_damage_multi;
 	unsigned special_multi;
-	unsigned lightning_column_pml;
-	unsigned strength_pml;
-	unsigned condenser_pml;
+	Fixed<1000, unsigned> lightning_column_bonus;
+	Fixed<1000, unsigned> strength_multi;
+	Fixed<1000, unsigned> condenser_bonus;
 
 	TrapEffects(const TrapUpgrades &, const Core &);
 };
@@ -75,7 +76,7 @@ private:
 		Number max_hp;
 		Number damage;
 		Number toxicity;
-		std::uint16_t runestone_pct;
+		Fixed<100, std::uint16_t> runestone_multi;
 		std::uint16_t steps_taken;
 		int kill_cell;
 
@@ -88,9 +89,9 @@ private:
 		char trap;
 		std::uint8_t slow;
 		bool shock;
-		std::uint8_t rs_bonus;
-		std::uint16_t kill_pml;
-		std::uint16_t toxic_pml;
+		Fixed<100, std::uint8_t> rs_bonus;
+		Fixed<1000, std::uint16_t> kill_frac;
+		Fixed<1000, std::uint16_t> toxic_bonus;
 		Number direct_damage;
 		Number toxicity;
 
@@ -110,7 +111,7 @@ private:
 	Number damage;
 	Number cost;
 	Number rs_per_sec;
-	unsigned threat;
+	Fixed<16, unsigned> threat;
 	unsigned cycle;
 
 public:
@@ -128,7 +129,7 @@ private:
 	SimResult simulate(const std::vector<Step> &, Number, std::vector<SimDetail> * = 0) const;
 	void build_results(const std::vector<Step> &, std::vector<SimResult> &) const;
 	template<typename F>
-	Number integrate_results(const std::vector<SimResult> &, unsigned, const F &) const;
+	Number integrate_results(const std::vector<SimResult> &, Fixed<16, unsigned>, const F &) const;
 public:
 	void update(UpdateMode);
 private:
@@ -143,7 +144,7 @@ public:
 	Number get_damage() const { return damage; }
 	Number get_cost() const { return cost; }
 	Number get_runestones_per_second() const { return rs_per_sec; }
-	unsigned get_threat() const { return (threat+8)/16; }
+	unsigned get_threat() const { return threat.round(); }
 	unsigned get_cycle() const { return cycle; }
 	bool is_valid() const;
 	void debug(Number) const;

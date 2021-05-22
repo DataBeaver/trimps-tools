@@ -116,11 +116,11 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	poison_damage(5),
 	lightning_damage(50),
 	shock_dur(1),
-	shock_damage_pml(2000),
+	shock_damage_multi(2),
 	special_multi(2),
-	lightning_column_pml(100),
-	strength_pml(2000),
-	condenser_pml(250)
+	lightning_column_bonus(0.1),
+	strength_multi(2),
+	condenser_bonus(0.25)
 {
 	unsigned core_scale = 100*Core::value_scale;
 
@@ -187,7 +187,7 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	if(upgrades.lightning>=3)
 	{
 		lightning_damage *= 10;
-		shock_damage_pml *= 2;
+		shock_damage_multi *= 2;
 	}
 	if(upgrades.lightning>=5)
 	{
@@ -197,15 +197,15 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	if(upgrades.lightning>=6)
 	{
 		lightning_damage *= 10;
-		shock_damage_pml *= 2;
+		shock_damage_multi *= 2;
 	}
 
 	lightning_damage = (lightning_damage*(core_scale+core.lightning)+core_scale/2)/core_scale;
-	shock_damage_pml = (shock_damage_pml*(core_scale+core.lightning)+core_scale/2)/core_scale;
-	lightning_column_pml = (lightning_column_pml*(core_scale+core.lightning)+core_scale/2)/core_scale;
+	shock_damage_multi = (shock_damage_multi.rescale<2000>()*(core_scale+core.lightning)/core_scale).rescale<1000>();
+	lightning_column_bonus = (lightning_column_bonus.rescale<2000>()*(core_scale+core.lightning)/core_scale).rescale<1000>();
 
-	strength_pml = (strength_pml*(core_scale+core.strength)+core_scale/2)/core_scale;
-	condenser_pml = (condenser_pml*(core_scale+core.condenser)+core_scale/2)/core_scale;
+	strength_multi = (strength_multi.rescale<2000>()*(core_scale+core.strength)/core_scale).rescale<1000>();
+	condenser_bonus = (condenser_bonus.rescale<2000>()*(core_scale+core.condenser)/core_scale).rescale<1000>();
 }
 
 
@@ -281,7 +281,7 @@ void Layout::build_steps(vector<Step> &steps) const
 	unsigned chilled = 0;
 	unsigned frozen = 0;
 	unsigned shocked = 0;
-	unsigned damage_pml = 1000;
+	Fixed<1000> damage_multi = 1;
 	unsigned special_multi = 1;
 	unsigned repeat = 1;
 	for(unsigned i=0; i<cells; )
@@ -295,26 +295,26 @@ void Layout::build_steps(vector<Step> &steps) const
 
 		if(t=='Z')
 		{
-			step.direct_damage = effects.frost_damage*damage_pml/1000;
+			step.direct_damage = (effects.frost_damage*damage_multi).round();
 			chilled = effects.chill_dur*special_multi+1;
 			frozen = 0;
 			repeat = 1;
 		}
 		else if(t=='F')
 		{
-			step.direct_damage = effects.fire_damage*damage_pml/1000;
+			step.direct_damage = (effects.fire_damage*damage_multi).round();
 			if(floor_flags[i/5]&0x08)
-				step.direct_damage = step.direct_damage*effects.strength_pml/1000;
+				step.direct_damage = (step.direct_damage*Fixed<1000>(effects.strength_multi)).round();
 			if(chilled && upgrades.frost>=3)
 				step.direct_damage = step.direct_damage*5/4;
 			if(upgrades.lightning>=4)
-				step.direct_damage = step.direct_damage*(1000+effects.lightning_column_pml*column_flags[i%5])/1000;
+				step.direct_damage = (step.direct_damage*Fixed<1000>(1+effects.lightning_column_bonus*column_flags[i%5])).round();
 			if(upgrades.fire>=4)
-				step.kill_pml = 200;
+				step.kill_frac = 0.2;
 		}
 		else if(t=='P')
 		{
-			step.toxicity = effects.poison_damage*damage_pml/1000;
+			step.toxicity = (effects.poison_damage*damage_multi).round();
 			if(upgrades.frost>=4 && i+1<cells && data[i+1]=='Z')
 				step.toxicity *= 4;
 			if(upgrades.poison>=3)
@@ -325,13 +325,13 @@ void Layout::build_steps(vector<Step> &steps) const
 					step.toxicity *= 3;
 			}
 			if(upgrades.lightning>=4)
-				step.toxicity = step.toxicity*(1000+effects.lightning_column_pml*column_flags[i%5])/1000;
+				step.toxicity = (step.toxicity*Fixed<1000>(1+effects.lightning_column_bonus*column_flags[i%5])).round();
 		}
 		else if(t=='L')
 		{
-			step.direct_damage = effects.lightning_damage*damage_pml/1000;
+			step.direct_damage = (effects.lightning_damage*damage_multi).round();
 			shocked = effects.shock_dur+1;
-			damage_pml = effects.shock_damage_pml;
+			damage_multi = Fixed<1000>(effects.shock_damage_multi);
 			special_multi = effects.special_multi;
 		}
 		else if(t=='S')
@@ -339,8 +339,8 @@ void Layout::build_steps(vector<Step> &steps) const
 			uint16_t flags = floor_flags[i/5];
 			step.direct_damage = effects.fire_damage*(flags&0x07);
 			if(upgrades.lightning>=4)
-				step.direct_damage += effects.fire_damage*effects.lightning_column_pml*(flags>>4)/1000;
-			step.direct_damage = step.direct_damage*effects.strength_pml*damage_pml/1000000;
+				step.direct_damage += (effects.fire_damage*Fixed<1000>(effects.lightning_column_bonus)*(flags>>4)).round();
+			step.direct_damage = (step.direct_damage*Fixed<1000>(effects.strength_multi)*damage_multi).round();
 			if(chilled && upgrades.frost>=3)
 				step.direct_damage = step.direct_damage*5/4;
 		}
@@ -354,19 +354,19 @@ void Layout::build_steps(vector<Step> &steps) const
 			repeat = 1;
 		}
 		else if(t=='C')
-			step.toxic_pml = effects.condenser_pml*special_multi;
+			step.toxic_bonus = Fixed<1000, uint16_t>(effects.condenser_bonus*special_multi);
 
 		if(repeat>1 && upgrades.frost>=5)
-			step.rs_bonus = 2;
+			step.rs_bonus = Fixed<100, uint8_t>::from_raw(2);
 		if(repeat>1 && upgrades.frost>=7)
-			step.rs_bonus += 2;
+			step.rs_bonus += Fixed<100, uint8_t>::from_raw(2);
 		if(repeat>1 && upgrades.frost>=8)
-			step.rs_bonus += 2;
+			step.rs_bonus += Fixed<100, uint8_t>::from_raw(2);
 		steps.push_back(step);
 
 		if(shocked && !--shocked)
 		{
-			damage_pml = 1000;
+			damage_multi = 1;
 			special_multi = 1;
 		}
 
@@ -396,12 +396,12 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, vector<
 
 	Number kill_damage = 0;
 	Number toxicity = 0;
-	unsigned rs_pct = 100;
+	Fixed<100, uint16_t> rs_multi = 1;
 	for(const auto &s: steps)
 	{
 		result.damage += s.direct_damage;
-		if(s.kill_pml)
-			kill_damage = max(kill_damage, result.damage*1000/(1000-s.kill_pml));
+		if(s.kill_frac.value)
+			kill_damage = max(kill_damage, (Fixed<1000>(result.damage)/Fixed<1000>(1-s.kill_frac)).round());
 		if(upgrades.poison>=5 && hp && result.damage*4>=hp)
 		{
 			toxicity += s.toxicity*5;
@@ -410,10 +410,10 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, vector<
 		}
 		else
 			toxicity += s.toxicity;
-		if(s.toxic_pml)
-			toxicity = toxicity*(1000+s.toxic_pml)/1000;
+		if(s.toxic_bonus.value)
+			toxicity = (toxicity*Fixed<1000>(1+s.toxic_bonus)).round();
 		result.damage += toxicity;
-		rs_pct += s.rs_bonus;
+		rs_multi += Fixed<100, uint16_t>(s.rs_bonus);
 		kill_damage = max(kill_damage, result.damage);
 
 		if(detail)
@@ -435,9 +435,9 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, vector<
 			{
 				result.max_hp = min(result.max_hp, kill_damage);
 				result.kill_cell = s.cell;
-				result.runestone_pct = rs_pct;
+				result.runestone_multi = rs_multi;
 				if(upgrades.fire>=7 && s.trap=='F')
-					result.runestone_pct = result.runestone_pct*6/5;
+					result.runestone_multi = result.runestone_multi*6/5;
 			}
 		}
 	}
@@ -464,14 +464,14 @@ void Layout::build_results(const vector<Step> &steps, vector<SimResult> &results
 }
 
 template<typename F>
-Number Layout::integrate_results(const vector<SimResult> &results, unsigned thrt, const F &func) const
+Number Layout::integrate_results(const vector<SimResult> &results, Fixed<16, unsigned> thrt, const F &func) const
 {
 	if(results.empty())
 		return 0;
 
-	unsigned range = min(max<int>(0.53*thrt/16, 150), 850);
-	Number max_hp = 10+0.25*thrt+pow(1.012, thrt/16.0);
-	Number min_hp = max_hp*(1000-range)/1000;
+	Fixed<1000, unsigned> range = min(max(0.53*thrt.to_real(), 0.15), 0.85);
+	Number max_hp = 10+(thrt*4).to_real()+pow(1.012, thrt.to_real());
+	Number min_hp = (max_hp*Fixed<1000>(1-range)).round();
 
 	for(auto i=results.begin(); (i!=results.end() && i->sim_hp<max_hp); ++i)
 	{
@@ -611,7 +611,7 @@ void Layout::update_threat(const vector<SimResult> &results)
 {
 	if(!damage)
 	{
-		threat = 16;
+		threat = 1;
 		return;
 	}
 
@@ -619,8 +619,8 @@ void Layout::update_threat(const vector<SimResult> &results)
 	unsigned floors = cells/5;
 
 	static double log_base = log(1.012);
-	unsigned low = log(damage-4*log(static_cast<double>(damage))/log_base)/log_base*16;
-	unsigned high = low+1024;
+	Fixed<16, unsigned> low(log(damage-4*log(static_cast<double>(damage))/log_base)/log_base);
+	Fixed<16, unsigned> high = low+64;
 
 	while(low+1<high)
 	{
@@ -654,19 +654,19 @@ void Layout::update_threat(const vector<SimResult> &results)
 
 void Layout::update_runestones(const vector<SimResult> &results)
 {
-	unsigned capacity = (1+(data.size()+1)/2)*48;
+	Fixed<16> capacity = static_cast<Number>((1+(data.size()+1)/2)*3);
 	WeightedAccumulator runestones;
-	Number steps_taken = 0;
-	double threat_multi = pow(1.00116, threat/16.0);
+	Fixed<16> steps_taken = 0;
+	double threat_multi = pow(1.00116, threat.to_real());
 
 	Number hp_range = integrate_results(results, threat, [this, &runestones, &steps_taken, threat_multi](const SimResult &r, Number low_hp, Number high_hp)
 	{
 		if(r.damage>=r.sim_hp)
 		{
-			double multi = threat_multi*r.runestone_pct/100;
+			double multi = threat_multi*r.runestone_multi.to_real();
 			Number low_step = (low_hp+599)/600;
 			Number high_step = (high_hp+599)/600;
-			unsigned threat_term = threat/320;
+			unsigned threat_term = (threat/20).floor();
 			runestones.add((low_step+threat_term)*multi, low_step*600-low_hp);
 			runestones.add((high_step+threat_term)*multi, high_hp+1-(high_step-1)*600);
 			if(high_step>low_step)
@@ -676,13 +676,13 @@ void Layout::update_runestones(const vector<SimResult> &results)
 			runestones.add(r.toxicity/10, high_hp+1-low_hp);
 		else
 			runestones.add(0, high_hp+1-low_hp);
-		steps_taken += r.steps_taken*16*(high_hp+1-low_hp);
+		steps_taken += r.steps_taken*(high_hp+1-low_hp);
 	});
 
 	if(hp_range)
 	{
-		steps_taken = max<Number>(steps_taken/hp_range, capacity);
-		rs_per_sec = runestones.result()*capacity/steps_taken/3;
+		steps_taken = max<Fixed<16>>(steps_taken/hp_range, capacity);
+		rs_per_sec = (runestones.result()*capacity/steps_taken/3).round();
 
 		unsigned core_scale = 100*Core::value_scale;
 		rs_per_sec = (rs_per_sec*(core_scale+core.runestones)+core_scale/2)/core_scale;
@@ -885,17 +885,19 @@ Layout::Step::Step():
 	slow(0),
 	shock(false),
 	rs_bonus(0),
-	kill_pml(0),
-	toxic_pml(0),
+	kill_frac(0),
+	toxic_bonus(0),
 	direct_damage(0),
 	toxicity(0)
 { }
 
 
 Layout::SimResult::SimResult():
+	sim_hp(0),
 	max_hp(0),
 	damage(0),
-	runestone_pct(100),
+	toxicity(0),
+	runestone_multi(1),
 	steps_taken(0),
 	kill_cell(-1)
 { }
