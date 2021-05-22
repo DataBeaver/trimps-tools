@@ -722,7 +722,7 @@ string SpireDB::get_work()
 				RecentQuery &rq = recent_queries[i];
 				lock_guard<mutex> lock_db(database_mutex);
 				pqxx::work xact(*pq_conn);
-				Layout layout = query_layout(xact, rq.floors, rq.upgrades, rq.budget, (rq.core.tier>=0 ? &rq.core : 0), rq.core_budget, false);
+				Layout layout = query_layout(xact, rq.floors, rq.upgrades, rq.budget, (rq.core.tier>=0 ? &rq.core : 0), rq.core_budget, rq.income);
 
 				string work = format("work upg=%s t=%s rs=%s %s", rq.upgrades, layout.get_traps(), rq.budget, (rq.income ? "income" : "damage"));
 				if(rq.core.tier>=0)
