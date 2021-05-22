@@ -921,9 +921,10 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 		empty.set_core(layout.get_core());
 		empty.set_traps(string(), layout.get_traps().size()/5);
 
+		score_func = (income ? &income_score : &damage_score);
 		for(auto i=pools.begin(); i!=pools.end(); ++i)
 		{
-			(*i)->clear();
+			(*i)->reset(score_func);
 			(*i)->add_layout(i==pools.begin() ? layout : empty);
 		}
 
