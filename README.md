@@ -1,7 +1,7 @@
 Tools to assist in decision-making for the browser game
 [Trimps](https://trimps.github.io/).
 
-Copyright © 2018-2021  Mikkosoft Productions
+Copyright © 2018-2021  Mikkosoft Productions  
 Licensed under GPLv3.
 
 
@@ -25,7 +25,7 @@ options described below.
 
 ### 128-bit version
 
-The programs can use 128-bit math to work with numbers larger than about 9Qi.
+The optimizer can use 128-bit math to work with numbers larger than about 9Qi.
 A 128-bit build is provided in the releases as spire128.exe.  To compile it
 yourself, set `-DWITH_128BIT` in `CXXFLAGS`;
 
