@@ -133,7 +133,7 @@ public:
 	const Core &get_core() const { return core; }
 private:
 	void build_steps(std::vector<Step> &) const;
-	SimResult simulate(const std::vector<Step> &, Number, std::vector<SimDetail> * = 0) const;
+	SimResult simulate(const std::vector<Step> &, Number, bool, std::vector<SimDetail> * = 0) const;
 	void build_results(const std::vector<Step> &, std::vector<SimResult> &) const;
 	template<typename F>
 	Number integrate_results(const std::vector<SimResult> &, Fixed<16, unsigned>, const F &) const;

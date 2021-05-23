@@ -388,7 +388,7 @@ void Layout::build_steps(vector<Step> &steps) const
 	}
 }
 
-Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, vector<SimDetail> *detail) const
+Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, bool stop_early, vector<SimDetail> *detail) const
 {
 	SimResult result;
 	result.sim_hp = hp;
@@ -444,6 +444,8 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, vector<
 				result.runestone_multi = rs_multi;
 				if(upgrades.fire>=7 && s.trap=='F')
 					result.runestone_multi = result.runestone_multi*6/5;
+				if(stop_early)
+					break;
 			}
 		}
 	}
@@ -461,7 +463,7 @@ void Layout::build_results(const vector<Step> &steps, vector<SimResult> &results
 	Number hp = 1;
 	for(unsigned i=0; i<10000; ++i)
 	{
-		SimResult res = simulate(steps, hp);
+		SimResult res = simulate(steps, hp, true);
 		results.push_back(res);
 		hp = res.max_hp+1;
 		if(hp<res.max_hp)
@@ -517,14 +519,14 @@ void Layout::update(UpdateMode mode)
 
 void Layout::update_damage(const vector<Step> &steps, unsigned accuracy)
 {
-	damage = simulate(steps, 0).damage;
+	damage = simulate(steps, 0, false).damage;
 	if(upgrades.poison>=5)
 	{
-		Number high = simulate(steps, damage).damage;
+		Number high = simulate(steps, damage, false).damage;
 		for(unsigned i=0; (i<accuracy && damage+1<high); ++i)
 		{
 			Number mid = (damage+high)/2;
-			SimResult res = simulate(steps, mid);
+			SimResult res = simulate(steps, mid, false);
 			if(res.kill_cell>=0)
 				damage = res.max_hp;
 			else
@@ -827,7 +829,7 @@ void Layout::debug(Number hp) const
 	vector<Step> steps;
 	build_steps(steps);
 	vector<SimDetail> detail;
-	SimResult result = simulate(steps, hp, &detail);
+	SimResult result = simulate(steps, hp, false, &detail);
 
 	cout << "Enemy HP: " << hp << endl;
 
@@ -867,7 +869,7 @@ void Layout::build_cell_info(vector<CellInfo> &info, Number hp) const
 	vector<Step> steps;
 	build_steps(steps);
 	vector<SimDetail> detail;
-	simulate(steps, hp, &detail);
+	simulate(steps, hp, false, &detail);
 
 	info.clear();
 	info.resize(data.size());
