@@ -97,7 +97,7 @@ private:
 		std::uint8_t slow;
 		bool shock;
 		Fixed<100, std::uint8_t> rs_bonus;
-		Fixed<100, std::uint16_t> kill_frac;
+		bool culling_strike;
 		Fixed<1600, std::uint16_t> toxic_bonus;
 		Number direct_damage;
 		Number toxicity;

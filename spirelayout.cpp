@@ -320,7 +320,7 @@ void Layout::build_steps(vector<Step> &steps) const
 			if(upgrades.lightning>=4)
 				step.direct_damage = (step.direct_damage*Fixed<1000>(1+effects.lightning_column_bonus*column_flags[i%5])).round();
 			if(upgrades.fire>=4)
-				step.kill_frac = 0.2;
+				step.culling_strike = true;
 		}
 		else if(t=='P')
 		{
@@ -406,8 +406,8 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, vector<
 	for(const auto &s: steps)
 	{
 		result.damage += s.direct_damage;
-		if(s.kill_frac.value)
-			kill_damage = max(kill_damage, (Fixed<100>(result.damage)/Fixed<100>(1-s.kill_frac)).round());
+		if(s.culling_strike)
+			kill_damage = max(kill_damage, result.damage+result.damage/4);
 		if(upgrades.poison>=5 && hp && result.damage*4>=hp)
 		{
 			toxicity += s.toxicity*5;
@@ -891,7 +891,7 @@ Layout::Step::Step():
 	slow(0),
 	shock(false),
 	rs_bonus(0),
-	kill_frac(0),
+	culling_strike(false),
 	toxic_bonus(0),
 	direct_damage(0),
 	toxicity(0)
