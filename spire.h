@@ -2,6 +2,7 @@
 #define SPIRE_H_
 
 #include <atomic>
+#include <condition_variable>
 #include <list>
 #include <mutex>
 #include <thread>
@@ -18,19 +19,27 @@ private:
 	class Worker
 	{
 	private:
+		enum State
+		{
+			WORKING,
+			PAUSE_PENDING,
+			PAUSED,
+			INTERRUPT
+		};
+
 		Spire &spire;
 		Random random;
-		std::atomic<bool> intr_flag;
-		std::atomic<bool> pause_flag;
-		std::atomic<bool> working;
+		State state;
+		std::mutex state_mutex;
+		std::condition_variable state_cond;
 		std::thread thread;
 
 	public:
 		Worker(Spire &, unsigned, bool);
 
-		bool is_working() const { return working.load(); }
 		void interrupt();
 		void set_paused(bool);
+		void wait_paused();
 		void join();
 
 	private:

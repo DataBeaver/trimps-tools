@@ -939,17 +939,8 @@ void Spire::pause_workers()
 {
 	for(auto w: workers)
 		w->set_paused(true);
-
-	bool all_paused = false;
-	while(!all_paused)
-	{
-		this_thread::sleep_for(chrono::milliseconds(100));
-
-		all_paused = true;
-		for(auto w: workers)
-			if(w->is_working())
-				all_paused = false;
-	}
+	for(auto w: workers)
+		w->wait_paused();
 }
 
 void Spire::resume_workers()
@@ -1247,21 +1238,33 @@ void Spire::sighandler(int)
 Spire::Worker::Worker(Spire &s, unsigned e, bool p):
 	spire(s),
 	random(e),
-	intr_flag(false),
-	pause_flag(p),
-	working(true),
+	state(p ? PAUSED : WORKING),
 	thread(&Worker::main, this)
 {
 }
 
 void Spire::Worker::interrupt()
 {
-	intr_flag.store(true);
+	lock_guard<mutex> lock(state_mutex);
+	state = INTERRUPT;
+	state_cond.notify_one();
 }
 
 void Spire::Worker::set_paused(bool p)
 {
-	pause_flag.store(p);
+	lock_guard<mutex> lock(state_mutex);
+	if(p && state==WORKING)
+		state = PAUSE_PENDING;
+	else if(!p && (state==PAUSE_PENDING || state==PAUSED))
+		state = WORKING;
+	state_cond.notify_one();
+}
+
+void Spire::Worker::wait_paused()
+{
+	unique_lock<mutex> state_lock(state_mutex);
+	while(state!=PAUSED && state!=INTERRUPT)
+		state_cond.wait(state_lock);
 }
 
 void Spire::Worker::join()
@@ -1272,16 +1275,20 @@ void Spire::Worker::join()
 void Spire::Worker::main()
 {
 	unique_lock<mutex> pools_lock(spire.pools_mutex, defer_lock);
-	while(!intr_flag.load())
+	while(1)
 	{
-		while(pause_flag.load() && !intr_flag.load())
+		unique_lock<mutex> state_lock(state_mutex);
+		if(state==PAUSE_PENDING)
 		{
-			working.store(false);
-			this_thread::sleep_for(chrono::milliseconds(100));
+			state = PAUSED;
+			state_cond.notify_one();
 		}
-		if(intr_flag.load())
+		while(state==PAUSED)
+			state_cond.wait(state_lock);
+		if(state==INTERRUPT)
 			break;
-		working.store(true);
+		state = WORKING;
+		state_lock.unlock();
 
 		unsigned cycle = spire.get_next_cycle();
 
