@@ -966,6 +966,7 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 		empty.set_core(layout.get_core());
 		empty.set_traps(string(), layout.get_traps().size()/5);
 
+		update_mode = (income ? Layout::FULL : Layout::FAST);
 		if(towers)
 			score_func = (income ? &towers_score<income_score, 0x40404> : &towers_score<damage_score, 0x40404>);
 		else
