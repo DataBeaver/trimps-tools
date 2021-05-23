@@ -828,7 +828,9 @@ void Spire::prune_pools()
 	if(n_pools<=1)
 		return;
 
+	pause_workers();
 	lock_guard<mutex> lock(pools_mutex);
+
 	unsigned lowest = 0;
 	if(heterogeneous)
 		++lowest;
@@ -846,6 +848,8 @@ void Spire::prune_pools()
 	if(lowest+1<n_pools)
 		swap(pools[lowest], pools[n_pools-1]);
 	--n_pools;
+	delete pools.back();
+	pools.pop_back();
 
 	if(n_pools>prune_limit)
 		next_prune += prune_interval;
@@ -855,6 +859,8 @@ void Spire::prune_pools()
 			foreign_rate = 0;
 		next_prune = 0;
 	}
+
+	resume_workers();
 }
 
 void Spire::receive(Network::ConnectionTag, const string &message)
