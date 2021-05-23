@@ -923,10 +923,13 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 			score_func = (income ? &towers_score<income_score, 0x40404> : &towers_score<damage_score, 0x40404>);
 		else
 			score_func = (income ? &income_score : &damage_score);
-		for(auto i=pools.begin(); i!=pools.end(); ++i)
 		{
-			(*i)->reset(score_func);
-			(*i)->add_layout(i==pools.begin() ? layout : empty);
+			lock_guard<mutex> lock(pools_mutex);
+			for(auto i=pools.begin(); i!=pools.end(); ++i)
+			{
+				(*i)->reset(score_func);
+				(*i)->add_layout(i==pools.begin() ? layout : empty);
+			}
 		}
 
 		{
