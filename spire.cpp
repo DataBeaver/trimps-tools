@@ -833,7 +833,7 @@ void Spire::prune_pools()
 	if(heterogeneous)
 		++lowest;
 	Number score = pools[lowest]->get_best_score();
-	for(unsigned i=0; i<n_pools; ++i)
+	for(unsigned i=lowest+1; i<n_pools; ++i)
 	{
 		Number s = pools[i]->get_best_score();
 		if(s<score)
