@@ -906,19 +906,7 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 		Layout layout;
 		process_network_reply(parts, layout);
 
-		for(auto w: workers)
-			w->set_paused(true);
-
-		bool all_paused = false;
-		while(!all_paused)
-		{
-			this_thread::sleep_for(chrono::milliseconds(100));
-
-			all_paused = true;
-			for(auto w: workers)
-				if(w->is_working())
-					all_paused = false;
-		}
+		pause_workers();
 
 		Layout empty;
 		empty.set_upgrades(layout.get_upgrades());
@@ -941,11 +929,33 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 		}
 		budget = max(budget, layout.get_cost());
 
-		for(auto w: workers)
-			w->set_paused(false);
+		resume_workers();
 
 		report(layout, "New spire@home work from database");
 	}
+}
+
+void Spire::pause_workers()
+{
+	for(auto w: workers)
+		w->set_paused(true);
+
+	bool all_paused = false;
+	while(!all_paused)
+	{
+		this_thread::sleep_for(chrono::milliseconds(100));
+
+		all_paused = true;
+		for(auto w: workers)
+			if(w->is_working())
+				all_paused = false;
+	}
+}
+
+void Spire::resume_workers()
+{
+	for(auto w: workers)
+		w->set_paused(false);
 }
 
 void Spire::report(const Layout &layout, const string &message)

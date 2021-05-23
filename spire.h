@@ -124,6 +124,8 @@ private:
 	unsigned get_next_cycle();
 	void prune_pools();
 	void receive(Network::ConnectionTag, const std::string &);
+	void pause_workers();
+	void resume_workers();
 	void report(const Layout &, const std::string &);
 	bool print(const Layout &, unsigned &);
 	void print_fancy(const Layout &);
