@@ -70,7 +70,6 @@ Spire::Spire(int argc, char **argv):
 	loops_per_second(0),
 	debug_layout(false),
 	update_mode(Layout::FAST),
-	report_update_mode(Layout::COMPATIBLE),
 	numeric_format(false),
 	raw_values(false),
 	fancy_output(false),
@@ -234,15 +233,9 @@ Spire::Spire(int argc, char **argv):
 		score_func = income_score;
 
 	if(income)
-	{
 		update_mode = Layout::FULL;
-		report_update_mode = Layout::FULL;
-	}
 	else if(exact)
-	{
 		update_mode = Layout::EXACT_DAMAGE;
-		report_update_mode = Layout::FULL;
-	}
 
 	if(keep_core_mods)
 	{
@@ -428,7 +421,7 @@ void Spire::init_start_layout(const ParsedLayout &layout)
 		}
 
 		start_layout.set_traps(clean_data, layout.floors);
-		start_layout.update(report_update_mode);
+		start_layout.update(Layout::FULL);
 	}
 	else
 	{
@@ -688,11 +681,11 @@ void Spire::process_network_reply(const vector<string> &args, Layout &layout)
 		}
 	}
 
-	layout.update(report_update_mode);
+	layout.update(Layout::FULL);
 	if(received_core.tier>=0 && (athome || check_better_core(layout, received_core)))
 	{
 		layout.set_core(received_core);
-		layout.update(report_update_mode);
+		layout.update(Layout::FULL);
 	}
 }
 
@@ -703,7 +696,7 @@ bool Spire::check_better_core(const Layout &layout, const Core &core)
 
 	Layout with_core = layout;
 	with_core.set_core(core);
-	with_core.update(report_update_mode);
+	with_core.update(Layout::FULL);
 	return score_func(with_core)>score_func(layout);
 }
 
@@ -775,7 +768,7 @@ bool Spire::check_results()
 
 	if(new_best)
 	{
-		best_layout.update(report_update_mode);
+		best_layout.update(Layout::FULL);
 		next_work_timeout = chrono::steady_clock::now()+chrono::minutes(1);
 		submit_best();
 	}

@@ -505,17 +505,17 @@ void Layout::update(UpdateMode mode)
 	vector<Step> steps;
 	build_steps(steps);
 	vector<SimResult> results;
-	if(mode>FAST)
-		build_results(steps, results);
-
-	if(mode==FAST || mode==COMPATIBLE)
+	if(mode==FAST)
 		update_damage(steps, 10);
-	if(mode==EXACT_DAMAGE || mode==FULL)
-		update_damage(results);
-	if(mode==COMPATIBLE || mode==FULL)
+	else if(mode>FAST)
 	{
-		update_threat(results);
-		update_runestones(results);
+		build_results(steps, results);
+		update_damage(results);
+		if(mode==FULL)
+		{
+			update_threat(results);
+			update_runestones(results);
+		}
 	}
 }
 

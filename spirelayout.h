@@ -62,7 +62,6 @@ public:
 	{
 		COST_ONLY,
 		FAST,
-		COMPATIBLE,
 		EXACT_DAMAGE,
 		FULL
 	};
