@@ -408,14 +408,16 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, bool st
 		result.damage += s.direct_damage;
 		if(s.culling_strike)
 			kill_damage = max(kill_damage, result.damage+result.damage/4);
-		if(upgrades.poison>=5 && hp && result.damage*4>=hp)
+		if(s.toxicity)
 		{
-			toxicity += s.toxicity*5;
-			if(s.toxicity)
+			if(upgrades.poison>=5 && hp && result.damage*4>=hp)
+			{
+				toxicity += s.toxicity*5;
 				result.max_hp = min(result.max_hp, result.damage*4);
+			}
+			else
+				toxicity += s.toxicity;
 		}
-		else
-			toxicity += s.toxicity;
 		if(s.toxic_bonus.value)
 			toxicity = (toxicity*Fixed<1600>(1+s.toxic_bonus)).round();
 		result.damage += toxicity;
