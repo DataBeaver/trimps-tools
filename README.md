@@ -145,6 +145,15 @@ the genetic algorithm:
 --prune-limit  
   Stop pruning when only this many pools are left
 
+--extinction-interval  
+  Set an interval for clearing a random pool (but never the best performing
+  one)
+
+--isolation-period  
+  Set the number of cycles after an extinction event during which the cleared
+  pool will receive no cross-breeding.  This can allow the program to come up
+  with fresh ideas.
+
 Finally, a few options are mostly for debugging purposes:
 
 -g, --debug-layout  

@@ -5,7 +5,8 @@ using namespace std;
 
 Pool::Pool(unsigned s, ScoreFunc *f):
 	max_size(s),
-	score_func(f)
+	score_func(f),
+	isolated_until(0)
 { }
 
 void Pool::reset(ScoreFunc *f)
@@ -94,4 +95,14 @@ Number Pool::get_best_score() const
 {
 	lock_guard<mutex> lock(layouts_mutex);
 	return score_func(layouts.front());
+}
+
+void Pool::set_isolated_until(unsigned cycle)
+{
+	isolated_until.store(cycle);
+}
+
+bool Pool::check_isolation(unsigned cycle) const
+{
+	return isolated_until.load()>cycle;
 }

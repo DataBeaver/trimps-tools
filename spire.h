@@ -68,6 +68,9 @@ private:
 	unsigned prune_interval;
 	unsigned next_prune;
 	unsigned prune_limit;
+	unsigned extinction_interval;
+	unsigned next_extinction;
+	unsigned isolation_period;
 	unsigned cross_rate;
 	unsigned foreign_rate;
 	unsigned core_rate;
@@ -132,6 +135,7 @@ private:
 	void update_output(bool);
 	unsigned get_next_cycle();
 	void prune_pools();
+	void extinct_pools(Number);
 	void receive(Network::ConnectionTag, const std::string &);
 	void pause_workers();
 	void resume_workers();

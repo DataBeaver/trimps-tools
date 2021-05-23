@@ -1,6 +1,7 @@
 #ifndef SPIREPOOL_H_
 #define SPIREPOOL_H_
 
+#include <atomic>
 #include <list>
 #include <mutex>
 #include "types.h"
@@ -17,6 +18,7 @@ private:
 	ScoreFunc *score_func;
 	std::list<Layout> layouts;
 	mutable std::mutex layouts_mutex;
+	std::atomic<unsigned> isolated_until;
 
 public:
 	Pool(unsigned, ScoreFunc *);
@@ -27,6 +29,8 @@ public:
 	bool get_best_layout(Layout &) const;
 	Layout get_random_layout(Random &) const;
 	Number get_best_score() const;
+	void set_isolated_until(unsigned);
+	bool check_isolation(unsigned) const;
 
 	template<typename F>
 	void visit_layouts(const F &) const;

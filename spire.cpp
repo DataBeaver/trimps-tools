@@ -57,6 +57,9 @@ Spire::Spire(int argc, char **argv):
 	prune_interval(0),
 	next_prune(0),
 	prune_limit(3),
+	extinction_interval(0),
+	next_extinction(0),
+	isolation_period(10000),
 	cross_rate(500),
 	foreign_rate(500),
 	core_rate(1000),
@@ -91,6 +94,8 @@ Spire::Spire(int argc, char **argv):
 	unsigned n_pools_seen = 0;
 	unsigned prune_interval_seen = 0;
 	unsigned prune_limit_seen = 0;
+	unsigned extinction_interval_seen = 0;
+	unsigned isolation_period_seen = 0;
 	unsigned foreign_rate_seen = 0;
 	unsigned floors = 0;
 	unsigned floors_seen = 0;
@@ -130,6 +135,8 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option('s', "pool-size", pool_size, GetOpt::REQUIRED_ARG).set_help("Size of each population pool", "NUM");
 	getopt.add_option("prune-interval", prune_interval, GetOpt::REQUIRED_ARG).set_help("Interval for pruning pools, in cycles", "NUM").bind_seen_count(prune_interval_seen);
 	getopt.add_option("prune-limit", prune_limit, GetOpt::REQUIRED_ARG).set_help("Minimum number of pools to keep", "NUM").bind_seen_count(prune_limit_seen);
+	getopt.add_option("extinction-interval", extinction_interval, GetOpt::REQUIRED_ARG).set_help("Interval between extinctions, in cycles", "NUM").bind_seen_count(extinction_interval_seen);
+	getopt.add_option("isolation-period", isolation_period, GetOpt::REQUIRED_ARG).set_help("Isolation period after extinction, in cycles", "NUM").bind_seen_count(isolation_period_seen);
 	getopt.add_option("heterogeneous", heterogeneous, GetOpt::NO_ARG).set_help("Use heterogeneous pool configurations");
 	getopt.add_option('r', "cross-rate", cross_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing two layouts (out of 1000)", "NUM");
 	getopt.add_option('o', "foreign-rate", foreign_rate, GetOpt::REQUIRED_ARG).set_help("Probability of crossing from another pool (out of 1000)", "NUM").bind_seen_count(foreign_rate_seen);
@@ -161,6 +168,8 @@ Spire::Spire(int argc, char **argv):
 		live = false;
 		towers_seen = false;
 		core_mutate = Core::VALUES_ONLY;
+		if(!extinction_interval_seen)
+			extinction_interval = 25000;
 	}
 	else if(preset=="single")
 	{
@@ -175,6 +184,8 @@ Spire::Spire(int argc, char **argv):
 			prune_interval = 50000;
 		if(!prune_limit_seen)
 			prune_limit = 10;
+		if(!extinction_interval_seen)
+			extinction_interval = 25000;
 	}
 	else if(preset=="advanced")
 	{
@@ -250,6 +261,12 @@ Spire::Spire(int argc, char **argv):
 		prune_interval = 0;
 	if(prune_interval)
 		next_prune = prune_interval;
+	if(extinction_interval)
+	{
+		next_extinction = extinction_interval;
+		if(!isolation_period_seen)
+			isolation_period = 3*extinction_interval;
+	}
 
 	if(!athome)
 		init_start_layout(parse_layout(layout_str, upgrades, core, floors));
@@ -765,6 +782,8 @@ bool Spire::check_results()
 
 	if(next_prune && cycle>=next_prune)
 		prune_pools();
+	if(next_extinction && cycle>=next_extinction)
+		extinct_pools(score_func(best_layout));
 
 	return new_best;
 }
@@ -859,6 +878,41 @@ void Spire::prune_pools()
 			foreign_rate = 0;
 		next_prune = 0;
 	}
+
+	resume_workers();
+}
+
+void Spire::extinct_pools(Number score_limit)
+{
+	if(n_pools<=1)
+		return;
+
+	pause_workers();
+	lock_guard<mutex> lock(pools_mutex);
+
+	Pool *pool = 0;
+	unsigned index = cycle.load();
+	for(unsigned i=0; (!pool && i<100); ++i)
+	{
+		Pool *p = pools[(index*(i+1)+i*i)%n_pools];
+		if(p->get_best_score()<score_limit)
+			pool = p;
+	}
+
+	if(pool)
+	{
+		Layout pool_best = pool->get_best_layout();
+		Layout empty;
+		empty.set_upgrades(pool_best.get_upgrades());
+		empty.set_core(pool_best.get_core());
+		empty.set_traps(string(), pool_best.get_traps().size()/5);
+
+		pool->reset(0);
+		pool->add_layout(empty);
+		pool->set_isolated_until(cycle.load()+isolation_period);
+	}
+
+	next_extinction += extinction_interval;
 
 	resume_workers();
 }
@@ -1308,7 +1362,7 @@ void Spire::Worker::main()
 
 		Layout cross_layout;
 		bool do_cross = (random()%1000<spire.cross_rate);
-		if(do_cross || spire.heterogeneous)
+		if((do_cross || spire.heterogeneous) && !pool.check_isolation(cycle))
 		{
 			Pool *cross_pool = &pool;
 			bool do_foreign = (random()%1000<spire.foreign_rate);
