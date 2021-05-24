@@ -644,8 +644,8 @@ void Layout::update_threat(const vector<SimResult> &results)
 				change += (cells-r.kill_cell+4)/5*(high_hp+1-low_hp);
 			else
 			{
-				Number n = (low_hp*115-r.damage*100-1)/(low_hp*15);
-				while(low_hp<high_hp)
+				unsigned n = (low_hp*115-r.damage*100-1)/(low_hp*15);
+				while(low_hp<high_hp && n<6)
 				{
 					Number step_hp = (r.damage*100-1)/(100-n*15);
 					change -= floors*n*(min(step_hp, high_hp)+1-low_hp);
