@@ -756,7 +756,9 @@ string SpireDB::get_work()
 				pqxx::work xact(*pq_conn);
 				Layout layout = query_layout(xact, rq.floors, rq.upgrades, rq.budget, (rq.core.tier>=0 ? &rq.core : 0), rq.core_budget, rq.income, rq.towers);
 
-				string work = format("work upg=%s t=%s rs=%s %s", rq.upgrades, layout.get_traps(), rq.budget, (rq.income ? "income" : "damage"));
+				string traps = layout.get_traps();
+				traps.resize(rq.floors*5, '_');
+				string work = format("work upg=%s t=%s rs=%s %s", rq.upgrades, traps, rq.budget, (rq.income ? "income" : "damage"));
 				if(rq.towers)
 					work += " towers";
 				if(rq.core.tier>=0)
