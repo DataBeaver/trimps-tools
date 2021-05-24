@@ -131,6 +131,8 @@ SpireDB::SpireDB(int argc, char **argv):
 		"WHERE "+filter_config+" AND "+filter_core_config+" AND floors<20 AND threat/100>LENGTH(traps)/5");
 	pq_conn->prepare("select_best_for_config", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
 		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY rs_per_sec DESC");
+	pq_conn->prepare("select_best_towers_for_config", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
+		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY towers DESC, rs_per_sec DESC");
 	pq_conn->prepare("select_random", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
 		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY RANDOM()");
 }
@@ -667,13 +669,14 @@ void SpireDB::select_random_work()
 	uint16_t lightning = config_row[4].as<uint16_t>();
 
 	string query_name;
-	WorkType work_type = static_cast<WorkType>(random()%5);
+	WorkType work_type = static_cast<WorkType>(random()%6);
 	switch(work_type)
 	{
 	case INCOMPLETE: query_name = "select_incomplete"; break;
 	case UNDERPERFORMING: query_name = "select_underperforming"; break;
 	case ADD_FLOOR: query_name = "select_missing_floor"; break;
 	case INCREASE_BUDGET: query_name = "select_best_for_config"; break;
+	case INCREASE_BUDGET_TOWERS: query_name = "select_best_towers_for_config"; break;
 	case DECREASE_BUDGET: query_name = "select_random"; break;
 	}
 
@@ -731,6 +734,8 @@ void SpireDB::select_random_work()
 
 	lock_guard<mutex> lock(work_mutex);
 	current_work = format("work upg=%s t=%s %s", upg.str(), traps, (work_type==INCOMPLETE ? "damage" : "income"));
+	if(work_type==INCREASE_BUDGET_TOWERS)
+		current_work += " towers";
 	if(budget>0)
 		current_work += format(" rs=%s", budget);
 	if(core.tier>=0)
