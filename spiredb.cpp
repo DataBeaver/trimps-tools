@@ -530,7 +530,7 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, c
 	pqxx::work xact(*pq_conn);
 	int verdict = check_better_layout(xact, layout, false, false);
 	verdict = max(verdict, check_better_layout(xact, layout, true, false));
-	verdict = max(verdict, check_better_layout(xact, layout, true, true));
+	verdict = max(verdict, check_better_layout(xact, layout, false, true));
 	verdict = max(verdict, check_better_layout(xact, layout, true, true));
 
 	if(verdict>0)
