@@ -955,6 +955,7 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 		budget = 0;
 		core_budget = 0;
 		income = false;
+		towers = false;
 
 		Layout layout;
 		process_network_reply(parts, layout);
