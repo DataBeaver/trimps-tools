@@ -103,6 +103,11 @@ Some of the more important options are:
   control how much processing power the program consumes.  Only available in
   128-bit builds.
 
+--boredom  
+  Set the maximum amount of cycles to spend on a spire@home work item without
+  finding improvements.  After the set amount has passed, a new work item is
+  requested.
+
 More advanced options can be used to tweak the performance of the program or
 the genetic algorithm:
 
