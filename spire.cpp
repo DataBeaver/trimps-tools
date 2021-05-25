@@ -1305,7 +1305,7 @@ void Spire::Worker::interrupt()
 {
 	lock_guard<mutex> lock(state_mutex);
 	state = INTERRUPT;
-	state_cond.notify_one();
+	state_cond.notify_all();
 }
 
 void Spire::Worker::set_paused(bool p)
@@ -1315,7 +1315,7 @@ void Spire::Worker::set_paused(bool p)
 		state = PAUSE_PENDING;
 	else if(!p && (state==PAUSE_PENDING || state==PAUSED))
 		state = WORKING;
-	state_cond.notify_one();
+	state_cond.notify_all();
 }
 
 void Spire::Worker::wait_paused()
@@ -1339,13 +1339,24 @@ void Spire::Worker::main()
 		if(state==PAUSE_PENDING)
 		{
 			state = PAUSED;
-			state_cond.notify_one();
+			state_cond.notify_all();
 		}
 		while(state==PAUSED)
+		{
 			state_cond.wait(state_lock);
+			if(state==PAUSE_PENDING)
+			{
+				state = PAUSED;
+				state_cond.notify_all();
+			}
+		}
 		if(state==INTERRUPT)
 			break;
-		state = WORKING;
+		if(state!=WORKING)
+		{
+			state = WORKING;
+			state_cond.notify_all();
+		}
 		state_lock.unlock();
 
 		unsigned cycle = spire.get_next_cycle();

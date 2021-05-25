@@ -29,7 +29,7 @@ private:
 
 		Spire &spire;
 		Random random;
-		State state;
+		volatile State state;
 		std::mutex state_mutex;
 		std::condition_variable state_cond;
 		std::thread thread;
