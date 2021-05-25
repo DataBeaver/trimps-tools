@@ -91,7 +91,8 @@ private:
 	bool athome;
 	Network::ConnectionTag connection;
 	std::chrono::steady_clock::time_point reconnect_timeout;
-	std::chrono::steady_clock::time_point next_work_timeout;
+	unsigned athome_boredom;
+	unsigned next_work;
 	bool intr_flag;
 
 	Number budget;
@@ -128,7 +129,7 @@ private:
 	bool check_better_core(const Layout &, const Core &);
 	bool validate_core(const Core &);
 	void check_reconnect(const std::chrono::steady_clock::time_point &);
-	void check_athome_work(const std::chrono::steady_clock::time_point &);
+	void check_athome_work();
 	bool check_results();
 	void submit_best();
 	void update_output(bool);

@@ -78,6 +78,8 @@ Spire::Spire(int argc, char **argv):
 	live(false),
 	athome(false),
 	connection(0),
+	athome_boredom(500000),
+	next_work(0),
 	intr_flag(false),
 	budget(0),
 	core_budget(0),
@@ -124,6 +126,7 @@ Spire::Spire(int argc, char **argv):
 	getopt.add_option("live", live, GetOpt::NO_ARG).set_help("Perform a live query to the database");
 #ifdef WITH_128BIT
 	getopt.add_option("athome", athome, GetOpt::NO_ARG).set_help("Work on random layouts provided by the database");
+	getopt.add_option("boredom", athome_boredom, GetOpt::REQUIRED_ARG).set_help("Get new work after this many cycles of no improvement", "NUM");
 #endif
 	getopt.add_option('t', "preset", preset, GetOpt::REQUIRED_ARG).set_help("Select a preset to base settings on", "NAME");
 	getopt.add_option("fancy", fancy_output, GetOpt::NO_ARG).set_help("Produce fancy output");
@@ -588,7 +591,7 @@ int Spire::main()
 		}
 
 		check_reconnect(current_time);
-		check_athome_work(current_time);
+		check_athome_work();
 
 		lock_guard<mutex> lock(best_mutex);
 		bool new_best_found = check_results();
@@ -746,13 +749,14 @@ void Spire::check_reconnect(const chrono::steady_clock::time_point &current_time
 	}
 }
 
-void Spire::check_athome_work(const chrono::steady_clock::time_point &current_time)
+void Spire::check_athome_work()
 {
-	if(!athome || !connection || current_time<next_work_timeout)
+	unsigned current_cycle = cycle.load();
+	if(!athome || !connection || current_cycle<next_work)
 		return;
 
 	network->send_message(connection, "getwork");
-	next_work_timeout = current_time+chrono::minutes(1);
+	next_work = current_cycle+athome_boredom;
 }
 
 bool Spire::check_results()
@@ -769,7 +773,7 @@ bool Spire::check_results()
 	if(new_best)
 	{
 		best_layout.update(Layout::FULL);
-		next_work_timeout = chrono::steady_clock::now()+chrono::minutes(1);
+		next_work = best_layout.get_cycle()+athome_boredom;
 		submit_best();
 	}
 
