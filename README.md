@@ -29,6 +29,14 @@ The optimizer can use 128-bit math to work with numbers larger than about 9Qi.
 A 128-bit build is provided in the releases as spire128.exe.  To compile it
 yourself, set `-DWITH_128BIT` in `CXXFLAGS`;
 
+### Web interface
+
+A [web interface](https://spiredb.tdb.fi/) is available for searching spires
+right from your browser.  This is a read-only interface, without any editing
+or submission capabilities.  However it does put the queries in the pool sent
+to active spire@home users, so a better layout may become available after a
+while.
+
 ### Command-line options
 
 Some of the more important options are:
