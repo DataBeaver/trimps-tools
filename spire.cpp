@@ -1029,7 +1029,7 @@ void Spire::report(const Layout &layout, const string &message)
 	console << endl << "  ";
 	unsigned count = 1;
 	print(layout, count);
-	if((core_budget || fancy_output) && layout.get_core().tier>=0)
+	if(layout.get_core().tier>=0)
 		console << "  Core: " << layout.get_core().str() << endl_clear;
 
 	if(fancy_output)
