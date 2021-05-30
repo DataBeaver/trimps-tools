@@ -50,6 +50,58 @@ function SpireClient()
 		}
 	}
 
+	this.calculate_cost = function calculate_cost(traps)
+	{
+		var fire_cost = 100;
+		var frost_cost = 100;
+		var poison_cost = 500;
+		var lightning_cost = 1000;
+		var strength_cost = 3000;
+		var condenser_cost = 6000;
+		var knowledge_cost = 9000;
+		var cost = 0;
+		for(var i=0; i<traps.length; ++i)
+		{
+			var t = traps[i];
+			if(t=='F')
+			{
+				cost += fire_cost;
+				fire_cost = fire_cost*3/2;
+			}
+			else if(t=='Z')
+			{
+				cost += frost_cost;
+				frost_cost *= 5;
+			}
+			else if(t=='P')
+			{
+				cost += poison_cost;
+				poison_cost = poison_cost*7/4;
+			}
+			else if(t=='L')
+			{
+				cost += lightning_cost;
+				lightning_cost *= 3;
+			}
+			else if(t=='S')
+			{
+				cost += strength_cost;
+				strength_cost *= 100;
+			}
+			else if(t=='C')
+			{
+				cost += condenser_cost;
+				condenser_cost *= 100;
+			}
+			else if(t=='K')
+			{
+				cost += knowledge_cost;
+				knowledge_cost *= 100;
+			}
+		}
+		return cost;
+	}
+
 	this.query_spire = function query_spire()
 	{
 		var fe = this.query_form.elements;
@@ -146,9 +198,21 @@ function SpireClient()
 		var save_data = event.clipboardData.getData("text");
 		var save_json = JSON.parse(LZString.decompressFromBase64(save_data));
 
+		var layout = "";
+		for(var i=0; i<save_json.playerSpire.main.layout.length; ++i)
+		{
+			var trap = save_json.playerSpire.main.layout[i].trap;
+			if(!trap)
+				layout += "_";
+			else if(trap.name=="Frost")
+				layout += "Z";
+			else
+				layout += trap.name[0];
+		}
+
 		var fe = this.query_form.elements;
 		fe.floors.value = save_json.playerSpire.main.rowsAllowed;
-		fe.budget.value = save_json.playerSpire.main.runestones;
+		fe.budget.value = this.calculate_cost(layout)+save_json.playerSpire.main.runestones;
 		fe.fire.value = save_json.playerSpire.traps.Fire.level;
 		fe.frost.value = save_json.playerSpire.traps.Frost.level;
 		fe.poison.value = save_json.playerSpire.traps.Poison.level;
