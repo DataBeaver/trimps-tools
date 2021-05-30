@@ -442,7 +442,8 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, co
 			best.set_upgrades(upgrades);
 			best.set_core(core);
 			best.update(Layout::FULL);
-			result += format(" rs=%s damage=%s income=%s threat=%s", best.get_cost(), best.get_damage(), best.get_runestones_per_second(), best.get_threat());
+			result += format(" rs=%s damage=%s income=%s enemy_worth=%s threat=%s",
+				best.get_cost(), best.get_damage(), best.get_runestones_per_second(), best.get_runestones_per_enemy(), best.get_threat());
 		}
 		return result;
 	}

@@ -111,6 +111,7 @@ function SpireClient()
 			this.stats.querySelector("#damage").innerText = format_number(fields.damage);
 			this.stats.querySelector("#income_sec").innerText = format_number(fields.income);
 			this.stats.querySelector("#income_hr").innerText = format_number(fields.income*3600);
+			this.stats.querySelector("#income_enemy").innerText = format_number(fields.enemy_worth);
 			this.stats.querySelector("#threat").innerText = fields.threat;
 
 			this.upgrades.style.display = "block";
