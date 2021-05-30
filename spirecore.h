@@ -55,6 +55,7 @@ struct Core
 
 	void set_mod(unsigned, std::uint16_t);
 	std::uint16_t get_mod(unsigned) const;
+	unsigned get_n_mods() const;
 	Number get_mod_cost(unsigned, std::uint16_t);
 	void update();
 

@@ -391,6 +391,12 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, co
 			throw invalid_argument("SpireDB::query");
 	}
 
+	if(!core.get_n_mods())
+	{
+		core = Core();
+		core_budget = 0;
+	}
+
 	RecentQuery rq;
 	rq.upgrades = upgrades.str();
 	rq.floors = floors;
@@ -738,7 +744,7 @@ void SpireDB::select_random_work()
 		current_work += " towers";
 	if(budget>0)
 		current_work += format(" rs=%s", budget);
-	if(core.tier>=0)
+	if(core.tier>=0 && core.get_n_mods())
 		current_work += format(" core=%s", core.str(true));
 
 	work_given_count = 0;

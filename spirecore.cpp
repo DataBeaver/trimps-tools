@@ -107,6 +107,14 @@ uint16_t Core::get_mod(unsigned mod) const
 	}
 }
 
+unsigned Core::get_n_mods() const
+{
+	unsigned count = 0;
+	for(unsigned i=0; i<N_MODS; ++i)
+		count += (get_mod(i)!=0);
+	return count;
+}
+
 Number Core::get_mod_cost(unsigned mod, uint16_t value)
 {
 	const ModValues &mod_vals = tiers[tier].mods[mod];
