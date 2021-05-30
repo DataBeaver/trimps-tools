@@ -496,7 +496,7 @@ void Spire::init_network(bool reconnect)
 		{
 			if(fancy_output)
 			{
-				console.set_cursor_position(58, 15);
+				console.set_cursor_position(58, 16+(core_budget!=0));
 				console << "Online      ";
 			}
 			else
@@ -825,9 +825,10 @@ void Spire::update_output(bool new_best_found)
 			report(best_layout, "New best layout found");
 		else if(fancy_output)
 		{
-			console.set_cursor_position(69, 13);
+			unsigned line = 14+(core_budget!=0);
+			console.set_cursor_position(69, line++);
 			console << cycle;
-			console.set_cursor_position(69, 14);
+			console.set_cursor_position(69, line++);
 			console << NumberIO(loops_per_second) << clear_to_end;
 			cout.flush();
 		}
@@ -920,7 +921,7 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 	{
 		if(fancy_output)
 		{
-			console.set_cursor_position(58, 15);
+			console.set_cursor_position(58, 17);
 			console << "Disconnected";
 		}
 		else
@@ -993,6 +994,7 @@ void Spire::receive(Network::ConnectionTag, const string &message)
 
 		resume_workers();
 
+		console.clear_screen();
 		report(layout, "New spire@home work from database");
 	}
 }
@@ -1035,33 +1037,45 @@ void Spire::report(const Layout &layout, const string &message)
 	if(fancy_output)
 	{
 		print_fancy(layout);
-		console.set_cursor_position(58, 4);
+		unsigned line = 4;
+		console.set_cursor_position(58, line++);
 		console << "Mode:   " << (income ? "income" : "damage");
 		if(towers)
 			console << "+towers";
-		console.set_cursor_position(58, 5);
+		console.set_cursor_position(58, line++);
 		console << "Budget: " << print_num(budget) << " Rs" << clear_to_end;
-		console.set_cursor_position(58, 7);
+		if(core_budget)
+		{
+			console.set_cursor_position(66, line++);
+			console << print_num(core_budget) << " Ss" << clear_to_end;
+		}
+
+		++line;
+		console.set_cursor_position(58, line++);
 		console << "Damage: " << print_num(layout.get_damage()) << clear_to_end;
-		console.set_cursor_position(58, 8);
+		console.set_cursor_position(58, line++);
 		console << "Threat: " << layout.get_threat() << clear_to_end;
-		console.set_cursor_position(58, 9);
+		console.set_cursor_position(58, line++);
 		console << "Income: " << print_num(layout.get_runestones_per_second()) << " Rs/s" << clear_to_end;
-		console.set_cursor_position(58, 10);
+		console.set_cursor_position(66, line++);
+		console << print_num(layout.get_runestones_per_enemy()) << " Rs/e" << clear_to_end;
+		console.set_cursor_position(58, line++);
 		console << "Cost:   " << print_num(layout.get_cost()) << " Rs" << clear_to_end;
-		console.set_cursor_position(58, 11);
+		console.set_cursor_position(58, line++);
 		console << "Cycle:  " << layout.get_cycle() << clear_to_end;
-		console.set_cursor_position(58, 13);
+
+		++line;
+		console.set_cursor_position(58, line++);
 		console << "Cycle now: " << cycle;
-		console.set_cursor_position(58, 14);
+		console.set_cursor_position(58, line++);
 		console << "Speed:     " << NumberIO(loops_per_second) << clear_to_end;
 		if(network)
 		{
-			console.set_cursor_position(58, 15);
+			console.set_cursor_position(58, line++);
 			console << (connection ? "Online      " : "Disconnected");
 			if(athome)
 			{
-				console.set_cursor_position(58, 16);
+				console.set_cursor_position(58, line++);
 				console << "Spire @ home";
 			}
 		}
@@ -1119,7 +1133,7 @@ void Spire::print_fancy(const Layout &layout)
 	unsigned floors = traps.size()/5;
 
 	console.update_size();
-	unsigned lines_per_floor = min((console.get_height()-4)/floors, 3U);
+	unsigned lines_per_floor = min((console.get_height()-6)/floors, 3U);
 
 	Number max_hp = layout.get_damage();
 	vector<CellInfo> cells;
@@ -1226,13 +1240,6 @@ void Spire::print_fancy(const Layout &layout)
 	}
 
 	console.restore_default_text_color();
-
-	if(athome)
-	{
-		for(unsigned i=floors; i<20; ++i)
-			for(unsigned j=0; j<lines_per_floor; ++j)
-				console << endl_clear;
-	}
 
 	if(lines_per_floor<3)
 		cout  << "Note: increase window height for even fancier output!" << endl;

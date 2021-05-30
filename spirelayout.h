@@ -117,6 +117,7 @@ private:
 	Number damage;
 	Number cost;
 	Number rs_per_sec;
+	Number rs_per_enemy;
 	Fixed<16, unsigned> threat;
 	unsigned cycle;
 
@@ -150,6 +151,7 @@ public:
 	Number get_damage() const { return damage; }
 	Number get_cost() const { return cost; }
 	Number get_runestones_per_second() const { return rs_per_sec; }
+	Number get_runestones_per_enemy() const { return rs_per_enemy; }
 	unsigned get_threat() const { return threat.round(); }
 	unsigned get_cycle() const { return cycle; }
 	bool is_valid() const;

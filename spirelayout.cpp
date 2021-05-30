@@ -691,11 +691,12 @@ void Layout::update_runestones(const vector<SimResult> &results)
 
 	if(hp_range)
 	{
-		steps_taken = max<Fixed<16>>(steps_taken/hp_range, capacity);
-		rs_per_sec = (runestones.result()*capacity/steps_taken/3).round();
-
+		rs_per_enemy = runestones.result();
 		unsigned core_scale = 100*Core::value_scale;
-		rs_per_sec = (rs_per_sec*(core_scale+core.runestones)+core_scale/2)/core_scale;
+		rs_per_enemy = (rs_per_enemy*(core_scale+core.runestones)+core_scale/2)/core_scale;
+
+		steps_taken = max<Fixed<16>>(steps_taken/hp_range, capacity);
+		rs_per_sec = (rs_per_enemy*capacity/steps_taken/3).round();
 	}
 	else
 		rs_per_sec = 0;
