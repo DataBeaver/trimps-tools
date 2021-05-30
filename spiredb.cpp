@@ -313,6 +313,8 @@ void SpireDB::serve_http(Network::ConnectionTag tag, const string &data)
 			serve_http_file("spiredb.css", response);
 		else if(request.method=="GET" && request.path=="/spiredb.js")
 			serve_http_file("spiredb.js", response);
+		else if(request.method=="GET" && request.path=="/lz-string.js")
+			serve_http_file("lz-string.min.js", response);
 		else if(request.method=="POST" && request.path=="/query")
 		{
 			response.response = 200;

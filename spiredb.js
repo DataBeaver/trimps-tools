@@ -141,8 +141,53 @@ function SpireClient()
 			this.error_display.innerText = xhr.response;
 	}
 
+	this.save_pasted = function save_pasted(event)
+	{
+		var save_data = event.clipboardData.getData("text");
+		var save_json = JSON.parse(LZString.decompressFromBase64(save_data));
+
+		var fe = this.query_form.elements;
+		fe.floors.value = save_json.playerSpire.main.rowsAllowed;
+		fe.budget.value = save_json.playerSpire.main.runestones;
+		fe.fire.value = save_json.playerSpire.traps.Fire.level;
+		fe.frost.value = save_json.playerSpire.traps.Frost.level;
+		fe.poison.value = save_json.playerSpire.traps.Poison.level;
+		fe.lightning.value = save_json.playerSpire.traps.Lightning.level;
+
+		fe.core_tier.value = save_json.global.CoreEquipped.rarity+1;
+		fe.core_fire.value = "";
+		fe.core_poison.value = "";
+		fe.core_lightning.value = "";
+		fe.core_strength.value = "";
+		fe.core_condenser.value = "";
+		fe.core_runestones.value = "";
+
+		var core_mods = save_json.global.CoreEquipped.mods;
+		for(var i=0; i<core_mods.length; ++i)
+		{
+			var mod = core_mods[i];
+			if(mod[0]=="fireTrap")
+				fe.core_fire.value = mod[1];
+			else if(mod[0]=="poisonTrap")
+				fe.core_poison.value = mod[1];
+			else if(mod[0]=="lightningTrap")
+				fe.core_lightning.value = mod[1];
+			else if(mod[0]=="strengthEffect")
+				fe.core_strength.value = mod[1];
+			else if(mod[0]=="condenserEffect")
+				fe.core_condenser.value = mod[1];
+			else if(mod[0]=="runestones")
+				fe.core_runestones.value = mod[1];
+		}
+
+		fe.save.value = "Data loaded!";
+		setTimeout(function(){ fe.save.value = ""; }, 3000);
+	}
+
 	var _this = this;
 	this.query_form.addEventListener("submit", function(event){ _this.query_spire(); event.preventDefault(); });
+	var save_input = this.query_form.elements.save;
+	save_input.addEventListener("paste", function(event){ _this.save_pasted(event); event.preventDefault(); });
 
 	this.create_spire(5, "");
 }
