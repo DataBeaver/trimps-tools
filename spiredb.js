@@ -27,6 +27,7 @@ function SpireClient()
 	this.ui = document.getElementById("ui");
 	this.query_form = this.ui.querySelector("form");
 	this.error_display = this.ui.querySelector(".error");
+	this.pending_submit = null;
 
 	this.create_spire = function create_spire(floors, traps)
 	{
@@ -129,6 +130,14 @@ function SpireClient()
 
 	this.query_spire = function query_spire()
 	{
+		if(this.pending_submit)
+		{
+			var xhr = new XMLHttpRequest();
+			xhr.open("POST", "/submit");
+			xhr.send(this.pending_submit);
+			this.pending_submit = null;
+		}
+
 		var fe = this.query_form.elements;
 		var query_type = fe.query_type.value;
 		var upgrades = this.describe_upgrades();
@@ -256,6 +265,17 @@ function SpireClient()
 			else if(mod[0]=="runestones")
 				fe.core_runestones.value = mod[1];
 		}
+
+		this.create_spire(save_json.playerSpire.main.rowsAllowed, layout);
+
+		var upgrades = this.describe_upgrades();
+		var core = this.describe_core();
+		this.pending_submit = "upg="+upgrades+" t="+layout+" core="+core;
+
+		this.layout_display.innerText = "";
+		this.core.style.display = "none";
+		this.stats.style.display = "none";
+		this.upgrades.style.display = "none";
 
 		fe.save.value = "Data loaded!";
 		setTimeout(function(){ fe.save.value = ""; }, 3000);

@@ -321,6 +321,12 @@ void SpireDB::serve_http(Network::ConnectionTag tag, const string &data)
 			vector<string> parts = split(request.body);
 			response.body = query(tag, parts, remote, true);
 		}
+		else if(request.method=="POST" && request.path=="/submit")
+		{
+			response.response = 200;
+			vector<string> parts = split(request.body);
+			response.body = submit(tag, parts, remote);
+		}
 	}
 	catch(const exception &e)
 	{
