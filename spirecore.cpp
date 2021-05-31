@@ -132,7 +132,7 @@ Number Core::get_mod_cost(unsigned mod, uint16_t value)
 		if(steps>=100)
 		{
 			double increase = tiers[tier].cost_increase/100.0;
-			result += step_cost*static_cast<Number>((pow(increase, steps+1)-1)/(increase-1));
+			result += step_cost*static_cast<Number>((pow(increase, steps)-1)/(increase-1));
 		}
 		else if(steps>0)
 		{
@@ -148,7 +148,7 @@ Number Core::get_mod_cost(unsigned mod, uint16_t value)
 				}
 			}
 
-			result += upgrade_cost_lookup[tier*100+steps];
+			result += upgrade_cost_lookup[tier*100+steps-1];
 		}
 	}
 
