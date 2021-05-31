@@ -234,6 +234,7 @@ Layout::Layout():
 	damage(0),
 	cost(0),
 	rs_per_sec(0),
+	rs_per_enemy(0),
 	threat(0),
 	cycle(0)
 { }
