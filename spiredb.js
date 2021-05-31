@@ -102,13 +102,15 @@ function SpireClient()
 		return cost;
 	}
 
-	this.query_spire = function query_spire()
+	this.describe_upgrades = function decsribe_upgrades()
 	{
 		var fe = this.query_form.elements;
-		var query_type = fe.query_type.value;
-		var upgrades = fe.fire.value+fe.frost.value+fe.poison.value+fe.lightning.value;
-		var floors = fe.floors.value;
-		var budget = fe.budget.value;
+		return fe.fire.value+fe.frost.value+fe.poison.value+fe.lightning.value;
+	}
+
+	this.describe_core = function describe_core()
+	{
+		var fe = this.query_form.elements;
 		var core = fe.core_tier.value;
 		if(fe.core_fire.value>0)
 			core += "/F:"+fe.core_fire.value;
@@ -122,6 +124,17 @@ function SpireClient()
 			core += "/C:"+fe.core_condenser.value;
 		if(fe.core_runestones.value>0)
 			core += "/R:"+fe.core_runestones.value;
+		return core;
+	}
+
+	this.query_spire = function query_spire()
+	{
+		var fe = this.query_form.elements;
+		var query_type = fe.query_type.value;
+		var upgrades = this.describe_upgrades();
+		var floors = fe.floors.value;
+		var budget = fe.budget.value;
+		var core = this.describe_core();
 		var query = "upg="+upgrades+" f="+floors+" rs="+budget+" core="+core+" "+query_type;
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/query");
