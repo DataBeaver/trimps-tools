@@ -280,6 +280,8 @@ Spire::Spire(int argc, char **argv):
 		}
 		if(budget_str[0]=='+')
 			budget += start_layout.get_cost();
+		else if(budget<start_layout.get_cost())
+			throw usage_error("Runestone budget is too low for the layout");
 	}
 	else if(!start_layout.get_traps().empty())
 		budget = start_layout.get_cost();
@@ -298,6 +300,8 @@ Spire::Spire(int argc, char **argv):
 		}
 		if(core_budget_str[0]=='+')
 			core_budget += start_layout.get_core().cost;
+		else if(core_budget<start_layout.get_core().cost)
+			throw usage_error("Spirestone budget is too low for the core");
 	}
 
 	if(!core_budget)
