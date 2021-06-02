@@ -532,6 +532,7 @@ int Spire::main()
 		start_layout.debug(start_layout.get_damage());
 		console << "Threat: " << start_layout.get_threat() << endl;
 		console << "Runestones: " << start_layout.get_runestones_per_second() << "/s" << endl;
+		console << "            " << start_layout.get_runestones_per_enemy() << "/enemy" << endl;
 		return 0;
 	}
 
