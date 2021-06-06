@@ -665,9 +665,7 @@ void Spire::process_network_reply(const vector<string> &args, Layout &layout)
 
 	for(const auto &arg: args)
 	{
-		if(!arg.compare(0, 4, "upg="))
-			layout.set_upgrades(arg.substr(4));
-		else if(!arg.compare(0, 2, "t="))
+		if(!arg.compare(0, 2, "t="))
 			layout.set_traps(arg.substr(2), floors);
 		else if(!arg.compare(0, 5, "core="))
 		{
@@ -676,7 +674,9 @@ void Spire::process_network_reply(const vector<string> &args, Layout &layout)
 		}
 		else if(athome)
 		{
-			if(!arg.compare(0, 3, "rs="))
+			if(!arg.compare(0, 4, "upg="))
+				layout.set_upgrades(arg.substr(4));
+			else if(!arg.compare(0, 3, "rs="))
 				budget = parse_value<NumberIO>(arg.substr(3));
 			else if(!arg.compare(0, 3, "ss="))
 				core_budget = parse_value<NumberIO>(arg.substr(3));
