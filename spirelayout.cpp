@@ -77,11 +77,51 @@ Number WeightedAccumulator::result() const
 }
 
 
+const TrapUpgrades TrapUpgrades::canonical[] =
+{
+	{ 1, 1, 0, 0 },  // Initial
+	{ 1, 2, 0, 0 },  // Tutorial step 4, z230
+	{ 1, 2, 1, 0 },  // Tutorial step 5
+	{ 1, 2, 1, 1 },  // Tutorial step 6
+	{ 2, 2, 1, 1 },  // z250
+	{ 2, 3, 1, 1 },  // z275
+	{ 3, 3, 1, 1 },  // z300
+	{ 3, 4, 1, 1 },  // z330
+	{ 3, 4, 2, 1 },  // z350
+	{ 4, 4, 2, 1 },  // z375
+	{ 4, 4, 3, 1 },  // z400
+	{ 5, 4, 3, 1 },  // z425
+	{ 5, 5, 3, 1 },  // z430
+	{ 5, 5, 3, 2 },  // z440
+	{ 5, 5, 4, 2 },  // z450
+	{ 6, 5, 4, 3 },  // z500
+	{ 6, 6, 4, 3 },  // z530
+	{ 6, 6, 5, 3 },  // z550
+	{ 6, 6, 5, 4 },  // z575
+	{ 7, 6, 5, 4 },  // z590
+	{ 7, 6, 6, 5 },  // z600
+	{ 7, 6, 7, 5 },  // z625
+	{ 7, 7, 7, 5 },  // z630
+	{ 8, 7, 7, 5 },  // z650
+	{ 8, 7, 7, 6 },  // z675
+	{ 8, 7, 8, 6 },  // z700
+	{ 8, 8, 8, 6 },  // z730
+	{ 8, 8, 9, 6 },  // z750
+	{ 0, 0, 0, 0}
+};
+
 TrapUpgrades::TrapUpgrades():
 	fire(1),
 	frost(1),
 	poison(1),
 	lightning(1)
+{ }
+
+TrapUpgrades::TrapUpgrades(uint16_t f, uint16_t z, uint16_t p, uint16_t l):
+	fire(f),
+	frost(z),
+	poison(p),
+	lightning(l)
 { }
 
 TrapUpgrades::TrapUpgrades(const string &upgrades)
@@ -96,6 +136,18 @@ TrapUpgrades::TrapUpgrades(const string &upgrades)
 	frost = upgrades[1]-'0';
 	poison = upgrades[2]-'0';
 	lightning = upgrades[3]-'0';
+}
+
+bool TrapUpgrades::operator==(const TrapUpgrades &other) const
+{
+	return (fire==other.fire && frost==other.frost && poison==other.poison && lightning==other.lightning);
+}
+
+bool TrapUpgrades::operator<(const TrapUpgrades &other) const
+{
+	if(fire>other.fire || frost>other.frost || poison>other.poison || lightning>other.lightning)
+		return false;
+	return (fire<other.fire || frost<other.frost || poison<other.poison || lightning<other.lightning);
 }
 
 string TrapUpgrades::str() const

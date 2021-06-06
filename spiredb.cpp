@@ -545,6 +545,37 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args)
 
 	lock_guard<mutex> lock_db(database_mutex);
 	pqxx::work xact(*pq_conn);
+
+	int verdict = submit_layout(tag, xact, layout);
+
+	const TrapUpgrades &upgrades = layout.get_upgrades();
+	const TrapUpgrades *upg_iter = TrapUpgrades::canonical;
+	for(; (upg_iter->fire && *upg_iter<upgrades); ++upg_iter) ;
+	if(*upg_iter==upgrades)
+		++upg_iter;
+
+	if(upgrades<*upg_iter)
+	{
+		Layout upgraded_layout = layout;
+		TrapUpgrades limit(upgrades.fire+1, upgrades.frost+1, upgrades.poison+1, upgrades.lightning+1);
+		for(; (upg_iter->fire && *upg_iter<limit); ++upg_iter)
+		{
+			upgraded_layout.set_upgrades(*upg_iter);
+			upgraded_layout.update(Layout::FULL);
+			verdict = max(verdict, submit_layout(tag, xact, upgraded_layout));
+		}
+	}
+
+	if(verdict>0)
+		return "ok accepted";
+	else if(!verdict)
+		return "ok duplicate";
+	else
+		return "ok obsolete";
+}
+
+int SpireDB::submit_layout(Network::ConnectionTag tag, pqxx::transaction_base &xact, const Layout &layout)
+{
 	int verdict = check_better_layout(xact, layout, false, false);
 	verdict = max(verdict, check_better_layout(xact, layout, true, false));
 	verdict = max(verdict, check_better_layout(xact, layout, false, true));
@@ -595,13 +626,9 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args)
 		xact.commit();
 
 		check_live_queries(tag, layout);
-
-		return "ok accepted";
 	}
-	else if(!verdict)
-		return "ok duplicate";
-	else
-		return "ok obsolete";
+
+	return verdict;
 }
 
 int SpireDB::check_better_layout(pqxx::transaction_base &xact, const Layout &layout, bool income, bool towers)

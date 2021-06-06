@@ -14,8 +14,14 @@ struct TrapUpgrades
 	std::uint16_t poison;
 	std::uint16_t lightning;
 
+	static const TrapUpgrades canonical[];
+
 	TrapUpgrades();
+	TrapUpgrades(std::uint16_t, std::uint16_t, std::uint16_t, std::uint16_t);
 	TrapUpgrades(const std::string &);
+
+	bool operator==(const TrapUpgrades &) const;
+	bool operator<(const TrapUpgrades &) const;
 
 	std::string str() const;
 };
