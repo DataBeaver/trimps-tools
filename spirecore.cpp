@@ -51,6 +51,8 @@ Core::Core(const string &desc):
 		throw invalid_argument("Invalid core tier "+parts[0]);
 	if(parts.size()>static_cast<unsigned>(tiers[tier].max_mods)+1)
 		throw invalid_argument("Too many mods for tier "+parts[0]);
+	if(parts.size()<2 || parts.size()<static_cast<unsigned>(tiers[tier].max_mods))
+		throw invalid_argument("Too few mods for tier "+parts[0]);
 
 	for(unsigned i=1; i<parts.size(); ++i)
 	{
