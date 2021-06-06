@@ -128,7 +128,7 @@ SpireDB::SpireDB(int argc, char **argv):
 	pq_conn->prepare("select_underperforming", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
 		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY rs_per_sec/layouts.cost ASC");
 	pq_conn->prepare("select_missing_floor", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
-		"WHERE "+filter_config+" AND "+filter_core_config+" AND floors<20 AND threat/100>LENGTH(traps)/5");
+		"WHERE "+filter_config+" AND "+filter_core_config+" AND floors<20 AND threat/100>LENGTH(traps)/5 ORDER BY rs_per_sec DESC");
 	pq_conn->prepare("select_best_for_config", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
 		"WHERE "+filter_config+" AND "+filter_core_config+" ORDER BY rs_per_sec DESC");
 	pq_conn->prepare("select_best_towers_for_config", "SELECT "+layout_fields+" FROM layouts "+join_core+" "
@@ -752,7 +752,7 @@ void SpireDB::select_random_work()
 		core = query_core(xact, row[6].as<unsigned>());
 
 	Number budget = 0;
-	if(work_type==INCREASE_BUDGET || work_type==DECREASE_BUDGET)
+	if(work_type==INCREASE_BUDGET || work_type==INCREASE_BUDGET_TOWERS || work_type==DECREASE_BUDGET)
 	{
 		Layout layout;
 		layout.set_upgrades(upg);
@@ -760,21 +760,14 @@ void SpireDB::select_random_work()
 		layout.update(Layout::COST_ONLY);
 
 		uniform_real_distribution<double> distrib;
-		if(work_type==INCREASE_BUDGET)
+		if(work_type==INCREASE_BUDGET || work_type==INCREASE_BUDGET_TOWERS)
 			distrib = uniform_real_distribution<double>(0.0, 2.0);
 		else
 			distrib = uniform_real_distribution<double>(-0.1, 0.0);
 		budget = layout.get_cost()*exp(distrib(random));
 
-		if(work_type==DECREASE_BUDGET)
-		{
-			for(unsigned j=traps.size()-1; (j<traps.size() && layout.get_cost()>budget); --j)
-			{
-				traps[j] = '_';
-				layout.set_traps(traps);
-				layout.update(Layout::COST_ONLY);
-			}
-		}
+		layout = query_layout(xact, layout.get_traps().size()/5, upg, budget, (core.tier>=0 ? &core : nullptr), 0, true, (work_type==INCREASE_BUDGET_TOWERS));
+		traps = layout.get_traps();
 	}
 
 	lock_guard<mutex> lock(work_mutex);
