@@ -276,9 +276,9 @@ void SpireDB::serve(Network::ConnectionTag tag, const string &data)
 	try
 	{
 		if(cmd=="submit")
-			result = submit(tag, parts, remote);
+			result = submit(tag, parts);
 		else if(cmd=="query")
-			result = query(tag, parts, remote);
+			result = query(tag, parts);
 		else if(cmd=="getwork")
 			result = get_work();
 		else
@@ -319,13 +319,13 @@ void SpireDB::serve_http(Network::ConnectionTag tag, const string &data)
 		{
 			response.response = 200;
 			vector<string> parts = split(request.body);
-			response.body = query(tag, parts, remote, true);
+			response.body = query(tag, parts, true);
 		}
 		else if(request.method=="POST" && request.path=="/submit")
 		{
 			response.response = 200;
 			vector<string> parts = split(request.body);
-			response.body = submit(tag, parts, remote);
+			response.body = submit(tag, parts);
 		}
 	}
 	catch(const exception &e)
@@ -365,7 +365,7 @@ void SpireDB::serve_http_file(const string &filename, HttpMessage &response)
 	response.add_header("Content-Type", content_type+";charset=utf-8");
 }
 
-string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, const string &client, bool report_stats)
+string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, bool report_stats)
 {
 	TrapUpgrades upgrades("8896");
 	unsigned floors = 20;
@@ -404,6 +404,8 @@ string SpireDB::query(Network::ConnectionTag tag, const vector<string> &args, co
 		core = Core();
 		core_budget = 0;
 	}
+
+	const string &client = network.get_remote_host(tag);
 
 	RecentQuery rq;
 	rq.upgrades = upgrades.str();
@@ -519,7 +521,7 @@ Core SpireDB::query_core(pqxx::transaction_base &xact, unsigned core_id)
 	return core;
 }
 
-string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, const string &submitter)
+string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args)
 {
 	Layout layout;
 	for(unsigned i=0; i<args.size(); ++i)
@@ -587,6 +589,7 @@ string SpireDB::submit(Network::ConnectionTag tag, const vector<string> &args, c
 			}
 		}
 
+		const string &submitter = network.get_remote_host(tag);
 		xact.exec_prepared("insert_layout", floors, upgrades.fire, upgrades.frost, upgrades.poison, upgrades.lightning, layout.get_traps(), core_id,
 			damage, threat, rs_per_sec, tower_count, cost, submitter, current_version);
 		xact.commit();
