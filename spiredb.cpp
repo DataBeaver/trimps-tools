@@ -67,8 +67,8 @@ SpireDB::SpireDB(int argc, char **argv):
 		"LEFT JOIN core_mods AS core_poison ON core_poison.core_id=cores.id AND core_poison.mod=1 "
 		"LEFT JOIN core_mods AS core_lightning ON core_lightning.core_id=cores.id AND core_lightning.mod=2 "
 		"LEFT JOIN core_mods AS core_strength ON core_strength.core_id=cores.id AND core_strength.mod=3 "
-		"LEFT JOIN core_mods AS core_condenser ON core_condenser.core_id=cores.id AND core_condenser.mod=4"
-		"LEFT JOIN core_mods AS core_runestone ON core_runestone.core_id=cores.id AND core_condenser.mod=4";
+		"LEFT JOIN core_mods AS core_condenser ON core_condenser.core_id=cores.id AND core_condenser.mod=4 "
+		"LEFT JOIN core_mods AS core_runestone ON core_runestone.core_id=cores.id AND core_condenser.mod=5";
 	string filter_base = "floors<=$1 AND fire<=$2 AND frost<=$3 AND poison<=$4 AND lightning<=$5 AND layouts.cost<=$6";
 	string filter_core = "cores.type=$7 AND cores.tier<=$8 AND cores.cost<=$9";
 	string filter_config = "floors=$1 AND fire=$2 AND frost=$3 AND poison=$4 AND lightning=$5";
