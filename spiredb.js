@@ -234,7 +234,7 @@ function SpireClient()
 
 		var fe = this.query_form.elements;
 		fe.floors.value = save_json.playerSpire.main.rowsAllowed;
-		fe.budget.value = this.calculate_cost(layout)+save_json.playerSpire.main.runestones;
+		fe.budget.value = Math.floor(this.calculate_cost(layout)+save_json.playerSpire.main.runestones);
 		fe.fire.value = save_json.playerSpire.traps.Fire.level;
 		fe.frost.value = save_json.playerSpire.traps.Frost.level;
 		fe.poison.value = save_json.playerSpire.traps.Poison.level;
