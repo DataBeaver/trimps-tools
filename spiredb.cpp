@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
+#include <signal.h>
 #include <pqxx/result>
 #include <pqxx/transaction>
 #include "getopt.h"
@@ -31,6 +32,7 @@ struct string_traits<Number>
 
 int main(int argc, char **argv)
 {
+	signal(SIGPIPE, SIG_IGN);
 	SpireDB spiredb(argc, argv);
 	return spiredb.main();
 }
