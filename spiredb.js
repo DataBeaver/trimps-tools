@@ -232,13 +232,14 @@ function SpireClient()
 				layout += trap.name[0];
 		}
 
+		var save_traps = save_json.playerSpire.traps
 		var fe = this.query_form.elements;
 		fe.floors.value = save_json.playerSpire.main.rowsAllowed;
 		fe.budget.value = Math.floor(this.calculate_cost(layout)+save_json.playerSpire.main.runestones);
-		fe.fire.value = save_json.playerSpire.traps.Fire.level;
-		fe.frost.value = save_json.playerSpire.traps.Frost.level;
-		fe.poison.value = save_json.playerSpire.traps.Poison.level;
-		fe.lightning.value = save_json.playerSpire.traps.Lightning.level;
+		fe.fire.value = save_traps.Fire.level;
+		fe.frost.value = save_traps.Frost.level;
+		fe.poison.value = save_traps.Poison.locked ? 0 : save_traps.Poison.level;
+		fe.lightning.value = save_traps.Lightning.locked ? 0 : save_traps.Lightning.level;
 
 		fe.core_tier.value = save_json.global.CoreEquipped.rarity+1;
 		fe.core_fire.value = "";
