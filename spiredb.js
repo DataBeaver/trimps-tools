@@ -224,7 +224,7 @@ function SpireClient()
 		for(var i=0; i<save_json.playerSpire.main.layout.length; ++i)
 		{
 			var trap = save_json.playerSpire.main.layout[i].trap;
-			if(!trap)
+			if(!trap || !trap.name)
 				layout += "_";
 			else if(trap.name=="Frost")
 				layout += "Z";
