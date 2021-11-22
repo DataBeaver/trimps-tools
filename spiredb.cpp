@@ -242,7 +242,7 @@ void SpireDB::update_data()
 			core.set_mod(mod[0].as<unsigned>(), mod[1].as<uint16_t>());
 
 		core.update();
-		Number cost = min<Number>(core.cost, numeric_limits<int64_t>::max());
+		Number cost = min<Number>(core.cost, number_max);
 		xact.exec_prepared("update_core", id, cost, current_version);
 	}
 

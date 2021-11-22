@@ -11,12 +11,16 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 typedef unsigned __int128 Number;
+// std::numeric_limits<unsigned __int128>::max() returns zero in some environments, so use
+// -1 cast to Number instead for the maximum representable unsigned 128-bit number.
+constexpr Number number_max = Number(-1);
 #pragma GCC diagnostic pop
 #else
 #error "128-bit integers are not available with this compiler"
 #endif
 #else
 typedef std::uint64_t Number;
+constexpr Number number_max = std::numeric_limits<Number>::max();
 #endif
 
 template<typename T>

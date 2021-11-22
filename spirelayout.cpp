@@ -445,7 +445,7 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, bool st
 {
 	SimResult result;
 	result.sim_hp = hp;
-	result.max_hp = numeric_limits<Number>::max();
+	result.max_hp = number_max;
 
 	if(detail)
 	{
@@ -621,7 +621,7 @@ void Layout::update_cost()
 	Number strength_cost = 3000;
 	Number condenser_cost = 6000;
 	Number knowledge_cost = 9000;
-	Number max_cost = numeric_limits<Number>::max();
+	Number max_cost = number_max;
 	cost = 0;
 	for(char t: data)
 	{
@@ -689,7 +689,7 @@ void Layout::update_threat(const vector<SimResult> &results)
 	{
 		threat = (low+high+1)/2;
 
-		static Number bias = numeric_limits<Number>::max()/2;
+		static Number bias = number_max/2;
 		Number change = bias;
 		integrate_results(results, threat, [&change, cells, floors](const SimResult &r, Number low_hp, Number high_hp)
 		{
