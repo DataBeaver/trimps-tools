@@ -78,7 +78,7 @@ string HttpMessage::str() const
 	else
 		result = format("%s %s HTTP/1.1\r\n", method, path);
 
-	for(const auto h: headers)
+	for(const auto &h: headers)
 		result += format("%s: %s\r\n", h.first, h.second);
 
 	result += "\r\n";
