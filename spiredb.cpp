@@ -3,6 +3,7 @@
 #include <functional>
 #include <iostream>
 #include <fstream>
+#include <optional>
 #include <thread>
 #include <signal.h>
 #include <pqxx/result>
