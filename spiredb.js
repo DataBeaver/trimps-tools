@@ -113,6 +113,8 @@ function SpireClient()
 	{
 		var fe = this.query_form.elements;
 		var core = fe.core_tier.value;
+		if(core=="0")
+			return "";
 		if(fe.core_fire.value>0)
 			core += "/F:"+fe.core_fire.value;
 		if(fe.core_poison.value>0)
@@ -143,8 +145,10 @@ function SpireClient()
 		var upgrades = this.describe_upgrades();
 		var floors = fe.floors.value;
 		var budget = fe.budget.value;
+		var query = "upg="+upgrades+" f="+floors+" rs="+budget+" "+query_type;
 		var core = this.describe_core();
-		var query = "upg="+upgrades+" f="+floors+" rs="+budget+" core="+core+" "+query_type;
+		if(core)
+			query += " core="+core;
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/query");
 		var _this = this;
@@ -241,7 +245,7 @@ function SpireClient()
 		fe.poison.value = save_traps.Poison.locked ? 0 : save_traps.Poison.level;
 		fe.lightning.value = save_traps.Lightning.locked ? 0 : save_traps.Lightning.level;
 
-		fe.core_tier.value = save_json.global.CoreEquipped.rarity+1;
+		fe.core_tier.value = "0";
 		fe.core_fire.value = "";
 		fe.core_poison.value = "";
 		fe.core_lightning.value = "";
@@ -249,29 +253,36 @@ function SpireClient()
 		fe.core_condenser.value = "";
 		fe.core_runestones.value = "";
 
-		var core_mods = save_json.global.CoreEquipped.mods;
-		for(var i=0; i<core_mods.length; ++i)
+		if("rarity" in save_json.global.CoreEquipped)
 		{
-			var mod = core_mods[i];
-			if(mod[0]=="fireTrap")
-				fe.core_fire.value = mod[1];
-			else if(mod[0]=="poisonTrap")
-				fe.core_poison.value = mod[1];
-			else if(mod[0]=="lightningTrap")
-				fe.core_lightning.value = mod[1];
-			else if(mod[0]=="strengthEffect")
-				fe.core_strength.value = mod[1];
-			else if(mod[0]=="condenserEffect")
-				fe.core_condenser.value = mod[1];
-			else if(mod[0]=="runestones")
-				fe.core_runestones.value = mod[1];
+			fe.core_tier.value = save_json.global.CoreEquipped.rarity+1;
+
+			var core_mods = save_json.global.CoreEquipped.mods;
+			for(var i=0; i<core_mods.length; ++i)
+			{
+				var mod = core_mods[i];
+				if(mod[0]=="fireTrap")
+					fe.core_fire.value = mod[1];
+				else if(mod[0]=="poisonTrap")
+					fe.core_poison.value = mod[1];
+				else if(mod[0]=="lightningTrap")
+					fe.core_lightning.value = mod[1];
+				else if(mod[0]=="strengthEffect")
+					fe.core_strength.value = mod[1];
+				else if(mod[0]=="condenserEffect")
+					fe.core_condenser.value = mod[1];
+				else if(mod[0]=="runestones")
+					fe.core_runestones.value = mod[1];
+			}
 		}
 
 		this.create_spire(save_json.playerSpire.main.rowsAllowed, layout);
 
 		var upgrades = this.describe_upgrades();
+		this.pending_submit = "upg="+upgrades+" t="+layout;
 		var core = this.describe_core();
-		this.pending_submit = "upg="+upgrades+" t="+layout+" core="+core;
+		if(core)
+			this.pending_submit += " core="+core;
 
 		this.layout_display.innerText = "";
 		this.core.style.display = "none";
