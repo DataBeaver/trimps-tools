@@ -66,6 +66,8 @@ Core::Core(const string &desc):
 
 		if(mod>=N_MODS)
 			throw invalid_argument("Invalid core mod "+part);
+		if(!tiers[tier].mods[mod].base)
+			throw invalid_argument("Code mod "+part+" is not available for tier "+parts[0]);
 
 		unsigned value = tiers[tier].mods[mod].soft_cap;
 		if(colon!=string::npos)
@@ -120,7 +122,7 @@ unsigned Core::get_n_mods() const
 Number Core::get_mod_cost(unsigned mod, uint16_t value)
 {
 	const ModValues &mod_vals = tiers[tier].mods[mod];
-	if(value<=mod_vals.base)
+	if(value<=mod_vals.base || !mod_vals.base)
 		return 0;
 
 	Number result = 0;
