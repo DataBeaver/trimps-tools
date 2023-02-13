@@ -343,14 +343,14 @@ Spire::ParsedLayout Spire::parse_layout(const string &layout_in, const string &u
 	traps ::=     r'(\d{5})+'
 	upgrades ::=  r'\d{4}'
 	floors ::=    r'\d' */
-	static regex numeric_regex("(\\d{5})+\\+\\d{4}\\+\\d{1,2}");
+	static regex numeric_regex("(\\d{5})+\\+[[:xdigit:]]{4}\\+\\d{1,2}");
 
 	/* Checks for a layout string in the optimizer format:
 	tower ::=     [upgrades] ' ' [traps] | [upgrades] [traps]
 	upgrades ::=  r'\d{4}'
 	traps ::=     [trap_row] | [trap_row] ' ' [trap_row] | [trap_row] [trap_row]
 	trap_row :=   r'[FZPLSCK_]{5}' */
-	static regex alpha_regex("\\d{4} ?([FZPLSCK_]{5} ?)*[FZPLSCK_]{5}+");
+	static regex alpha_regex("[[:xdigit:]]{4} ?([FZPLSCK_]{5} ?)*[FZPLSCK_]{5}+");
 
 	if(regex_match(layout_in, numeric_regex))
 		parse_numeric_layout(layout_in, parsed);
@@ -388,13 +388,13 @@ void Spire::init_start_layout(const ParsedLayout &layout)
 	}
 
 	const TrapUpgrades &start_upgrades = start_layout.get_upgrades();
-	if(start_upgrades.fire>8)
+	if(start_upgrades.fire>10)
 		throw usage_error("Invalid fire trap upgrade level");
 	if(start_upgrades.frost>8)
 		throw usage_error("Invalid frost trap upgrade level");
 	if(start_upgrades.poison>9)
 		throw usage_error("Invalid poison trap upgrade level");
-	if(start_upgrades.lightning>6)
+	if(start_upgrades.lightning>7)
 		throw usage_error("Invalid lightning trap upgrade level");
 
 	if(!layout.core.empty())

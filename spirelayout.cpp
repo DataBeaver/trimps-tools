@@ -129,13 +129,13 @@ TrapUpgrades::TrapUpgrades(const string &upgrades)
 	if(upgrades.size()!=4)
 		throw invalid_argument("TrapUpgrades::TrapUpgrades");
 	for(auto c: upgrades)
-		if(!isdigit(c))
+		if(!isxdigit(c))
 			throw invalid_argument("TrapUpgrades::TrapUpgrades");
 
-	fire = upgrades[0]-'0';
-	frost = upgrades[1]-'0';
-	poison = upgrades[2]-'0';
-	lightning = upgrades[3]-'0';
+	fire = stoi(string(1, upgrades[0]), nullptr, 16);
+	frost = stoi(string(1, upgrades[1]), nullptr, 16);
+	poison = stoi(string(1, upgrades[2]), nullptr, 16);
+	lightning = stoi(string(1, upgrades[3]), nullptr, 16);
 }
 
 bool TrapUpgrades::operator==(const TrapUpgrades &other) const
@@ -153,7 +153,7 @@ bool TrapUpgrades::operator<(const TrapUpgrades &other) const
 string TrapUpgrades::str() const
 {
 	char buf[4];
-	buf[0] = '0'+fire;
+	buf[0] = fire > 9 ? 'A'+fire-10 : '0'+fire;
 	buf[1] = '0'+frost;
 	buf[2] = '0'+poison;
 	buf[3] = '0'+lightning;
@@ -190,6 +190,10 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	if(upgrades.fire>=7)
 		fire_damage *= 10;
 	if(upgrades.fire>=8)
+		fire_damage *= 100;
+	if(upgrades.fire>=9)
+		fire_damage *= 100;
+	if(upgrades.fire>=10)
 		fire_damage *= 100;
 
 	fire_damage = fire_damage*(core_scale+core.fire)/core_scale;
@@ -260,6 +264,10 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 	{
 		lightning_damage *= 10;
 		shock_damage_multi *= 2;
+	}
+	if(upgrades.lightning>=7)
+	{
+		lightning_column_bonus = 0.2;
 	}
 
 	lightning_damage = lightning_damage*(core_scale+core.lightning)/core_scale;
@@ -497,8 +505,10 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, bool st
 				result.max_hp = min(result.max_hp, kill_damage);
 				result.kill_cell = s.cell;
 				result.runestone_multi = rs_multi;
-				if(upgrades.fire>=7 && s.trap=='F')
+				if(upgrades.fire>=7 && upgrades.fire<9 && s.trap=='F')
 					result.runestone_multi = result.runestone_multi*6/5;
+				if(upgrades.fire>=9 && s.trap=='F')
+					result.runestone_multi = result.runestone_multi*3/2;
 				if(stop_early)
 					break;
 			}
