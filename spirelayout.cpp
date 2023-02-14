@@ -266,9 +266,7 @@ TrapEffects::TrapEffects(const TrapUpgrades &upgrades, const Core &core):
 		shock_damage_multi *= 2;
 	}
 	if(upgrades.lightning>=7)
-	{
 		lightning_column_bonus = 0.2;
-	}
 
 	lightning_damage = lightning_damage*(core_scale+core.lightning)/core_scale;
 	shock_damage_multi = shock_damage_multi*(core_scale+core.lightning)/core_scale;
