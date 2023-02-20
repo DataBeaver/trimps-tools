@@ -103,10 +103,18 @@ function SpireClient()
 		return cost;
 	}
 
+	this.describe_upgrade = function describe_upgrade(level)
+	{
+		level = Number(level);
+		var charCode = (level<10 ? 48+level : 55+level);
+		return String.fromCharCode(charCode);
+	}
+
 	this.describe_upgrades = function decsribe_upgrades()
 	{
 		var fe = this.query_form.elements;
-		return fe.fire.value+fe.frost.value+fe.poison.value+fe.lightning.value;
+		return this.describe_upgrade(fe.fire.value)+this.describe_upgrade(fe.frost.value)+
+			this.describe_upgrade(fe.poison.value)+this.describe_upgrade(fe.lightning.value);
 	}
 
 	this.describe_core = function describe_core()
