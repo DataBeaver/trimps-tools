@@ -2,6 +2,7 @@
 #define CONSOLE_H_
 
 #include <iostream>
+#include "types.h"
 
 class Console
 {

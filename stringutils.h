@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include "types.h"
 
 template<typename T>
 inline std::string stringify(const T &value)
