@@ -469,6 +469,12 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, bool st
 		detail->reserve(steps.size());
 	}
 
+	Fixed<10, uint16_t> fire_kill_rs_multi = 1;
+	if(upgrades.fire>=9)
+		fire_kill_rs_multi = 1.5;
+	else if(upgrades.fire>=7)
+		fire_kill_rs_multi = 1.2;
+
 	Number kill_damage = 0;
 	Number toxicity = 0;
 	Fixed<100, uint16_t> rs_multi = 1;
@@ -513,10 +519,8 @@ Layout::SimResult Layout::simulate(const vector<Step> &steps, Number hp, bool st
 				result.max_hp = min(result.max_hp, kill_damage);
 				result.kill_cell = s.cell;
 				result.runestone_multi = rs_multi;
-				if(upgrades.fire>=7 && upgrades.fire<9 && s.trap=='F')
-					result.runestone_multi = result.runestone_multi*6/5;
-				if(upgrades.fire>=9 && s.trap=='F')
-					result.runestone_multi = result.runestone_multi*3/2;
+				if(s.trap=='F')
+					result.runestone_multi = (result.runestone_multi*fire_kill_rs_multi).rescale<100>();
 				if(stop_early)
 					break;
 			}
