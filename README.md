@@ -1,7 +1,7 @@
 Tools to assist in decision-making for the browser game
 [Trimps](https://trimps.github.io/).
 
-Copyright © 2018-2021  Mikkosoft Productions  
+Copyright © 2018-2023  Mikkosoft Productions  
 Licensed under GPLv3.
 
 
