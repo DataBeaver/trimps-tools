@@ -132,10 +132,10 @@ TrapUpgrades::TrapUpgrades(const string &upgrades)
 		if(!isxdigit(c))
 			throw invalid_argument("TrapUpgrades::TrapUpgrades");
 
-	fire = stoi(string(1, upgrades[0]), nullptr, 16);
-	frost = stoi(string(1, upgrades[1]), nullptr, 16);
-	poison = stoi(string(1, upgrades[2]), nullptr, 16);
-	lightning = stoi(string(1, upgrades[3]), nullptr, 16);
+	fire = char_to_level(upgrades[0]);
+	frost = char_to_level(upgrades[1]);
+	poison = char_to_level(upgrades[2]);
+	lightning = char_to_level(upgrades[3]);
 }
 
 bool TrapUpgrades::operator==(const TrapUpgrades &other) const
@@ -153,11 +153,21 @@ bool TrapUpgrades::operator<(const TrapUpgrades &other) const
 string TrapUpgrades::str() const
 {
 	char buf[4];
-	buf[0] = fire > 9 ? 'A'+fire-10 : '0'+fire;
-	buf[1] = '0'+frost;
-	buf[2] = '0'+poison;
-	buf[3] = '0'+lightning;
+	buf[0] = level_to_char(fire);
+	buf[1] = level_to_char(frost);
+	buf[2] = level_to_char(poison);
+	buf[3] = level_to_char(lightning);
 	return string(buf, 4);
+}
+
+std::uint16_t TrapUpgrades::char_to_level(char c)
+{
+	return c>='A' ? 10+(c-'A') : c-'0';
+}
+
+char TrapUpgrades::level_to_char(std::uint16_t l)
+{
+	return l>=10 ? 'A'+l : '0'+l;
 }
 
 

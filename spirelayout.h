@@ -24,6 +24,9 @@ struct TrapUpgrades
 	bool operator<(const TrapUpgrades &) const;
 
 	std::string str() const;
+
+	static std::uint16_t char_to_level(char);
+	static char level_to_char(std::uint16_t);
 };
 
 struct TrapEffects
