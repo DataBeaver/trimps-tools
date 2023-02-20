@@ -162,7 +162,7 @@ string TrapUpgrades::str() const
 
 std::uint16_t TrapUpgrades::char_to_level(char c)
 {
-	return c>='A' ? 10+(c-'A') : c-'0';
+	return c>='a' ? 10+(c-'a') : c>='A' ? 10+(c-'A') : c-'0';
 }
 
 char TrapUpgrades::level_to_char(std::uint16_t l)
